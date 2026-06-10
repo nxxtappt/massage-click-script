@@ -1,0 +1,71 @@
+[
+  {
+    "claimId": "claim_0c60d49c-6c85-49ae-85b1-214ced28e4ce",
+    "businessId": "dimensions-massage-therapy",
+    "businessName": "Dimensions Massage Therapy",
+    "ownerName": "Trevor Cobb",
+    "email": "trevor@dimensionsmt.com",
+    "phone": "5124369191",
+    "website": "",
+    "status": "claimed_verified",
+    "requestedAt": "2026-06-09T16:33:45.908Z",
+    "updatedAt": "2026-06-09T16:35:25.521Z",
+    "verification": {
+      "emailVerified": false,
+      "manualReviewed": true,
+      "approvedBy": "admin",
+      "approvedAt": "2026-06-09T16:35:25.521Z",
+      "rejectedBy": null,
+      "rejectedAt": null,
+      "rejectionReason": ""
+    },
+    "apiProviders": [],
+    "notes": "Please call and verifiy"
+  },
+  {
+    "claimId": "claim_5f0165b8-30e1-4ff8-90f2-66458dd97670",
+    "businessId": "fake-spa-2",
+    "businessName": "Fake Spa 2",
+    "ownerName": "Fake Owner",
+    "email": "fake2@test.com",
+    "phone": "",
+    "website": "",
+    "status": "claimed_rejected",
+    "requestedAt": "2026-05-28T21:46:54.645Z",
+    "updatedAt": "2026-05-28T21:47:28.275Z",
+    "verification": {
+      "emailVerified": false,
+      "manualReviewed": true,
+      "approvedBy": null,
+      "approvedAt": null,
+      "rejectedBy": "admin",
+      "rejectedAt": "2026-05-28T21:47:28.275Z",
+      "rejectionReason": "This place is fake"
+    },
+    "apiProviders": [],
+    "notes": ""
+  },
+  {
+    "claimId": "claim_725f4e51-abfb-49b5-8132-42909ceb6333",
+    "businessId": "test-spa",
+    "businessName": "Test Spa",
+    "ownerName": "Test Owner",
+    "email": "test@test.com",
+    "phone": "",
+    "website": "",
+    "status": "claimed_verified",
+    "requestedAt": "2026-05-28T21:17:28.145Z",
+    "updatedAt": "2026-05-28T21:45:35.486Z",
+    "verification": {
+      "emailVerified": false,
+      "manualReviewed": true,
+      "approvedBy": "admin",
+      "approvedAt": "2026-05-28T21:45:35.486Z",
+      "rejectedBy": null,
+      "rejectedAt": null,
+      "rejectionReason": ""
+    },
+    "apiProviders": [],
+    "notes": ""
+  }
+]
