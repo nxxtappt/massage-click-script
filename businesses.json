@@ -1,0 +1,1655 @@
+[
+  {
+    "enabled": true,
+    "adminNotes": "this is a save note",
+    "businessName": "Dimensions Massage Therapy",
+    "bookingUrl": "https://www.dimensionsmt.com/book-now",
+    "platform": "mindbody",
+    "integrationType": "api",
+    "apiProvider": "mindbody",
+    "credentialId": "dimensions-mindbody-main",
+    "categoryText": "Swedish",
+    "serviceName": "Swedish (60 Minute)",
+    "serviceButtonId": "asrv_114zVp1amd9AdEgfdM",
+    "providerText": "First Available",
+    "address": "4477 S Lamar Blvd #410, Austin, TX 78745",
+    "latitude": 30.2303605,
+    "longitude": -97.7988116,
+    "services": [
+      {
+        "serviceName": "Swedish (60 Minute)",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "price": 120,
+        "sessionTypeId": 36,
+        "platformServiceId": 36,
+        "serviceId": 36,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfdM",
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 30,
+        "serviceName": "Deep Tissue (30 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfWE",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 45,
+        "serviceName": "Deep Tissue (45 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEhGai",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 60,
+        "serviceName": "Deep Tissue (60 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfXF",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 90,
+        "serviceName": "Deep Tissue (90 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfYG",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 30,
+        "serviceName": "Prenatal (30 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfoX",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 45,
+        "serviceName": "Prenatal (45 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEhGck",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "Prenatal (60 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfpY",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "Prenatal (90 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfqZ",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "Lomi Lomi (60 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfsb",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "Lomi Lomi (90 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgftc",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "Ashiatsu (60 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfaJ",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "Ashiatsu (90 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfbK",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 30,
+        "serviceName": "Sports Massage (30 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfkU",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 45,
+        "serviceName": "Sports Massage (45 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEhGen",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 60,
+        "serviceName": "Sports Massage (60 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfmV",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 90,
+        "serviceName": "Sports Massage (90 Minute)",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfnW",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ],
+    "claimStatus": "claimed_verified",
+    "verificationStatus": "verified",
+    "updatedAt": "2026-06-09T23:52:15.150Z",
+    "apiConnectionStatus": "not_connected",
+    "pendingCredentialId": "",
+    "logoUrl": "/uploads/business-logos/dimensions-massage-therapy-1781049128409.png",
+    "logoAlt": "Dimensions Massage Therapy logo"
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Mantra Wellness",
+    "searchAliases": [
+      "Mantra Massage",
+      "Mantra",
+      "Mantra Customized Massage"
+    ],
+    "bookingUrl": "https://mantrawellness.co/pages/booking-customized-massage",
+    "platform": "mindbody",
+    "categoryText": "Massage",
+    "serviceName": "Customized Massage - 60min",
+    "serviceButtonId": "asrv_11kR39GyvHqkZsePeq",
+    "providerText": "First Available",
+    "address": "8127 Mesa Dr., Suite C304, Austin, TX 78759",
+    "latitude": 30.3730985,
+    "longitude": -97.7580999,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "Customized Massage - 60min 90 min",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_11kR39GyvHqkZsePeq",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "Customized Massage - 90min 120 min",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_11kR39GyvHqkZsePfr",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 120,
+        "serviceName": "Customized Massage - 120min 150 min",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_11kR39GyvHqkZsePjv",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 30,
+        "serviceName": "Customized Massage - 30min 60 min",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_11kR39GyvHqkZsePgs",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Serasana Southwest Austin",
+    "searchAliases": [],
+    "bookingUrl": "https://serasana.com/schedule-southwestaustin/",
+    "platform": "mindbody",
+    "categoryText": "Massage",
+    "serviceName": "50 Min Focus Massage",
+    "serviceButtonId": "asrv_11kLgqQP2ZrxxhSBUd",
+    "providerText": "First Available",
+    "address": "7717 Southwest Pkwy, Unit 170, Austin, TX 78735",
+    "latitude": 30.256051,
+    "longitude": -97.8778717,
+    "services": [
+      {
+        "serviceType": "Massage",
+        "durationMinutes": 50,
+        "serviceName": "50 Min Focus Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_11kLgqQP2ZrxxhSBUd",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Serasana Dripping Springs",
+    "searchAliases": [],
+    "bookingUrl": "https://serasana.com/schedule-drippingsprings/",
+    "platform": "mindbody",
+    "categoryText": "Massage",
+    "serviceName": "50 Min Focus Massage",
+    "serviceButtonId": "asrv_117MGwgQgexAD5qvr5",
+    "providerText": "First Available",
+    "address": "166 Hargraves Dr, e200, Austin, TX 78737",
+    "latitude": 30.205363,
+    "longitude": -97.978391,
+    "services": [
+      {
+        "serviceType": "Massage",
+        "durationMinutes": 50,
+        "serviceName": "50 Min Focus Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_117MGwgQgexAD5qvr5",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Serasana Bee Cave",
+    "searchAliases": [],
+    "bookingUrl": "https://serasana.com/schedule-beecave/",
+    "platform": "mindbody",
+    "categoryText": "Massage",
+    "serviceName": "50 Min Focus Massage",
+    "serviceButtonId": "asrv_117agPNxhCJF5xMcWB",
+    "providerText": "First Available",
+    "address": "15500 TX-71, Ste B-250, Austin, TX 78738",
+    "latitude": 30.317663,
+    "longitude": -97.98488,
+    "services": [
+      {
+        "serviceType": "Massage",
+        "durationMinutes": 50,
+        "serviceName": "50 Min Focus Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_117agPNxhCJF5xMcWB",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Lizard Yoga",
+    "searchAliases": [],
+    "bookingUrl": "https://lizardyoga.com/appointments/?_gl=1*9cqrj2*_ga*MTM4NTM2NTc2LjE3ODA5MzU3OTQ.*_ga_2DS3VQTG1L*czE3ODA5MzU3OTMkbzEkZzEkdDE3ODA5MzU4MTUkajM4JGwwJGgw",
+    "platform": "mindbody",
+    "categoryText": "Massage",
+    "serviceName": "Massage 60 Minutes",
+    "serviceButtonId": "asrv_11kJBJ6Fb5ZakoaJG9",
+    "providerText": "First Available",
+    "address": "2919 Menchaca Rd #104, Austin, TX 78704",
+    "latitude": 30.2417259,
+    "longitude": -97.7843602,
+    "services": [
+      {
+        "serviceType": "Massage",
+        "durationMinutes": 60,
+        "serviceName": "Massage 60 Minutes",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_11kJBJ6Fb5ZakoaJG9",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Generator Athlete Lab",
+    "bookingUrl": "https://www.generatorathletelab.com/book-treatment-session",
+    "platform": "mindbody",
+    "categoryText": "Massage",
+    "serviceName": "Massage Therapy - 60 minutes",
+    "serviceButtonId": "asrv_1153kMBP4YwuFQCxVN",
+    "providerText": "First Available",
+    "address": "800 W Cesar Chavez St PP120, Austin, TX 78701",
+    "latitude": 30.2666246,
+    "longitude": -97.755673,
+    "services": [
+      {
+        "serviceName": "Massage Therapy - 60 minutes",
+        "platformServiceId": "asrv_1153kMBP4YwuFQCxVN",
+        "durationMinutes": 60,
+        "serviceType": "massage",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceName": "Massage Therapy - 90 minutes",
+        "platformServiceId": "asrv_1153kMBP4YwuFQCxib",
+        "durationMinutes": 90,
+        "serviceType": "massage",
+        "enabled": false,
+        "priority": "medium"
+      },
+      {
+        "serviceName": "Massage Therapy - 120 minutes",
+        "platformServiceId": "asrv_1153kMBP4YwuFQCxzs",
+        "durationMinutes": 120,
+        "serviceType": "massage",
+        "enabled": false,
+        "priority": "medium"
+      },
+      {
+        "serviceName": "Massage Therapy - 30 minutes",
+        "platformServiceId": "asrv_1153kMBP4YwuFQCxxq",
+        "durationMinutes": 30,
+        "serviceType": "massage",
+        "enabled": false,
+        "priority": "medium"
+      },
+      {
+        "serviceName": "Sports Massage 30 Minute",
+        "platformServiceId": "asrv_1153kMBP4YwuFQCz5w",
+        "durationMinutes": 30,
+        "serviceType": "sports",
+        "enabled": false,
+        "priority": "medium"
+      },
+      {
+        "serviceName": "Sports Massage 60 min",
+        "platformServiceId": "asrv_1153kMBP4YwuFQCz6x",
+        "durationMinutes": 60,
+        "serviceType": "sports",
+        "enabled": false,
+        "priority": "medium"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Austin Community Wellness",
+    "bookingUrl": "https://austincommunitywellness.com/appointments/",
+    "platform": "mindbody",
+    "categoryText": "Massage",
+    "serviceName": "60 minute Swedish/Relaxation Massage",
+    "serviceButtonId": "asrv_11kLPDeSQeo9Uvwivt",
+    "providerText": null,
+    "skipProvider": true,
+    "address": "4934 US-290, Austin, TX 78735",
+    "latitude": 30.2339111,
+    "longitude": -97.8168491,
+    "services": [
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "serviceName": "60 minute Swedish/Relaxation Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "asrv_11kLPDeSQeo9Uvwivt",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Oak Haven Massage - S 1st",
+    "platform": "oakhaven",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://oakhavenbooking.com/",
+    "address": "900 S 1st Street Unit 150, Austin, TX 78704",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.2546335,
+    "longitude": -97.752673,
+    "siteid": "1",
+    "LocationIds": "4",
+    "placeId": "1",
+    "category": "Cutomize My Session",
+    "SessionTypeIds": "5",
+    "PressureTypeIds": "227",
+    "tier": "1",
+    "gender": "None",
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "50 Minute Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 50,
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "providerText": "No Preference"
+      }
+    ],
+    "notes": "Oak Haven custom booking backend. Confirmed direct POST to /backend/endPoints.php with function=checkTherapistFromDB returns appointment inventory for S 1st location."
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Oak Haven Massage - Pecan Park / 620",
+    "platform": "oakhaven",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://oakhavenbooking.com/",
+    "address": "12809 N FM 620, Austin, TX 78750",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.3987155,
+    "longitude": -97.837286,
+    "siteid": "1",
+    "LocationIds": "1",
+    "placeId": "1",
+    "category": "Cutomize My Session",
+    "SessionTypeIds": "5",
+    "PressureTypeIds": "227",
+    "tier": "1",
+    "gender": "None",
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "50 Minute Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 50,
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "providerText": "No Preference"
+      }
+    ],
+    "notes": "Oak Haven custom booking backend. Confirmed LocationIds=1 for Austin Pecan Park / 620."
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Oak Haven Massage - MoPac / 2222",
+    "platform": "oakhaven",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://oakhavenbooking.com/",
+    "address": "5770 N Mopac Expy Ste 300, Austin, TX 78731",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.3264344,
+    "longitude": -97.9354763,
+    "siteid": "1",
+    "LocationIds": "3",
+    "placeId": "1",
+    "category": "Cutomize My Session",
+    "SessionTypeIds": "5",
+    "PressureTypeIds": "227",
+    "tier": "1",
+    "gender": "None",
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "50 Minute Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 50,
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "providerText": "No Preference"
+      }
+    ],
+    "notes": "Oak Haven custom booking backend. Confirmed LocationIds=3 for Austin MoPac / 2222."
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "bookingUrl": "https://mantismassage.schedulista.com/",
+    "serviceName": "60 Minute Massage",
+    "serviceId": "1073958786",
+    "chooseTimeUrl": "https://www.schedulista.com/schedule/mantismassage/choose_time?service_id=1073958786",
+    "providerPreference": "no_preference",
+    "address": "3823 Airport Blvd #A, Austin, TX 78722",
+    "latitude": 30.288233,
+    "longitude": -97.707187,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Massage",
+        "platformServiceId": "1073958786",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Mantis Massage South Congress",
+    "platform": "schedulista",
+    "bookingUrl": "https://mantismassage1.schedulista.com/",
+    "serviceName": "60 Minute Massage",
+    "serviceId": "1074317466",
+    "chooseTimeUrl": "https://www.schedulista.com/schedule/mantismassage1/choose_time?service_id=1074317466",
+    "providerPreference": "no_preference",
+    "address": "2700 S Congress Ave Suite B, Austin, TX 78704",
+    "latitude": 30.23544,
+    "longitude": -97.756812,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Massage",
+        "platformServiceId": "1074317466",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Neuro Release Massage",
+    "platform": "meevo",
+    "bookingUrl": "https://na2.meevo.com/CustomerPortal/onlinebooking/booking/guestinfo?tenantId=502059&locationId=502797",
+    "categoryName": "Swedish Massage",
+    "serviceName": "1 Hour Swedish Massage",
+    "daysForward": 7,
+    "address": "2525 S Lamar Blvd Suite 12, Austin, TX 78704",
+    "latitude": 30.2450914,
+    "longitude": -97.7884217,
+    "services": [
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "serviceName": "1 Hour Swedish Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Deep Relief",
+    "platform": "meevo",
+    "bookingUrl": "https://na2.meevo.com/CustomerPortal/onlinebooking/booking/guestinfo?tenantId=500970&locationId=501258",
+    "categoryName": "Signature Relaxation Massage",
+    "serviceName": "50 Min Relaxation Massage",
+    "daysForward": 7,
+    "address": "7101 State Hwy 71 Ste A-1, Austin, TX 78735",
+    "latitude": 30.233959,
+    "longitude": -97.8770551,
+    "services": [
+      {
+        "serviceType": "relaxation",
+        "durationMinutes": 50,
+        "serviceName": "50 Min Relaxation Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "relaxation",
+        "durationMinutes": 110,
+        "serviceName": "110 Min Relaxation Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "normal",
+        "discoveryStatus": "manual"
+      },
+      {
+        "serviceType": "relaxation",
+        "durationMinutes": 80,
+        "serviceName": "80 Min Relaxation Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "normal",
+        "discoveryStatus": "manual"
+      },
+      {
+        "serviceType": "Deep Tissue",
+        "durationMinutes": 50,
+        "serviceName": "50 Min DEEP Tissue Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "normal",
+        "discoveryStatus": "manual"
+      },
+      {
+        "serviceType": "Deep Tissue",
+        "durationMinutes": 110,
+        "serviceName": "110 Min DEEP Tissue Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "normal",
+        "discoveryStatus": "manual"
+      },
+      {
+        "serviceType": "Deep Tissue",
+        "durationMinutes": 80,
+        "serviceName": "80 Min DEEP Tissue Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "normal",
+        "discoveryStatus": "manual"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "AustinDEEP Lake Austin Blvd",
+    "platform": "axl3",
+    "bookingUrl": "https://booking.austindeep.com/tx/lake-austin-blvd/appointments/",
+    "serviceName": "THE DEEP™60MIN",
+    "address": "2300 Lake Austin Blvd, Austin, TX 78703",
+    "latitude": 30.2778218,
+    "longitude": -97.7714637,
+    "services": [
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 60,
+        "serviceName": "THE DEEP™60MIN",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "AustinDEEP 4th Congress",
+    "platform": "axl3",
+    "bookingUrl": "https://booking.austindeep.com/tx/4th-congress/appointments/",
+    "serviceName": "THE DEEP™60MIN",
+    "address": "320 Congress Ave Unit B, Austin, TX 78701",
+    "latitude": 30.265845,
+    "longitude": -97.743657,
+    "services": [
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 60,
+        "serviceName": "THE DEEP™60MIN",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "AustinDEEP Barton Creek",
+    "platform": "axl3",
+    "bookingUrl": "https://booking.austindeep.com/tx/barton-creek/appointments/",
+    "serviceName": "THE DEEP™60MIN",
+    "address": "2700 Barton Creek Blvd Suite 110, Austin, TX 78735",
+    "latitude": 30.2896068,
+    "longitude": -97.865336,
+    "services": [
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 60,
+        "serviceName": "THE DEEP™60MIN",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Ace of Cups Massage and Wellness",
+    "discoveryStatus": "approved",
+    "platform": "booker",
+    "bookingUrl": "https://go.booker.com/location/AceofCups/service/4375234/Swedish%20Relaxation%20Massage%20(60%20Min)/availability/{date}/all-providers",
+    "serviceName": "Swedish Relaxation Massage (60 Min)",
+    "daysForward": 7,
+    "address": "2121 E Cesar Chavez St, Austin, TX 78702",
+    "latitude": 30.255724,
+    "longitude": -97.7212393,
+    "services": [
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "serviceName": "Swedish Relaxation Massage (60 Min)",
+        "platformServiceId": "4375234",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Zen Blend",
+    "platform": "booker",
+    "bookingUrl": "https://go.booker.com/location/zenblend/service/4692792/One%20Hour%20Zen%20Massage%20w%2F%203%20Enlightenments%20included%20:)/availability/{date}/all-providers",
+    "serviceName": "One Hour Zen Massage w/ 3 Enlightenments included :)",
+    "address": "1309 W Slaughter Ln, Austin, TX 78748",
+    "latitude": 30.1735337,
+    "longitude": -97.81897,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "One Hour Zen Massage w/ 3 Enlightenments included :)",
+        "platformServiceId": "4692792",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Myo Massage",
+    "platform": "mindbody-old",
+    "bookingUrl": "https://myoaustin.com/book-a-massage/",
+    "serviceName": "Swedish 60",
+    "serviceId": "323",
+    "staffValue": "",
+    "address": "4616 Triangle Ave #407, Austin, TX 78751",
+    "latitude": 30.3148155,
+    "longitude": -97.7366114,
+    "services": [
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "serviceName": "Swedish 60",
+        "platformServiceId": "323",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Heights Mueller",
+    "platform": "zenoti",
+    "bookingUrl": "https://massageheights.zenoti.com/webstoreNew/services/34533ff3-7a98-4dc8-93d5-c07bb21f95ab",
+    "categoryText": "PERSONALIZED MASSAGE",
+    "serviceName": "60 Minute Massage",
+    "daysForward": 21,
+    "address": "1801 E 51st St Suite 365, Austin, TX 78723",
+    "latitude": 30.3029,
+    "longitude": -97.6998,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "90 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Heights Southpark Meadows",
+    "platform": "zenoti",
+    "bookingUrl": "https://massageheights.zenoti.com/webstoreNew/services/23710bdd-d7d8-426b-a6fe-8f91d4fc65dc?_gl=1*5owvjb*_gcl_au*NTAxNjQyMjkzLjE3Nzg2MTM2NTg.*_ga*MzIxNzE5ODM3LjE3Nzg2MTM2NTg.*_ga_7Y87HYGTMS*czE3NzkyMjU1NzMkbzQkZzEkdDE3NzkyMjU1NzYkajU3JGwwJGgyMTI4OTQ1OTA1&_ga=2.148588663.1501799285.1779218238-321719837.1778613658",
+    "categoryText": "PERSONALIZED MASSAGE",
+    "serviceName": "60 Minute Massage",
+    "daysForward": 21,
+    "address": "9600 S I-35 Frontage Rd Suite D-200, Austin, TX 78748",
+    "latitude": 30.1613806,
+    "longitude": -97.9450893,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "90 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Heights Dripping Springs",
+    "platform": "zenoti",
+    "bookingUrl": "https://massageheights.zenoti.com/webstoreNew/services/e632b1a9-ea45-46ec-a6ac-2eb85ea4355f?_gl=1*10epgo6*_gcl_au*NTAxNjQyMjkzLjE3Nzg2MTM2NTg.*_ga*MzIxNzE5ODM3LjE3Nzg2MTM2NTg.*_ga_7Y87HYGTMS*czE3NzkyMjU1NzMkbzQkZzEkdDE3NzkyMjYwMDEkajM3JGwwJGgyMTI4OTQ1OTA1&_ga=2.212437460.1501799285.1779218238-321719837.1778613658",
+    "categoryText": "PERSONALIZED MASSAGE",
+    "serviceName": "60 Minute Massage",
+    "daysForward": 21,
+    "address": "12680 US-290 Suite 140, Austin, TX 78737",
+    "latitude": 30.2052292,
+    "longitude": -98.1340027,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "90 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Heights Cedar Park",
+    "platform": "zenoti",
+    "bookingUrl": "https://massageheights.zenoti.com/webstoreNew/services/02df4eac-97a5-4c95-9032-3610bed442dd?_gl=1*iwg96q*_gcl_au*NTAxNjQyMjkzLjE3Nzg2MTM2NTg.*_ga*MzIxNzE5ODM3LjE3Nzg2MTM2NTg.*_ga_7Y87HYGTMS*czE3NzkyMjU1NzMkbzQkZzEkdDE3NzkyMjYzNTYkajMyJGwwJGgyMTI4OTQ1OTA1&_ga=2.182996326.1501799285.1779218238-321719837.1778613658",
+    "categoryText": "PERSONALIZED MASSAGE",
+    "serviceName": "60 Minute Massage",
+    "daysForward": 21,
+    "address": "5001 183A Frontage Rd Suite 200, Cedar Park, TX 78613",
+    "latitude": 30.5244788,
+    "longitude": -97.8510811,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "90 Minute Massage",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Spa Sway Westlake",
+    "platform": "zenoti",
+    "bookingUrl": "https://spasway.zenoti.com/webstoreNew/services/1bf5a6ae-275a-40c0-9afb-01704fba22d9",
+    "categoryText": "MASSAGES",
+    "parentServiceText": "Swedish Massage",
+    "serviceName": "Swedish Massage - 50min",
+    "providerText": "Any Provider",
+    "daysForward": 21,
+    "address": "701 S Capital of Texas Hwy Suite E-500, Rollingwood, TX 78746",
+    "latitude": 30.2909101,
+    "longitude": -97.9780393,
+    "services": [
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Swedish Massage",
+        "serviceName": "Swedish Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Swedish Massage",
+        "serviceName": "Swedish Massage - 80min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Swedish Massage",
+        "serviceName": "Swedish Massage - 110min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Deep Tissue Massage",
+        "serviceName": "Deep Tissue Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Deep Tissue Massage",
+        "serviceName": "Deep Tissue Massage - 80min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Deep Tissue Massage",
+        "serviceName": "Deep Tissue Massage - 110min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Sports Massage",
+        "serviceName": "Sports Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Sports Massage",
+        "serviceName": "Sports Massage - 80min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Sports Massage",
+        "serviceName": "Sports Massage - 110 min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "prenatal",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Pregnancy Massage",
+        "serviceName": "Pregnancy Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "prenatal",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Pregnancy Massage",
+        "serviceName": "Pregnancy Massage - 80 Min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "prenatal",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Pregnancy Massage",
+        "serviceName": "Pregnancy Massage - 110min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Spa Sway The Domain",
+    "platform": "zenoti",
+    "bookingUrl": "https://spasway.zenoti.com/webstoreNew/services/c38f70e5-dace-4a1d-ae17-78b23cd1c39b",
+    "categoryText": "MASSAGES",
+    "parentServiceText": "Swedish Massage",
+    "serviceName": "Swedish Massage - 50min",
+    "providerText": "Any Provider",
+    "daysForward": 21,
+    "address": "11011 Domain Dr #124, Austin, TX 78758",
+    "latitude": 30.3968503,
+    "longitude": -97.7286881,
+    "services": [
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Swedish Massage",
+        "serviceName": "Swedish Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Swedish Massage",
+        "serviceName": "Swedish Massage - 80min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "swedish",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Swedish Massage",
+        "serviceName": "Swedish Massage - 110min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Deep Tissue Massage",
+        "serviceName": "Deep Tissue Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Deep Tissue Massage",
+        "serviceName": "Deep Tissue Massage - 80min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "deep_tissue",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Deep Tissue Massage",
+        "serviceName": "Deep Tissue Massage - 110min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Sports Massage",
+        "serviceName": "Sports Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Sports Massage",
+        "serviceName": "Sports Massage - 80min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "sports",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Sports Massage",
+        "serviceName": "Sports Massage - 110 min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "prenatal",
+        "durationMinutes": 50,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Pregnancy Massage",
+        "serviceName": "Pregnancy Massage - 50min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "prenatal",
+        "durationMinutes": 80,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Pregnancy Massage",
+        "serviceName": "Pregnancy Massage - 80 Min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      },
+      {
+        "serviceType": "prenatal",
+        "durationMinutes": 110,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Pregnancy Massage",
+        "serviceName": "Pregnancy Massage - 110min",
+        "providerText": "Any Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": false,
+    "adminNotes": "",
+    "businessName": "MILK AND HONEY 2ND STREET DISTRICT - AUSTIN",
+    "platform": "zenoti",
+    "bookingUrl": "https://milkandhoneyspas.zenoti.com/webstoreNew/services/70b94be2-7e2b-4d9e-a135-ac56350046a1",
+    "categoryText": "MASSAGE",
+    "parentServiceText": "Signature Massages",
+    "serviceName": "60 min Signature Massage",
+    "providerText": "Any Service Provider",
+    "daysForward": 21,
+    "address": "100A Guadalupe St, Austin, TX 78701",
+    "latitude": 30.2646306,
+    "longitude": -97.750779,
+    "services": [
+      {
+        "serviceType": "Signature Massages",
+        "durationMinutes": 60,
+        "categoryText": "MASSAGES",
+        "parentServiceText": "Signature Massages",
+        "serviceName": "60 min Signature Massage",
+        "providerText": "Any Service Provider",
+        "platformServiceId": "",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Circle C",
+    "platform": "massage-envy",
+    "priority": "test",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "9600 Escarpment Blvd Suite 860",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.203379,
+    "longitude": -97.8816989,
+    "clinicId": "0144",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Westlake",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=1406&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "3201 Bee Caves Rd #156, Austin, TX 78746",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.2564509,
+    "longitude": -97.9017876,
+    "clinicId": "1406",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Southpark Meadows",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=1410&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "9500 S I-35 Frontage Rd L500, Austin, TX 78748",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.217487,
+    "longitude": -97.8681976,
+    "clinicId": "1410",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Central Austin",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=0390&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "507 Pressler St #800, Austin, TX 78703",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.217487,
+    "longitude": -97.8681976,
+    "clinicId": "0390",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Arbor Walk",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=1408&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "10515 N Mopac Expy Suite 210, Austin, TX 78759",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.3261092,
+    "longitude": -97.959088,
+    "clinicId": "1408",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - North Round Rock",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=1411&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "201 University Oaks Blvd Ste 1240, Round Rock, TX 78665",
+    "city": "Round Rock",
+    "state": "TX",
+    "latitude": 30.5581221,
+    "longitude": -97.8633932,
+    "clinicId": "1411",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Cedar Park",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=1412&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "1335 E Whitestone Blvd E300, Cedar Park, TX 78613",
+    "city": "Cedar Park",
+    "state": "TX",
+    "latitude": 30.5581221,
+    "longitude": -97.8633932,
+    "clinicId": "1412",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Lakeline",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=0145&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "14005 N Hwy 183 #200, Austin, TX 78717",
+    "city": "Austin",
+    "state": "TX",
+    "latitude": 30.5581221,
+    "longitude": -97.8633932,
+    "clinicId": "0145",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Massage Envy - Kyle",
+    "platform": "massage-envy",
+    "priority": "high",
+    "discoveryStatus": "approved",
+    "bookingUrl": "https://www.massageenvy.com/scheduling/css?clinicId=1321&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+    "address": "5401 Farm to Market 1626 Suite 140, Kyle, TX 78640",
+    "city": "Kyle",
+    "state": "TX",
+    "latitude": 30.5581221,
+    "longitude": -97.8633932,
+    "clinicId": "1321",
+    "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+    "serviceName": "60 Min Relaxation Massage",
+    "serviceType": "swedish",
+    "durationMinutes": 60,
+    "daysForward": 7,
+    "services": [
+      {
+        "serviceName": "60 Min Relaxation Massage",
+        "serviceType": "swedish",
+        "durationMinutes": 60,
+        "platformServiceId": "0850ecc2-916f-4845-9e3e-b3ca01293cbf",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  }
+]

@@ -1,0 +1,973 @@
+[
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services",
+    "headers": {
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:13.857Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services",
+    "headers": {
+      "cache-control": "no-store, no-cache",
+      "cf-cache-status": "MISS",
+      "cf-ray": "a069f3a6cadc50af-LAX",
+      "content-encoding": "gzip",
+      "content-type": "text/html; charset=utf-8",
+      "date": "Thu, 04 Jun 2026 21:15:14 GMT",
+      "last-modified": "Thu, 04 Jun 2026 21:15:14 GMT",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "server": "cloudflare",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+      "x-content-type-options": "nosniff",
+      "x-request-id": "80ddfe10-2599-46f1-a65c-a575f92f75cc"
+    },
+    "bodyPreview": "<!DOCTYPE html>\n<html lang=\"en\">\n\t<head>\n\t\t<!-- 03/2026 redesign CS-44395 with fix CS-44928 -->\n\t\t<meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"/>\n\t\t<meta name='format-detection' content='telephone=no' />\n\t\t<link rel=\"canonical\" href=\"https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html\" />\n\t\t<link rel=\"icon\" type=\"image/x-icon\" href=\"https://llp-assets.meetsoci.com/live/assets/massageenvy/images/favicon.ico\">\n\n\t\t<title>Massage & Facials in Austin | Massage Envy - Circle C</title>\n\t\t<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">\n\n\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\t\t<meta name=\"description\" content=\"Discover total body care at Massage Envy - Circle C. Professional massage, facials, and stretch sessions to help you look and feel your best.\">\n\n\t\t<link rel=\"stylesheet\" type=\"text/css\" href=\"https://llp-assets.meetsoci.com/live/assets/massageenvy/css/directory.2026.css\"/>\n  \t\t<link rel=\"stylesheet\" type=\"text/css\" href=\"https://llp-assets.meetsoci.com/live/assets/massageenvy/css/localpage.2026.css\"/>\n\n\t\t<meta name=\"google-site-verification\" content=\"clgVnlYIDuQgIfsXYXPMmUiwtjgCXv10DhMnCVsI4uc\" />\n\n\t\t<!-- Non-Restaurant Set -->\n\t\t<meta property=\"og:type\" content=\"website\" />\n\t\t<meta property=\"og:url\" content=\"https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html\"/>\n\t\t<meta property=\"og:title\" content=\"Massage & Facials in Austin | Massage Envy - Circle C\" />\n\t\t<meta property=\"og:description\" content=\"Discover total body care at Massage Envy - Circle C. Professional massage, facials, and stretch sessions to help you look and feel your best.\" />\n\t\t\n\t\t<meta property=\"og:image\" content=\"https://llp-assets.meetsoci.com/live/assets/massageenvy/images/MElogo220.png\" />\n        <meta property=\"og:image:width\" content=\"220\" />\n        <meta property=\"og:image:height\" content=\"220\" />\n\n\t\t<meta property=\"business:contact_data:street_address\" content=\"9600 Escarpment Blvd\" />\n\t\t<meta property=\"business:contact_data:locality\" content=\"Austin\" />\n\t\t<meta property=\"business:contact_data:region\" content=\"TX\" />\n\t\t<meta property=\"business:contact_data:postal_code\" content=\"78749\" />\n\t\t<meta property=\"business:contact_data:country_name\" content=\"US\" />\n\t\t<meta property=\"business:contact_data:phone_number\" content=\"+1 512-288-3689\" />\n\t\t<meta property=\"business:contact_data:website\" content=\"https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html\" />\n\t\t<meta property=\"place:location:latitude\" content=\"30.20285\" />\n\t\t<meta property=\"place:location:longitude\" content=\"-97.87892\" />\t\n\n\t\t<link type=\"text/css\" href=\"https://llp-assets.meetsoci.com/libs/css/style.css\" rel=\"stylesheet\" media=\"all\"/>\t\t\n\t\t\n\t\t<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css\" integrity=\"sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==\" crossorigin=\"anonymous\" referrerpolicy=\"no-referrer\" />\n\t\t<!-- <link rel=\"stylesheet\" href=\"https://fontawesome.com/v4/assets/font-awesome/css/font-awesome.css\"> -->\n\t\t<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css\">\n\t\t<script type=\"application/ld+json\">\n\t    {\n\t      \"@context\": \"http://schema.org\",\n\t      \"@type\": \"BreadcrumbList\",\n\t      \"itemListElement\": [{\n\t        \"@type\": \"ListItem\",\n\t        \"position\": 1,\n\t        \"item\": {\n\t          \"@id\": \"https://locations.massageenvy.com/index.html\",\n\t          \"name\": \"Index\"\n\t        }\n\t      },{\n\t        \"@type\": \"ListItem\",\n\t        \"position\": 2,\n\t        \"item\": {\n\t          \"@id\": \"https://locations.massageenvy.com/texas.html\",\n\t          \"name\": \"TX\"\n\t        }\n\t      },{\n\t        \"@type\": \"ListItem\",\n\t        \"position\": 3,\n\t        \"item\": {\n\t          \"@id\": \"https://locations.massageenvy.com/texas/austin.html\",\n\t          \"name\": \"Austin\"\n\t        }\n\t      }]\n\t    }\n\t    </script>    \n\t\t\n\t\t<script type=\"text/javascript\" src=\"https://llp-assets.meetsoci.com/libs/javascript/backbone/bb/lib/jquery.js\"></script>\n\t\t<script src=\"https://llp-assets.meetsoci.com/live/assets/massageenvy/javascript/slick.min.js\"></script>\t\t\n    \n\t</head>\n\n\t<body>\n\t\t<noscript><iframe src=\"https://www.googletagmanager.com/ns.html?id=GTM-N2PJZD9\"\n\t\theight=\"0\" width=\"0\" style=\"display:none;visibility:hidden\"></iframe></noscript>\n\t\t<!-- End Google Tag Manager (noscript) -->\n\t\t<div id=\"templates\" style=\"display: none;\">\n\t\t\t<script id=\"locator_addressline\" type=\"text/x-handlebars-template\">\n\t\t\t\t{{#if location.address.address_line_1}}{{location.address.address_line_1}}{{else}}{{#if addressline}}{{addressline}}{{/if}}{{ location.address.city }} {{ county }} {{ location.address.state_province }} {{location.address.postal_code}}{{/if}}\n\t\t\t</script>\n\t\t   \t<script id=\"directions_addressline\" type=\"text/x-handlebars-template\">\n                {{#if location.address.address_line_1}}{{location.address.address_line_1}} {{ location",
+    "timestamp": "2026-06-04T21:15:15.427Z"
+  },
+  {
+    "type": "page-info",
+    "url": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services",
+    "title": "Massage & Facials in Austin | Massage Envy - Circle C",
+    "iframes": [
+      "https://www.massageenvy.com/formapi/emailsignup"
+    ],
+    "scripts": [
+      "https://llp-assets.meetsoci.com/libs/javascript/backbone/bb/lib/jquery.js",
+      "https://llp-assets.meetsoci.com/live/assets/massageenvy/javascript/slick.min.js"
+    ],
+    "linksAndButtons": [
+      {
+        "text": "Skip to Store Details",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#h1Title",
+        "type": "A"
+      },
+      {
+        "text": "LOCATION INFO",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#locationDetails",
+        "type": "A"
+      },
+      {
+        "text": "SERVICES & PRICING",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#services-pricingSubtitle",
+        "type": "A"
+      },
+      {
+        "text": "MEMBERSHIP",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membershipSubtitle",
+        "type": "A"
+      },
+      {
+        "text": "GIFT CARDS",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#giftcardsSubtitle",
+        "type": "A"
+      },
+      {
+        "text": "CAREERS",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#careersTitle",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144",
+        "type": "A"
+      },
+      {
+        "text": "Location Info",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#locationDetails",
+        "type": "A"
+      },
+      {
+        "text": "Services & Pricing\n\t\t\t\t\t\t\t",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#services-pricingSubtitle",
+        "type": "A"
+      },
+      {
+        "text": "Gift Cards",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#giftcards",
+        "type": "A"
+      },
+      {
+        "text": "Careers",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#careersTitle",
+        "type": "A"
+      },
+      {
+        "text": "\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tGift cards\n\t\t\t\t\t\t\t",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#giftcardsSubtitle",
+        "type": "A"
+      },
+      {
+        "text": "\n\t\t\t\t\t\t\t\t\n\t\t\t\t\t\t\t\tMembership\n\t\t\t\t\t\t\t",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membershipSubtitle",
+        "type": "A"
+      },
+      {
+        "text": "Read reviews",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#reviewsBlock",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22MSRELX60%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22MSRLEF60%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22STRRELX60%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22STRRLEF60%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22STRMOBI60%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22RTR30%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22OXYGENTR%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22CANL%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22ADNL%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22BRNL%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22CLNL%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22TBNL%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22FACCLAR90%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22FACDEFY90%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22FACBRT90%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22FACCALM90%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22FACTONE90%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22FACBACK60%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22CACHEM%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22ADCHEM%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22BRCHEM%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22TBCHEM%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Learn more",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#membership",
+        "type": "A"
+      },
+      {
+        "text": "Book an appointment",
+        "href": "https://www.massageenvy.com/scheduling/css?clinicId=0144&services=[{%22primaryServiceId%22:%22ZDPEEL%22}]",
+        "type": "A"
+      },
+      {
+        "text": "Location details",
+        "href": "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services#locationDetails",
+        "type": "A"
+      },
+      {
+        "text": "\n\t\t\t                  \n\t\t\t                ",
+        "href": "https://www.facebook.com/1537937913120781",
+        "type": "A"
+      }
+    ],
+    "timestamp": "2026-06-04T21:15:15.861Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://cm.teads.tv/v2/advertiser?referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&buyer_pixel_id=9195&gtm_consent=false&has_consent=true&cht=timeout&zone=usCanada",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:20.950Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://trk.clinch.co/trk?cid=wob68UF&dsid=wjzm8YU&type=pageView&product=ecommerce&referrer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&version=26.20.1&a=1780607720992&t=CLQ",
+    "headers": {
+      "referer": "https://locations.massageenvy.com/",
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.007Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://d.adroll.com/consent/check/YHLLBRA6DZBFBO7KIVSRLW?pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&_s=4a9582736d85550267d9a6b5a9b1cee3&_b=2",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.012Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://insight.adsrvr.org/track/cei?advertiser_id=xdsg1sk&cookie_sync=1&upv=3.0.0&upid=zsp9gl2&ref=https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services",
+    "headers": {
+      "referer": "https://locations.massageenvy.com/",
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.220Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://ct.pinterest.com/v3/?tid=2613134062989&pd=%7B%22np%22%3A%22gtm%22%2C%22gtm_version%22%3A%22legacy%22%7D&event=init&ad=%7B%22loc%22%3A%22https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices%22%2C%22ref%22%3A%22%22%2C%22if%22%3Afalse%2C%22sh%22%3A1000%2C%22sw%22%3A1440%2C%22mh%22%3A%227a38100c%22%2C%22is_eu%22%3Atrue%2C%22architecture%22%3A%22x86%22%2C%22bitness%22%3A%2264%22%2C%22brands%22%3A%5B%7B%22brand%22%3A%22HeadlessChrome%22%2C%22version%22%3A%22147%22%7D%2C%7B%22brand%22%3A%22Not.A%2FBrand%22%2C%22version%22%3A%228%22%7D%2C%7B%22brand%22%3A%22Chromium%22%2C%22version%22%3A%22147%22%7D%5D%2C%22mobile%22%3Afalse%2C%22model%22%3A%22%22%2C%22platform%22%3A%22Linux%22%2C%22platformVersion%22%3A%22%22%2C%22uaFullVersion%22%3A%22147.0.7727.15%22%2C%22ecm_enabled%22%3Afalse%7D&cb=1780607721212",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.229Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://match.adsrvr.org/track/cei?advertiser_id=xdsg1sk&cookie_sync=1&upv=3.0.0&upid=zsp9gl2&ref=https%3a%2f%2flocations.massageenvy.com&utm_medium=useractions&utm_campaign=products+services&redirect=1",
+    "headers": {
+      "referer": "https://locations.massageenvy.com/",
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.318Z"
+  },
+  {
+    "type": "response",
+    "status": 302,
+    "url": "https://insight.adsrvr.org/track/cei?advertiser_id=xdsg1sk&cookie_sync=1&upv=3.0.0&upid=zsp9gl2&ref=https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services",
+    "headers": {
+      "content-length": "40",
+      "content-type": "text/html",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "location": "https://match.adsrvr.org/track/cei?advertiser_id=xdsg1sk&cookie_sync=1&upv=3.0.0&upid=zsp9gl2&ref=https%3a%2f%2flocations.massageenvy.com&utm_medium=useractions&utm_campaign=products+services&redirect=1",
+      "server": "Kestrel"
+    },
+    "bodyPreview": "",
+    "timestamp": "2026-06-04T21:15:21.321Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://bat.bing.com/action/0?ti=5442380&tm=gtm002&Ver=2&mid=469bb332-8414-49ff-a73e-10148cc22389&bo=1&sid=7ebdece0605a11f183000fc3823ef8e5&vid=7ebe0a60605a11f1a9df89bf65b34245&vids=1&msclkid=N&pi=0&lg=en-US&sw=1440&sh=1000&sc=24&nwd=1&tl=Massage%20%26%20Facials%20in%20Austin%20%7C%20Massage%20Envy%20-%20Circle%20C&p=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&r=&lt=1931&evt=pageLoad&sv=2&cdb=AQAS&rn=511307",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.493Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://d.adroll.com/segment/YHLLBRA6DZBFBO7KIVSRLW/XMY5CMVQMJDQTN4TTGJAF7?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&cookie=&adroll_s_ref=&keyw=&p0=6034&adroll_external_data=&adroll_version=2.0",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.657Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://d.adroll.com/cm/bombora/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.657Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://d.adroll.com/cm/experian/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.657Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://d.adroll.com/cm/eyeota/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.658Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://d.adroll.com/cm/x/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.658Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://d.adroll.com/consent/check/YHLLBRA6DZBFBO7KIVSRLW?pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&_s=4a9582736d85550267d9a6b5a9b1cee3&_b=2",
+    "headers": {
+      "cache-control": "no-store, no-cache, must-revalidate",
+      "content-length": "580",
+      "p3p": "CP=\"NON DSP COR CURa PSA PSD OUR BUS NAV STA\"",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "pragma": "no-cache",
+      "content-type": "application/javascript",
+      "server": "nginx/1.28.2"
+    },
+    "bodyPreview": "window.adroll_exp_list = [\"nofledge\",\"block33a\"]; __adroll.set_consent(true, false, false, \"US\", \"US\", {\"arconsent\":null,\"euconsent\":null,\"purposes\":null,\"eucookie\":null,\"banner\":\"banner_declined\",\"ipgeo\":{\"country_code\":\"US\",\"region_name\":\"Arizona\"},\"etld\":\"massageenvy.com\",\"max_vendor_id\":4202,\"networks\":[\"a\",\"g\",\"f\",\"aol\",\"r\",\"b\",\"x\",\"l\",\"d\",\"k\",\"kx\",\"freespee\",\"bcd\",\"o\",\"c\",\"u\",\"n\",\"index\",\"pubmatic\",\"taboola\",\"outbrain\",\"narrative\",\"i\",\"m\",\"w\",\"st\",\"cy\",\"sib\",\"triplelift\",\"linkedin\",\"pixalate\",\"oath\",\"onevideo\",\"experian\",\"bombora\",\"innovid\",\"eyeota\"],\"isipv6\":false});",
+    "timestamp": "2026-06-04T21:15:21.660Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://pixel.quantserve.com/pixel;r=2000171070;labels=_fp.event.Default;rf=0;a=p-ac8Ebtk-GuWZU;url=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices;ns=0;ce=1;qjs=1;qv=e6596afd-20260602140026;ref=;dst=0;et=1780607721206;tzo=0;ogl=type.website%2Curl.https%3A%2F%2Flocations%252Emassageenvy%252Ecom%2Ftexas%2Faustin%2F9600-escarpment-blvd%252Ehtml%2Ctitle.Massage%20%26%20Facials%20in%20Austin%20%7C%20Massage%20Envy%20-%20Circle%20C%2Cdescription.Discover%20total%20body%20care%20at%20Massage%20Envy%20-%20Circle%20C%252E%20Professional%20massage%252C%20facia%2Cimage.https%3A%2F%2Fllp-assets%252Emeetsoci%252Ecom%2Flive%2Fassets%2Fmassageenvy%2Fimages%2FMElogo220%252Epng%2Cimage%3Awidth.220%2Cimage%3Aheight.220;d=massageenvy.com;uht=2;fpan=1;fpa=P1-ca6b2283-7d96-4ce7-80ce-962ba5024594;pbc=;_ses=b98424f0-09a8-47a2-9514-7af32244a756;_seg=0;_ss=1;_gacid=878251856.1780607721;_gasid=N6VD5Q7SGL_1780607720;gdpr=0;mdl=",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.691Z"
+  },
+  {
+    "type": "response",
+    "status": 204,
+    "url": "https://bat.bing.com/action/0?ti=5442380&tm=gtm002&Ver=2&mid=469bb332-8414-49ff-a73e-10148cc22389&bo=1&sid=7ebdece0605a11f183000fc3823ef8e5&vid=7ebe0a60605a11f1a9df89bf65b34245&vids=1&msclkid=N&pi=0&lg=en-US&sw=1440&sh=1000&sc=24&nwd=1&tl=Massage%20%26%20Facials%20in%20Austin%20%7C%20Massage%20Envy%20-%20Circle%20C&p=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&r=&lt=1931&evt=pageLoad&sv=2&cdb=AQAS&rn=511307",
+    "headers": {
+      "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+      "cache-control": "no-cache, must-revalidate",
+      "pragma": "no-cache",
+      "accept-ch": "Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Full-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Mobile, Sec-CH-UA-Model, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version",
+      "x-msedge-ref": "Ref A: 3FA6F797AB9E47BDB1D0049FD1E28898 Ref B: PHX31EDGE0512 Ref C: 2026-06-04T21:15:21Z",
+      "expires": "Fri, 01 Jan 1990 00:00:00 GMT",
+      "access-control-allow-origin": "*",
+      "x-cache": "CONFIG_NOCACHE",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT"
+    },
+    "bodyPreview": "",
+    "timestamp": "2026-06-04T21:15:21.718Z"
+  },
+  {
+    "type": "response",
+    "status": 302,
+    "url": "https://d.adroll.com/cm/eyeota/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "cache-control": "no-store, no-cache, must-revalidate",
+      "location": "https://ps.eyeota.net/match?bid=d9gd6vu&uid=7eb5e6d90409b2672afa0dcc84496bdc&gdpr=0&gdpr_consent=",
+      "content-length": "103",
+      "p3p": "CP=\"NON DSP COR CURa PSA PSD OUR BUS NAV STA\"",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "pragma": "no-cache",
+      "server": "nginx/1.28.2"
+    },
+    "bodyPreview": "",
+    "timestamp": "2026-06-04T21:15:21.721Z"
+  },
+  {
+    "type": "response",
+    "status": 302,
+    "url": "https://d.adroll.com/cm/experian/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "cache-control": "no-store, no-cache, must-revalidate",
+      "location": "https://pixel.tapad.com/idsync/ex/receive?partner_id=3521&partner_device_id=N2ViNWU2ZDkwNDA5YjI2NzJhZmEwZGNjODQ0OTZiZGM&gdpr=0&gdpr_consent=",
+      "content-length": "146",
+      "p3p": "CP=\"NON DSP COR CURa PSA PSD OUR BUS NAV STA\"",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "pragma": "no-cache",
+      "server": "nginx/1.28.2"
+    },
+    "bodyPreview": "",
+    "timestamp": "2026-06-04T21:15:21.722Z"
+  },
+  {
+    "type": "response",
+    "status": 302,
+    "url": "https://d.adroll.com/cm/bombora/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "cache-control": "no-store, no-cache, must-revalidate",
+      "location": "https://ml314.com/utsync.ashx?et=0&eid=92980&fp=7eb5e6d90409b2672afa0dcc84496bdc&gdpr=0&gdpr_consent=",
+      "content-length": "107",
+      "p3p": "CP=\"NON DSP COR CURa PSA PSD OUR BUS NAV STA\"",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "pragma": "no-cache",
+      "server": "nginx/1.28.2"
+    },
+    "bodyPreview": "",
+    "timestamp": "2026-06-04T21:15:21.726Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://t.teads.tv/track?action=browser-topics&env=js-gtm&tag_version=8.11.10_6875f96&provider=tag&buyer_pixel_id=9195&referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&user_session_id=aa6a3435-4aec-4f02-9430-5fbca757e1fc&hasConsent=true&cht=timeout",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.736Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://t.teads.tv/track?action=pageView&env=js-gtm&tag_version=8.11.10_6875f96&provider=tag&buyer_pixel_id=9195&referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&user_session_id=aa6a3435-4aec-4f02-9430-5fbca757e1fc&hasConsent=true&cht=timeout",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:21.740Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://cm.teads.tv/v2/advertiser?referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&buyer_pixel_id=9195&gtm_consent=false&has_consent=true&cht=timeout&zone=usCanada",
+    "headers": {
+      "cache-control": "max-age=0, no-cache, no-store",
+      "x-timer": "S1780607721.024972,VS0,VE161",
+      "pragma": "no-cache",
+      "access-control-allow-credentials": "true",
+      "observe-browsing-topics": "?1",
+      "via": "1.1 varnish",
+      "accept-ranges": "bytes",
+      "access-control-allow-origin": "https://locations.massageenvy.com",
+      "x-cache": "MISS",
+      "content-length": "138",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "content-type": "application/json; charset=utf-8",
+      "x-served-by": "cache-hhr-khhr2060049-HHR",
+      "x-cache-hits": "0",
+      "vary": "Origin"
+    },
+    "bodyPreview": "{\"tracking_allowed\":true,\"first_party_cookie_allowed\":true,\"session_id\":\"aa6a3435-4aec-4f02-9430-5fbca757e1fc\",\"domain\":\"massageenvy.com\"}",
+    "timestamp": "2026-06-04T21:15:21.741Z"
+  },
+  {
+    "type": "response",
+    "status": 302,
+    "url": "https://d.adroll.com/cm/x/out?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&advertisable=YHLLBRA6DZBFBO7KIVSRLW",
+    "headers": {
+      "cache-control": "no-store, no-cache, must-revalidate",
+      "location": "https://ib.adnxs.com/setuid?entity=172&code=N2ViNWU2ZDkwNDA5YjI2NzJhZmEwZGNjODQ0OTZiZGM",
+      "content-length": "93",
+      "p3p": "CP=\"NON DSP COR CURa PSA PSD OUR BUS NAV STA\"",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "pragma": "no-cache",
+      "server": "nginx/1.28.2"
+    },
+    "bodyPreview": "",
+    "timestamp": "2026-06-04T21:15:21.745Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://trk.clinch.co/trk?cid=wob68UF&dsid=wjzm8YU&type=pageView&product=ecommerce&referrer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&version=26.20.1&a=1780607720992&t=CLQ",
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=86400",
+      "cache-control": "no-store",
+      "content-length": "79",
+      "content-type": "text/html",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "server": "clinch",
+      "strict-transport-security": "max-age=31536000",
+      "via": "1.1 994c3d122107c0c773e496e3ea72a382.cloudfront.net (CloudFront)",
+      "x-amz-cf-id": "qPc8igTNZasQ83nauiy8wqyV7jP2F9I1YPmG_8HX4-G3bOLh0-5L1Q==",
+      "x-amz-cf-pop": "LAX53-P5",
+      "x-cache": "Miss from cloudfront",
+      "x-robots-tag": "none"
+    },
+    "bodyPreview": "<!DOCTYPE html><html xmlns=\"http://www.w3.org/1999/xhtml\"><head/><body/></html>",
+    "timestamp": "2026-06-04T21:15:21.856Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://ct.pinterest.com/v3/?tid=2613134062989&pd=%7B%22np%22%3A%22gtm%22%2C%22gtm_version%22%3A%22legacy%22%7D&event=init&ad=%7B%22loc%22%3A%22https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices%22%2C%22ref%22%3A%22%22%2C%22if%22%3Afalse%2C%22sh%22%3A1000%2C%22sw%22%3A1440%2C%22mh%22%3A%227a38100c%22%2C%22is_eu%22%3Atrue%2C%22architecture%22%3A%22x86%22%2C%22bitness%22%3A%2264%22%2C%22brands%22%3A%5B%7B%22brand%22%3A%22HeadlessChrome%22%2C%22version%22%3A%22147%22%7D%2C%7B%22brand%22%3A%22Not.A%2FBrand%22%2C%22version%22%3A%228%22%7D%2C%7B%22brand%22%3A%22Chromium%22%2C%22version%22%3A%22147%22%7D%5D%2C%22mobile%22%3Afalse%2C%22model%22%3A%22%22%2C%22platform%22%3A%22Linux%22%2C%22platformVersion%22%3A%22%22%2C%22uaFullVersion%22%3A%22147.0.7727.15%22%2C%22ecm_enabled%22%3Afalse%7D&cb=1780607721212",
+    "headers": {
+      "cache-control": "no-cache,no-store,must-revalidate,max-age=0",
+      "pragma": "no-cache",
+      "x-envoy-upstream-service-time": "1",
+      "x-pinterest-rid-128bit": "92837007b779bfed3c815d757d65143e",
+      "x-cdn": "fastly",
+      "access-control-allow-credentials": "true",
+      "referrer-policy": "origin",
+      "expires": "Sat, 01 Jan 2000 00:00:00 GMT",
+      "pinterest-version": "66b7c2370d3af9fa2ffb740b1fee7495f718a9ea",
+      "access-control-allow-origin": "https://locations.massageenvy.com",
+      "alt-svc": "h3=\":443\";ma=604800",
+      "content-length": "35",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "x-pinterest-rid": "4359868673467683",
+      "content-type": "image/gif"
+    },
+    "bodyPreview": "GIF89a\u0001\u0000\u0001\u0000�\u0001\u0000���\u0000\u0000\u0000,\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0002\u0002D\u0001\u0000;",
+    "timestamp": "2026-06-04T21:15:21.859Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://pixel.quantserve.com/pixel;r=2000171070;labels=_fp.event.Default;rf=0;a=p-ac8Ebtk-GuWZU;url=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices;ns=0;ce=1;qjs=1;qv=e6596afd-20260602140026;ref=;dst=0;et=1780607721206;tzo=0;ogl=type.website%2Curl.https%3A%2F%2Flocations%252Emassageenvy%252Ecom%2Ftexas%2Faustin%2F9600-escarpment-blvd%252Ehtml%2Ctitle.Massage%20%26%20Facials%20in%20Austin%20%7C%20Massage%20Envy%20-%20Circle%20C%2Cdescription.Discover%20total%20body%20care%20at%20Massage%20Envy%20-%20Circle%20C%252E%20Professional%20massage%252C%20facia%2Cimage.https%3A%2F%2Fllp-assets%252Emeetsoci%252Ecom%2Flive%2Fassets%2Fmassageenvy%2Fimages%2FMElogo220%252Epng%2Cimage%3Awidth.220%2Cimage%3Aheight.220;d=massageenvy.com;uht=2;fpan=1;fpa=P1-ca6b2283-7d96-4ce7-80ce-962ba5024594;pbc=;_ses=b98424f0-09a8-47a2-9514-7af32244a756;_seg=0;_ss=1;_gacid=878251856.1780607721;_gasid=N6VD5Q7SGL_1780607720;gdpr=0;mdl=",
+    "headers": {
+      "strict-transport-security": "max-age=86400",
+      "cache-control": "private, no-store, proxy-revalidate",
+      "content-length": "35",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "content-type": "image/gif"
+    },
+    "bodyPreview": "GIF89a\u0001\u0000\u0001\u0000\u0000\u0000\u0000,\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000����\u0000\u0000\u0000\u0002\u0002D\u0001\u0000;",
+    "timestamp": "2026-06-04T21:15:21.997Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://d.adroll.com/segment/YHLLBRA6DZBFBO7KIVSRLW/XMY5CMVQMJDQTN4TTGJAF7?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&pv=33810595364.007267&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&cookie=&adroll_s_ref=&keyw=&p0=6034&adroll_external_data=&adroll_version=2.0",
+    "headers": {
+      "x-rule-type": "p",
+      "access-control-expose-headers": "X-Advertisable-Eid, X-Segment-Eid, X-Segment-Display-Name, X-Segment-Name, X-Conversion-Currency, X-Conversion-Value, X-Rule, X-Rule-Type, X-Organization-Eid, X-Pixel-Eid",
+      "x-organization-eid": "MGQ3FVLC6JF6JK2ZZLHGLR",
+      "access-control-allow-methods": "GET",
+      "x-segment-eid": "W2KB4L5YTVFOXPM3DQXF26",
+      "x-advertisable-eid": "YHLLBRA6DZBFBO7KIVSRLW",
+      "p3p": "CP=\"NON DSP COR CURa PSA PSD OUR BUS NAV STA\"",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "x-pixel-eid": "XMY5CMVQMJDQTN4TTGJAF7",
+      "content-type": "image/gif",
+      "access-control-allow-headers": "Content-Type, *",
+      "x-segment-display-name": "Visitors to Unsegmented Pages",
+      "cache-control": "no-store, no-cache, must-revalidate",
+      "access-control-request-methods": "GET",
+      "pragma": "no-cache",
+      "x-conversion-currency": "",
+      "access-control-allow-credentials": "true",
+      "x-conversion-value": "0.00",
+      "access-control-allow-origin": "https://locations.massageenvy.com",
+      "x-segment-name": "*",
+      "content-length": "42",
+      "server": "nginx/1.28.2",
+      "x-rule": "*"
+    },
+    "bodyPreview": "GIF89a\u0001\u0000\u0001\u0000�\u0000\u0000\u0000\u0000\u0000���!�\u0004\u0001\u0000\u0000\u0000\u0000,\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0002\u0001D\u0000;",
+    "timestamp": "2026-06-04T21:15:21.999Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://match.adsrvr.org/track/cei?advertiser_id=xdsg1sk&cookie_sync=1&upv=3.0.0&upid=zsp9gl2&ref=https%3a%2f%2flocations.massageenvy.com&utm_medium=useractions&utm_campaign=products+services&redirect=1",
+    "headers": {
+      "content-encoding": "gzip",
+      "content-type": "text/html",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "server": "Kestrel",
+      "vary": "Accept-Encoding"
+    },
+    "bodyPreview": "<html><body><iframe height=\"0\" width=\"0\" style=\"display:none;\" allowTransparency src=\"https://ib.adnxs.com/getuid?https%3a%2f%2fmatch.adsrvr.org%2ftrack%2fcmf%2fappnexus%3fttd%3d1%26anid%3d%24UID&ttd_tdid=f01e0fa9-b78c-4914-b424-ec35d2320ad8\"></iframe><iframe height=\"0\" width=\"0\" style=\"display:none;\" allowTransparency src=\"https://pixel.rubiconproject.com/tap.php?v=8981&nid=2307&put=f01e0fa9-b78c-4914-b424-ec35d2320ad8&gdpr=0&gdpr_consent=&expires=30&next=https%3A%2F%2Fmatch.adsrvr.org%2Ftrack%2Fcmf%2Frubicon\"></iframe><iframe height=\"0\" width=\"0\" style=\"display:none;\" allowTransparency src=\"https://cm.g.doubleclick.net/pixel?google_nid=TheTradeDesk&google_cm&google_sc&google_hm=ZjAxZTBmYTktYjc4Yy00OTE0LWI0MjQtZWMzNWQyMzIwYWQ4&gdpr=0&gdpr_consent=&ttd_tdid=f01e0fa9-b78c-4914-b424-ec35d2320ad8\"></iframe></body></html>\n<html>\n<head>\n    <script type=\"text/javascript\" src=\"https://js.adsrvr.org/universal_pixel.js\"></script>\n</head>\n<body>\n    <div id=\"universalPixelContainer\">\n        <script type=\"text/javascript\">\n            (function(global) { \n                var ttdcm = new TTDCM(); \n                ttdcm.init( [] );\n            })(this);\n        </script>\n    </div>\n</body>\n</html>",
+    "timestamp": "2026-06-04T21:15:22.022Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://t.teads.tv/track?action=pageView&env=js-gtm&tag_version=8.11.10_6875f96&provider=tag&buyer_pixel_id=9195&referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&user_session_id=aa6a3435-4aec-4f02-9430-5fbca757e1fc&hasConsent=true&cht=timeout",
+    "headers": {
+      "x-check-cacheable": "NO",
+      "expires": "Sat, 26 Jul 1997 05:00:00 GMT",
+      "x-cache": "MISS",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "content-type": "image/gif",
+      "x-served-by": "cache-hhr-khhr2060048-HHR",
+      "x-cache-hits": "0",
+      "x-u": "/track?action=pageView&env=js-gtm&tag_version=8.11.10_6875f96&provider=tag&buyer_pixel_id=9195&referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&user_session_id=aa6a3435-4aec-4f02-9430-5fbca757e1fc&hasConsent=true&cht=timeout",
+      "x-b": "NhV3LHvjLUhEdPpFLaqNkb--F_t_use1_teads_tv",
+      "strict-transport-security": "max-age=31557600",
+      "cache-control": "max-age=0, no-cache, no-store",
+      "x-timer": "S1780607722.803143,VS0,VE62",
+      "via": "1.1 varnish",
+      "x-ff": "20.163.40.133",
+      "accept-ranges": "bytes",
+      "content-length": "23",
+      "traffic-path": "NVADC2"
+    },
+    "bodyPreview": "GIF89a\u0001\u0000\u0001\u0000\u0000\u0000\u0000,\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000",
+    "timestamp": "2026-06-04T21:15:22.028Z"
+  },
+  {
+    "type": "request",
+    "method": "POST",
+    "url": "https://insight.adsrvr.org/track/realtimeconversion",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "eventdatasourceversion": "3.0.0",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "content-type": "application/json",
+      "eventdatasource": "JsSdk"
+    },
+    "postData": "{\"data\":[{\"adv\":\"xdsg1sk\",\"pixel_ids\":[\"zsp9gl2\"],\"referrer_url\":\"https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services\",\"data_processing_option\":null,\"privacy_settings\":[]}]}",
+    "timestamp": "2026-06-04T21:15:22.544Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://insight.adsrvr.org/track/realtimeconversion",
+    "headers": {
+      "content-encoding": "gzip",
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://locations.massageenvy.com",
+      "date": "Thu, 04 Jun 2026 21:15:22 GMT",
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "server": "Kestrel",
+      "access-control-allow-headers": "Origin, X-Requested-With, Content-Type, Content-Length, Content-Encoding, Vary, Cache-Control, Accept, x-integration-type"
+    },
+    "bodyPreview": "{\"Message\":null,\"EventResponses\":[]}",
+    "timestamp": "2026-06-04T21:15:22.713Z"
+  },
+  {
+    "type": "request",
+    "method": "GET",
+    "url": "https://trk.clinch.co/trk?cid=wob68UF&dsid=wjzm8YU&type=pageView&product=ecommerce&referrer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&version=26.20.1&a=1780607723798&t=CLQ",
+    "headers": {
+      "referer": "https://locations.massageenvy.com/",
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:23.801Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://trk.clinch.co/trk?cid=wob68UF&dsid=wjzm8YU&type=pageView&product=ecommerce&referrer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&version=26.20.1&a=1780607723798&t=CLQ",
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=86400",
+      "cache-control": "no-store",
+      "content-length": "79",
+      "content-type": "text/html",
+      "date": "Thu, 04 Jun 2026 21:15:23 GMT",
+      "server": "clinch",
+      "strict-transport-security": "max-age=31536000",
+      "via": "1.1 994c3d122107c0c773e496e3ea72a382.cloudfront.net (CloudFront)",
+      "x-amz-cf-id": "ZB2AaTczqHJzcUEXV0LqIdYZeYuPJppRIVoEGJ3tJiqTK_1BORitSA==",
+      "x-amz-cf-pop": "LAX53-P5",
+      "x-cache": "Miss from cloudfront",
+      "x-robots-tag": "none"
+    },
+    "bodyPreview": "<!DOCTYPE html><html xmlns=\"http://www.w3.org/1999/xhtml\"><head/><body/></html>",
+    "timestamp": "2026-06-04T21:15:23.943Z"
+  },
+  {
+    "type": "request",
+    "method": "POST",
+    "url": "https://d.adroll.com/pex/YHLLBRA6DZBFBO7KIVSRLW/XMY5CMVQMJDQTN4TTGJAF7?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&ev=ttl&es=elapsed&esv=v20260522&pv=33810595364.007267&ex=%7B%22t0%22%3A1780607715769%2C%22to%22%3A1780607725770%7D",
+    "headers": {
+      "sec-ch-ua-platform": "\"Linux\"",
+      "referer": "https://locations.massageenvy.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/147.0.7727.15 Safari/537.36",
+      "sec-ch-ua": "\"HeadlessChrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": null,
+    "timestamp": "2026-06-04T21:15:25.772Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://d.adroll.com/pex/YHLLBRA6DZBFBO7KIVSRLW/XMY5CMVQMJDQTN4TTGJAF7?af0=6fa9a185&adroll_fpc=8fec5b304ad6e5d519109043b740d0f2-1780607721614&arrfrr=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&ev=ttl&es=elapsed&esv=v20260522&pv=33810595364.007267&ex=%7B%22t0%22%3A1780607715769%2C%22to%22%3A1780607725770%7D",
+    "headers": {
+      "content-length": "42",
+      "date": "Thu, 04 Jun 2026 21:15:25 GMT",
+      "content-type": "image/gif",
+      "server": "nginx/1.28.2"
+    },
+    "bodyPreview": "GIF89a\u0001\u0000\u0001\u0000�\u0000\u0000\u0000\u0000\u0000���!�\u0004\u0001\u0000\u0000\u0000\u0000,\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0002\u0001D\u0000;",
+    "timestamp": "2026-06-04T21:15:25.809Z"
+  },
+  {
+    "type": "response",
+    "status": 200,
+    "url": "https://t.teads.tv/track?action=browser-topics&env=js-gtm&tag_version=8.11.10_6875f96&provider=tag&buyer_pixel_id=9195&referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&user_session_id=aa6a3435-4aec-4f02-9430-5fbca757e1fc&hasConsent=true&cht=timeout",
+    "headers": {
+      "x-check-cacheable": "NO",
+      "observe-browsing-topics": "?1",
+      "expires": "Sat, 26 Jul 1997 05:00:00 GMT",
+      "x-cache": "MISS",
+      "date": "Thu, 04 Jun 2026 21:15:21 GMT",
+      "content-type": "image/gif",
+      "x-served-by": "cache-hhr-khhr2060048-HHR",
+      "x-cache-hits": "0",
+      "x-u": "/track?action=browser-topics&env=js-gtm&tag_version=8.11.10_6875f96&provider=tag&buyer_pixel_id=9195&referer=https%3A%2F%2Flocations.massageenvy.com%2Ftexas%2Faustin%2F9600-escarpment-blvd.html%3Futm_source%3DGMB%26utm_medium%3Duseractions%26utm_campaign%3Dproducts%2Bservices&user_session_id=aa6a3435-4aec-4f02-9430-5fbca757e1fc&hasConsent=true&cht=timeout",
+      "x-b": "NhV3LHvjLUhEdPpFLaqNkb--F_t_use1_teads_tv",
+      "strict-transport-security": "max-age=31557600",
+      "cache-control": "max-age=0, no-cache, no-store",
+      "x-timer": "S1780607722.803088,VS0,VE60",
+      "access-control-allow-credentials": "true",
+      "via": "1.1 varnish",
+      "x-ff": "20.163.40.133",
+      "accept-ranges": "bytes",
+      "access-control-allow-origin": "https://locations.massageenvy.com",
+      "content-length": "23",
+      "traffic-path": "NVADC2"
+    },
+    "bodyPreview": "",
+    "timestamp": "2026-06-04T21:39:37.305Z"
+  }
+]

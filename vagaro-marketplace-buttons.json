@@ -1,0 +1,262 @@
+[
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": " osano-cm-dialog__close osano-cm-close "
+  },
+  {
+    "text": "          ",
+    "ariaLabel": "Cookie Preferences",
+    "className": "osano-cm-window__widget osano-cm-widget osano-cm-widget--position_left"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": " osano-cm-info-dialog-header__close osano-cm-close "
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "close"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Keyboard shortcuts",
+    "className": ""
+  },
+  {
+    "text": "",
+    "ariaLabel": "Toggle fullscreen view",
+    "className": "gm-control-active gm-fullscreen-control secondary-button"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Rotate map clockwise",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Rotate map counterclockwise",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Tilt map",
+    "className": "gm-tilt gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Map camera controls",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Move up",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Move left",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Move right",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Move down",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Zoom in",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "",
+    "ariaLabel": "Zoom out",
+    "className": "gm-control-active"
+  },
+  {
+    "text": "Keyboard shortcuts",
+    "ariaLabel": "Keyboard shortcuts",
+    "className": ""
+  },
+  {
+    "text": "Map Data",
+    "ariaLabel": "Map Data",
+    "className": ""
+  },
+  {
+    "text": "2 km Click to toggle between metric and imperial units",
+    "ariaLabel": "Map Scale: 2 km per 60 pixels",
+    "className": "gm-style-cc"
+  },
+  {
+    "text": "Book",
+    "ariaLabel": null,
+    "className": "w-button w-button-default infobox-button"
+  },
+  {
+    "text": "×",
+    "ariaLabel": "Close button",
+    "className": "close"
+  },
+  {
+    "text": "Sign Up",
+    "ariaLabel": null,
+    "className": "btn btn-primary btn-purchase green-primary-button"
+  },
+  {
+    "text": "×",
+    "ariaLabel": null,
+    "className": "close"
+  },
+  {
+    "text": "×",
+    "ariaLabel": null,
+    "className": "close"
+  },
+  {
+    "text": "×",
+    "ariaLabel": null,
+    "className": "close"
+  },
+  {
+    "text": "Book",
+    "ariaLabel": null,
+    "className": "btn btn-primary btn-sm-primary promotion-btn"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-prev slide-disabled arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-next arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-prev slide-disabled arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-next arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-prev slide-disabled arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-next arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-prev slide-disabled arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "slide-next arrow font-awesome"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "bootbox-close-button close"
+  },
+  {
+    "text": "Close ",
+    "ariaLabel": null,
+    "className": "btn btn-default secondary-button"
+  },
+  {
+    "text": "Send",
+    "ariaLabel": null,
+    "className": "btn btn-primary green-primary-button"
+  },
+  {
+    "text": "",
+    "ariaLabel": "previous month",
+    "className": "xdsoft_prev"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "xdsoft_today_button"
+  },
+  {
+    "text": "",
+    "ariaLabel": "next month",
+    "className": "xdsoft_next"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "xdsoft_prev"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "xdsoft_next"
+  },
+  {
+    "text": "Cancel",
+    "ariaLabel": null,
+    "className": "xdsoft_cancel w-button-default w-button border-radius3px secondary-button"
+  },
+  {
+    "text": "OK",
+    "ariaLabel": null,
+    "className": "xdsoft_save_button w-button-primary w-button border-radius3px flamingo-button"
+  },
+  {
+    "text": "",
+    "ariaLabel": "previous month",
+    "className": "xdsoft_prev"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "xdsoft_today_button"
+  },
+  {
+    "text": "",
+    "ariaLabel": "next month",
+    "className": "xdsoft_next"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "xdsoft_prev"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "xdsoft_next"
+  },
+  {
+    "text": "Cancel",
+    "ariaLabel": null,
+    "className": "xdsoft_cancel w-button-default w-button border-radius3px secondary-button"
+  },
+  {
+    "text": "OK",
+    "ariaLabel": null,
+    "className": "xdsoft_save_button w-button-primary w-button border-radius3px flamingo-button"
+  },
+  {
+    "text": "",
+    "ariaLabel": null,
+    "className": "close"
+  }
+]

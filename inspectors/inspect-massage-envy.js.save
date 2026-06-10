@@ -1,0 +1,190 @@
+const { chromium } = require("playwright");
+const fs = require("fs");
+const path = require("path");
+
+const START_URL =
+  process.argv[2] ||
+  "https://locations.massageenvy.com/texas/austin/9600-escarpment-blvd.html?utm_source=GMB&utm_medium=useractions&utm_campaign=products+services";
+
+const OUT_FILE = path.join(
+  __dirname,
+  "massage-envy-network-log.json"
+);
+
+const KEYWORDS = [
+  "appointment",
+  "availability",
+  "booking",
+  "calendar",
+  "clinic",
+  "employee",
+  "provider",
+  "schedule",
+  "service",
+  "slot",
+  "slots",
+  "time"
+];
+
+function isInterestingUrl(url = "") {
+  const lower = String(url).toLowerCase();
+
+  if (
+    lower.includes("google") ||
+    lower.includes("doubleclick") ||
+    lower.includes("googletagmanager") ||
+    lower.includes("analytics") ||
+    lower.includes("facebook") ||
+    lower.includes("hotjar")
+  ) {
+    return false;
+  }
+
+  return KEYWORDS.some((word) => lower.includes(word));
+}
+
+function bodyLooksInteresting(text = "") {
+  const lower = String(text).toLowerCase();
+
+  return KEYWORDS.some((word) => lower.includes(word));
+}
+
+async function safeResponseText(response) {
+  try {
+    const text = await response.text();
+    return text.slice(0, 5000);
+  } catch {
+    return "";
+  }
+}
+
+async function run() {
+  const browser = await chromium.launch({
+    headless: false,
+    slowMo: 75
+  });
+
+  const context = await browser.newContext({
+    viewport: {
+      width: 1440,
+      height: 1000
+    }
+  });
+
+  const page = await context.newPage();
+
+  const logs = [];
+
+  page.on("request", (request) => {
+    const url = request.url();
+
+    if (!isInterestingUrl(url)) return;
+
+    logs.push({
+      type: "request",
+      method: request.method(),
+      url,
+      headers: request.headers(),
+      postData: request.postData(),
+      timestamp: new Date().toISOString()
+    });
+
+    console.log("\n[REQUEST]");
+    console.log(request.method(), url);
+
+    const postData = request.postData();
+    if (postData) {
+      console.log("[POST DATA]");
+      console.log(postData);
+    }
+  });
+
+  page.on("response", async (response) => {
+    const url = response.url();
+
+    if (!isInterestingUrl(url)) return;
+
+    const text = await safeResponseText(response);
+
+    if (!bodyLooksInteresting(text) && !isInterestingUrl(url)) return;
+
+    logs.push({
+      type: "response",
+      status: response.status(),
+      url,
+      headers: response.headers(),
+      bodyPreview: text,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log("\n[RESPONSE]");
+    console.log(response.status(), url);
+
+    if (text) {
+      console.log("[BODY PREVIEW]");
+      console.log(text.slice(0, 1000));
+    }
+
+    fs.writeFileSync(OUT_FILE, JSON.stringify(logs, null, 2));
+  });
+
+  console.log("\nOpening:");
+  console.log(START_URL);
+  console.log("\nClick through the booking flow manually.");
+  console.log("When availability appears, wait 5 seconds, then press ENTER here.");
+  console.log(`\nLog file will save to: ${OUT_FILE}\n`);
+
+  await page.goto(START_URL, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000
+  });
+
+  const pageInfo = await page.evaluate(() => {
+    return {
+      url: window.location.href,
+      title: document.title,
+      iframes: [...document.querySelectorAll("iframe")].map((iframe) => iframe.src),
+      scripts: [...document.querySelectorAll("script")]
+        .map((script) => script.src)
+        .filter(Boolean),
+      linksAndButtons: [
+        ...document.querySelectorAll("a, button")
+      ]
+        .map((el) => ({
+          text: el.innerText || el.textContent || "",
+          href: el.href || "",
+          type: el.tagName
+        }))
+        .filter((item) =>
+          /book|appointment|schedule|service|continue/i.test(
+            `${item.text} ${item.href}`
+          )
+        )
+    };
+  });
+
+  logs.push({
+    type: "page-info",
+    ...pageInfo,
+    timestamp: new Date().toISOString()
+  });
+
+  fs.writeFileSync(OUT_FILE, JSON.stringify(logs, null, 2));
+
+  process.stdin.resume();
+  process.stdin.on("data", async () => {
+    fs.writeFileSync(OUT_FILE, JSON.stringify(logs, null, 2));
+
+    console.log("\nSaved network log:");
+    console.log(OUT_FILE);
+
+    await browser.close();
+    process.exit(0);
+  });
+}
+
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+

@@ -1,0 +1,28 @@
+{
+  "clusterId": "austin-central",
+  "label": "Austin Central",
+  "center": {
+    "latitude": 30.2672,
+    "longitude": -97.7431
+  },
+  "radiusMiles": 6,
+  "enabled": true,
+  "defaultFilters": {
+    "maxDistanceMiles": 6
+  },
+  "scrapeRules": [
+    {
+      "name": "core-60-minute-services",
+      "enabled": true,
+      "servicePriority": "high",
+      "durationMinutes": 60,
+      "ttlMinutes": 15
+    },
+    {
+      "name": "core-any-duration",
+      "enabled": true,
+      "servicePriority": "high",
+      "ttlMinutes": 30
+    }
+  ]
+}

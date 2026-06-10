@@ -1,0 +1,82 @@
+{
+  "scraping": {
+    "enabled": true,
+    "onDemandEnabled": true,
+    "scheduledScrapingEnabled": true,
+    "skipFreshCache": true,
+    "maxConcurrentScrapes": 1,
+    "defaultIntervalMinutes": 15,
+    "skipVagaroDiscoveryByDefault": true
+  },
+  "cache": {
+    "enabled": true,
+    "defaultTtlMinutes": 60,
+    "successTtlMinutes": 15,
+    "noTimesFoundTtlMinutes": 8,
+    "fullyBookedTtlMinutes": 8,
+    "errorTtlMinutes": 3,
+    "unknownTtlMinutes": 5
+  },
+  "serviceRules": {
+    "scheduledPriorities": [
+      "high"
+    ],
+    "scheduledDiscoveryStatuses": [
+      "approved"
+    ],
+    "onDemandPriorities": [
+      "high",
+      "medium",
+      "normal"
+    ],
+    "onDemandDiscoveryStatuses": [
+      "approved",
+      "manual"
+    ],
+    "manualPriorities": [
+      "high",
+      "medium",
+      "normal",
+      "low"
+    ],
+    "manualDiscoveryStatuses": [
+      "approved",
+      "manual",
+      "test",
+      "pending"
+    ],
+    "maxServicesPerBusinessPerScheduledRun": 2,
+    "maxServicesPerBusinessPerOnDemandRun": 4,
+    "allowServicesWithoutPriority": false,
+    "allowServicesWithoutDiscoveryStatus": false
+  },
+  "clusters": {
+    "austin-central": {
+      "enabled": true,
+      "intervalMinutes": 15
+    }
+  },
+  "platforms": {
+    "mindbody": true,
+    "mindbody-old": true,
+    "oakhaven": true,
+    "schedulista": true,
+    "meevo": true,
+    "axl3": true,
+    "booker": true,
+    "zenoti": true,
+    "vagaro": false
+  },
+  "onDemand": {
+    "enabled": true,
+    "requireGeoFilter": false,
+    "maxJobsPerSearch": 10,
+    "ttlMinutes": 10
+  },
+  "safety": {
+    "stopOnRepeatedErrors": false,
+    "maxErrorsPerRun": 20,
+    "logVerbose": true
+  },
+  "searchEnabled": false
+}

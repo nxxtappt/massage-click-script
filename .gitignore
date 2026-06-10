@@ -1,0 +1,14 @@
+.env
+node_modules/
+
+results.json
+errorLogs.json
+search-locks.json
+
+cache/
+analytics/
+backups/
+inspector-results/
+secure/
+
+*.swp

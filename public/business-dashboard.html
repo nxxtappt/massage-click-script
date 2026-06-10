@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>NextAppt Business Dashboard</title>
+
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+
+<body>
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">N</div>
+
+        <div>
+          <h1>NextAppt</h1>
+          <p>Business Dashboard</p>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2>Business Dashboard</h2>
+
+          <p>
+            Verified business access portal
+          </p>
+        </div>
+
+        <button
+          id="logoutBtn"
+          class="danger-btn"
+          style="display:none;"
+        >
+          Logout
+        </button>
+      </header>
+
+      <section
+        id="statusBox"
+        class="status-box"
+      >
+        Dashboard loading...
+      </section>
+
+      <section
+        id="content"
+        class="content-card"
+      >
+        Loading...
+      </section>
+    </main>
+  </div>
+
+  <script src="/business-dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NextAppt.ai</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">NextAppt.ai</p>
+      <h1 id="heroTitle">Tell us what appointment you need.</h1>
+<p id="heroSubtitle">Ask for massage availability by service, time, duration, location, or urgency.</p>
+    </section>
+
+    <section class="chat-panel">
+  <form id="chatSearchForm" class="chat-search-form">
+    <input
+      id="searchInput"
+      type="text"
+      autocomplete="off"
+      placeholder="Example: I need a prenatal massage tomorrow between 2 and 6..."
+    />
+
+    <button id="searchLiveBtn" type="submit">Search</button>
+  </form>
+
+  <div id="assistantResponse" class="assistant-response">
+    <div class="assistant-bubble">
+      Hi — tell me what kind of appointment you need, or browse the fresh openings below.
+    </div>
+  </div>
+
+  <div id="liveSearchResults" class="live-search-results"></div>
+</section>
+
+    <section class="summary">
+      <p id="resultsSummary">Loading fresh appointments...</p>
+    </section>
+
+    <section class="content-layout">
+      <section id="appointmentsGrid" class="appointments-list"></section>
+
+      <aside class="map-panel">
+        <div id="map"></div>
+      </aside>
+    </section>
+  </main>
+
+  <select id="businessFilter" class="hidden-control">
+    <option value="">All businesses</option>
+  </select>
+
+  <button id="clearFiltersBtn" class="hidden-control" type="button">Clear</button>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
