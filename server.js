@@ -38,7 +38,47 @@ const APPOINTMENT_TIME_ZONE = "America/Chicago";
 
 let liveSearchRunning = false;
 
+function requireAdminAuth(req, res, next) {
+  const adminUser = process.env.ADMIN_USER || "admin";
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    console.error("[ADMIN AUTH] ADMIN_PASSWORD is not set.");
+    return res.status(500).send("Admin password is not configured.");
+  }
+
+  const authHeader = req.headers.authorization || "";
+
+  if (!authHeader.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="NextAppt Admin"');
+    return res.status(401).send("Admin login required.");
+  }
+
+  const encoded = authHeader.replace("Basic ", "");
+  const decoded = Buffer.from(encoded, "base64").toString("utf8");
+
+  const separatorIndex = decoded.indexOf(":");
+  const username = decoded.slice(0, separatorIndex);
+  const password = decoded.slice(separatorIndex + 1);
+
+  if (username !== adminUser || password !== adminPassword) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="NextAppt Admin"');
+    return res.status(401).send("Invalid admin login.");
+  }
+
+  next();
+}
+
 app.use(express.json({ limit: "10mb" }));
+
+app.use(
+  [
+    "/admin",
+    "/admin.html",
+    "/api/admin"
+  ],
+  requireAdminAuth
+);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "landing.html"));
@@ -49,16 +89,20 @@ app.get("/austin/massage", (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, "public")));
+
 app.use("/api/admin", adminRoutes);
 app.use("/api/business", businessPortalRoutes);
 app.use("/api/business-dashboard", businessDashboardRoutes);
 app.use("/api/analytics", analyticsRoutes);
+
 app.get("/business", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "business.html"));
 });
-app.get("/admin", (req, res) => {
+
+app.get("/admin", requireAdminAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
+
 app.get("/business-dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "business-dashboard.html"));
 });
