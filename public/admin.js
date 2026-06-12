@@ -651,6 +651,7 @@ async function loadSettings() {
           ${renderSettingsCheckbox("On-Demand Scraping Enabled", "scraping.onDemandEnabled", scraping.onDemandEnabled !== false)}
           ${renderSettingsCheckbox("Skip Fresh Cache", "scraping.skipFreshCache", scraping.skipFreshCache !== false)}
           ${renderSettingsCheckbox("Skip Vagaro Discovery By Default", "scraping.skipVagaroDiscoveryByDefault", scraping.skipVagaroDiscoveryByDefault !== false)}
+          ${renderSettingsInput("Default Lookahead Hours", "scraping.defaultLookaheadHours", scraping.defaultLookaheadHours || 48, "number")}
           ${renderSettingsInput("Default Interval Minutes", "scraping.defaultIntervalMinutes", scraping.defaultIntervalMinutes || 15, "number")}
           ${renderSettingsInput("Max Concurrent Scrapes", "scraping.maxConcurrentScrapes", scraping.maxConcurrentScrapes || 1, "number")}
         </div>

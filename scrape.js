@@ -40,6 +40,45 @@ function saveResults(results) {
   console.log(`Saved ${results.length} result(s) to ${RESULTS_FILE}`);
 }
 
+function normalizeResultKeyValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getResultKey(result = {}) {
+  return [
+    result.businessName || "",
+    result.platform || "",
+    result.serviceName || result.service || "",
+    result.serviceType || "",
+    result.durationMinutes || "",
+    result.platformServiceId ||
+      result.serviceId ||
+      result.serviceButtonId ||
+      ""
+  ]
+    .map(normalizeResultKeyValue)
+    .join("||");
+}
+
+function upsertResult(results = [], incomingResult = {}) {
+  const existing = Array.isArray(results) ? results : [];
+  const incomingKey = getResultKey(incomingResult);
+
+  if (!incomingKey.replace(/\|/g, "").trim()) {
+    return [...existing, incomingResult];
+  }
+
+  const filtered = existing.filter((result) => {
+    return getResultKey(result) !== incomingKey;
+  });
+
+  return [...filtered, incomingResult];
+}
+
 function appendErrorLog(entry) {
   const file = "errorLogs.json";
   let existing = [];
@@ -524,10 +563,10 @@ async function run() {
     adminSettings.scraping.skipFreshCache !== false && !forceRefresh;
 
   if (adminSettings.scraping.enabled === false) {
-    console.log("[ADMIN] Scraping is disabled in admin-settings.json.");
-    fs.writeFileSync(RESULTS_FILE, JSON.stringify([], null, 2));
-    return;
-  }
+  console.log("[ADMIN] Scraping is disabled in admin-settings.json.");
+  console.log("[ADMIN] Leaving existing results.json untouched.");
+  return;
+}
 
   const businesses = JSON.parse(fs.readFileSync("businesses.json", "utf8"));
 
@@ -568,17 +607,28 @@ async function run() {
   }
 
   if (scrapeJobs.length === 0) {
-    console.log("No scrape jobs matched the filters or enabled platforms.");
-    fs.writeFileSync(RESULTS_FILE, JSON.stringify([], null, 2));
-    return;
-  }
+  console.log("No scrape jobs matched the filters or enabled platforms.");
+  console.log("[RESULTS] Leaving existing results.json untouched.");
+  return;
+}
 
   const browser = await chromium.launch({
     headless: true
   });
 
-  const results = [];
-  fs.writeFileSync(RESULTS_FILE, JSON.stringify([], null, 2));
+  let results = [];
+
+if (fs.existsSync(RESULTS_FILE)) {
+  try {
+    const existingResults = JSON.parse(fs.readFileSync(RESULTS_FILE, "utf8"));
+    results = Array.isArray(existingResults) ? existingResults : [];
+  } catch (error) {
+    console.error("[RESULTS] Failed to load existing results.json:", error.message);
+    results = [];
+  }
+}
+
+console.log(`[RESULTS] Starting with ${results.length} existing result(s).`);
 
   try {
     for (const job of scrapeJobs) {
@@ -594,7 +644,7 @@ async function run() {
             `[CACHE] Skipping scrape for ${job.businessName} | ${job.serviceName}. Reason: ${staleCheck.reason}`
           );
 
-          results.push(cachedResult);
+          results = upsertResult(results, cachedResult);
           saveResults(results);
           continue;
         }
@@ -602,7 +652,7 @@ async function run() {
 
       const result = await scrapeWithRetries(browser, job);
 
-      results.push(result);
+      results = upsertResult(results, result);
       cacheResult(result);
       saveResults(results);
 

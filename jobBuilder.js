@@ -244,9 +244,9 @@ function getEnabledServicesForBusiness(business) {
             "",
 
           daysForward:
-            service.daysForward ||
-            business.daysForward ||
-            null
+          service.daysForward ||
+          business.daysForward ||
+          null
         };
       });
   }
@@ -288,6 +288,31 @@ function getEnabledServicesForBusiness(business) {
       daysForward: business.daysForward || null
     }
   ];
+}
+
+function getResolvedDaysForward(service = {}, business = {}, filters = {}, adminSettings = null) {
+  const settings = adminSettings || loadAdminSettings();
+
+  if (filters.daysForward) {
+    return Math.max(1, Number(filters.daysForward));
+  }
+
+  if (filters.lookaheadHours) {
+    return Math.max(1, Math.ceil(Number(filters.lookaheadHours) / 24));
+  }
+
+  if (service.daysForward) {
+    return Math.max(1, Number(service.daysForward));
+  }
+
+  if (business.daysForward) {
+    return Math.max(1, Number(business.daysForward));
+  }
+
+  const defaultLookaheadHours =
+    settings.scraping?.defaultLookaheadHours || 48;
+
+  return Math.max(1, Math.ceil(Number(defaultLookaheadHours) / 24));
 }
 
 function getScrapeMode(filters = {}) {
@@ -570,7 +595,11 @@ function buildScrapeJobs(businesses, filters = {}) {
         servicePriority: service.priority,
         priority: service.priority,
         discoveryStatus: service.discoveryStatus,
-        daysForward: service.daysForward || business.daysForward || null,
+        daysForward: getResolvedDaysForward(service, business, filters, adminSettings),
+        lookaheadHours:
+        filters.lookaheadHours ||
+        adminSettings.scraping?.defaultLookaheadHours ||
+        48,
 
         distanceMiles:
           typeof distanceMiles === "number"

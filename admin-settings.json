@@ -6,7 +6,8 @@
     "skipFreshCache": true,
     "maxConcurrentScrapes": 1,
     "defaultIntervalMinutes": 15,
-    "skipVagaroDiscoveryByDefault": true
+    "skipVagaroDiscoveryByDefault": true,
+    "defaultLookaheadHours": 48
   },
   "cache": {
     "enabled": true,

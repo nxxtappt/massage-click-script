@@ -332,7 +332,13 @@ function mergeBusinessesForNormalization(primaryBusinesses, cacheBusinesses) {
 }
 
 async function runOrchestratedSearchIfAvailable(query) {
+  const settings = loadAdminSettings();
+
   const onDemand = String(query.onDemand || "") === "true";
+  const searchEnabled = settings.searchEnabled !== false;
+  const onDemandEnabled =
+    settings.scraping?.onDemandEnabled !== false &&
+    settings.onDemand?.enabled !== false;
   const useOrchestration =
     onDemand ||
     String(query.useOrchestration || "") === "true" ||
@@ -351,7 +357,12 @@ async function runOrchestratedSearchIfAvailable(query) {
   if (!useOrchestration) {
     return summary;
   }
-
+  if (!searchEnabled || !onDemandEnabled) {
+    summary.skippedBecauseSearchDisabled = !searchEnabled;
+    summary.skippedBecauseOnDemandDisabled = !onDemandEnabled;
+    summary.error = "Live search skipped by admin settings.";
+    return summary;
+  }
   const executeSearch = getExecuteSearchFunction();
 
   if (!executeSearch) {
@@ -1840,7 +1851,13 @@ upsertBusinessResult(
 }
 
 async function runLiveSearchIfRequested(query) {
+  const settings = loadAdminSettings();
+
   const onDemand = String(query.onDemand || "") === "true";
+  const searchEnabled = settings.searchEnabled !== false;
+  const onDemandEnabled =
+    settings.scraping?.onDemandEnabled !== false &&
+    settings.onDemand?.enabled !== false;
 
   const summary = {
     onDemand,
@@ -1853,7 +1870,11 @@ async function runLiveSearchIfRequested(query) {
   if (!onDemand) {
     return summary;
   }
-
+  if (!searchEnabled || !onDemandEnabled) {
+    summary.skippedBecauseSearchDisabled = !searchEnabled;
+    summary.skippedBecauseOnDemandDisabled = !onDemandEnabled;
+    return summary;
+  }
   if (liveSearchRunning) {
     summary.skippedBecauseAlreadyRunning = true;
     return summary;
