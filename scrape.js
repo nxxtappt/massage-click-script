@@ -150,10 +150,43 @@ async function closeScrapePage(page, context) {
   await context?.close?.().catch(() => null);
 }
 
+function buildScrapeWindowPayload(job = {}) {
+  return {
+    scrapeStartDate: job.scrapeStartDate || "",
+    scrapeEndDate: job.scrapeEndDate || "",
+    lookaheadHours: job.lookaheadHours ? Number(job.lookaheadHours) : null,
+    daysForward: job.daysForward ? Number(job.daysForward) : null,
+    scrapeWindowMode: job.scrapeWindowMode || ""
+  };
+}
+
+function withScrapeWindow(job = {}) {
+  return {
+    ...job,
+    ...buildScrapeWindowPayload(job)
+  };
+}
+
 function getLookaheadHours(job = {}) {
   if (job.lookaheadHours) return Number(job.lookaheadHours);
   if (job.daysForward) return Number(job.daysForward) * 24;
   return null;
+}
+
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function getDateKeyFromDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function parseAppointmentDateTime(item, parentResult = {}) {
@@ -200,7 +233,79 @@ function parseAppointmentDateTime(item, parentResult = {}) {
     return new Date(`${date} ${time}`);
   }
 
+  if (date && isDateKey(date)) {
+    return new Date(`${date}T12:00:00`);
+  }
+
   return null;
+}
+
+function getAppointmentDateKey(item, parentResult = {}) {
+  if (!item) return "";
+
+  if (typeof item === "string") {
+    const isoDateMatch = item.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoDateMatch) return isoDateMatch[1];
+
+    if (isDateKey(parentResult.date)) return parentResult.date;
+
+    const parsed = parseAppointmentDateTime(item, parentResult);
+    return parsed ? getDateKeyFromDate(parsed) : "";
+  }
+
+  const directDate =
+    item.localDateKey ||
+    item.date ||
+    item.appointmentDate ||
+    item.AvailableDate ||
+    "";
+
+  if (isDateKey(directDate)) {
+    return directDate;
+  }
+
+  const raw =
+    item.startTime ||
+    item.startDateTime ||
+    item.appointmentStartTime ||
+    item.from ||
+    item.dateTime ||
+    item.datetime ||
+    "";
+
+  const isoDateMatch = String(raw || "").match(/^(\d{4}-\d{2}-\d{2})/);
+
+  if (isoDateMatch) {
+    return isoDateMatch[1];
+  }
+
+  const parsed = parseAppointmentDateTime(item, parentResult);
+  return parsed ? getDateKeyFromDate(parsed) : "";
+}
+
+function isWithinScrapeDateWindow(item, result, job = {}) {
+  const startDate = job.scrapeStartDate || result.scrapeStartDate || "";
+  const endDate = job.scrapeEndDate || result.scrapeEndDate || "";
+
+  if (!isDateKey(startDate) && !isDateKey(endDate)) {
+    return true;
+  }
+
+  const appointmentDateKey = getAppointmentDateKey(item, result);
+
+  if (!appointmentDateKey) {
+    return true;
+  }
+
+  if (isDateKey(startDate) && appointmentDateKey < startDate) {
+    return false;
+  }
+
+  if (isDateKey(endDate) && appointmentDateKey > endDate) {
+    return false;
+  }
+
+  return true;
 }
 
 function isWithinLookahead(item, result, cutoff) {
@@ -213,50 +318,95 @@ function isWithinLookahead(item, result, cutoff) {
   return parsed.getTime() <= cutoff.getTime();
 }
 
-function filterResultToLookahead(result = {}, job = {}) {
-  const lookaheadHours = getLookaheadHours(job);
+function shouldApplyRollingLookahead(job = {}) {
+  const mode = String(job.scrapeWindowMode || "");
 
-  if (!lookaheadHours || Number.isNaN(lookaheadHours)) {
+  return !["specific_date", "custom_range"].includes(mode);
+}
+
+function filterResultToScrapeWindow(result = {}, job = {}) {
+  if (!result || typeof result !== "object") {
     return result;
   }
 
-  const cutoff = new Date(Date.now() + lookaheadHours * 60 * 60 * 1000);
+  const scrapeWindow = buildScrapeWindowPayload(job);
+  const lookaheadHours = getLookaheadHours(job);
 
   const filtered = {
     ...result,
-    lookaheadHoursApplied: lookaheadHours,
-    lookaheadCutoff: cutoff.toISOString()
+    ...scrapeWindow
   };
+
+  let cutoff = null;
+
+  if (
+    shouldApplyRollingLookahead(job) &&
+    lookaheadHours &&
+    !Number.isNaN(lookaheadHours)
+  ) {
+    cutoff = new Date(Date.now() + lookaheadHours * 60 * 60 * 1000);
+    filtered.lookaheadHoursApplied = lookaheadHours;
+    filtered.lookaheadCutoff = cutoff.toISOString();
+  }
 
   ["appointments", "openings", "availability", "results"].forEach((key) => {
     if (Array.isArray(filtered[key])) {
-      filtered[key] = filtered[key].filter((item) =>
-        isWithinLookahead(item, filtered, cutoff)
-      );
+      filtered[key] = filtered[key].filter((item) => {
+        if (!isWithinScrapeDateWindow(item, filtered, job)) {
+          return false;
+        }
+
+        if (cutoff && !isWithinLookahead(item, filtered, cutoff)) {
+          return false;
+        }
+
+        return true;
+      });
     }
   });
 
   if (Array.isArray(filtered.times)) {
-    filtered.times = filtered.times.filter((time) =>
-      isWithinLookahead(time, filtered, cutoff)
-    );
+    filtered.times = filtered.times.filter((time) => {
+      if (!isWithinScrapeDateWindow(time, filtered, job)) {
+        return false;
+      }
+
+      if (cutoff && !isWithinLookahead(time, filtered, cutoff)) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
   return filtered;
 }
 
 async function scrapeMeevoBusiness(business, attemptNumber) {
+  const scrapeTarget = withScrapeWindow(business);
   const startedAt = Date.now();
 
   console.log(
-    `\n===== Scraping ${business.businessName} | ${business.serviceName} | Attempt ${attemptNumber} =====`
+    `\n===== Scraping ${scrapeTarget.businessName} | ${scrapeTarget.serviceName} | Attempt ${attemptNumber} =====`
   );
 
+  console.log("[SCRAPE WINDOW]", {
+    scrapeStartDate: scrapeTarget.scrapeStartDate,
+    scrapeEndDate: scrapeTarget.scrapeEndDate,
+    lookaheadHours: scrapeTarget.lookaheadHours,
+    daysForward: scrapeTarget.daysForward,
+    scrapeWindowMode: scrapeTarget.scrapeWindowMode
+  });
+
   const meevoResult = await scrapeMeevoAvailability({
-    bookingUrl: business.bookingUrl,
-    categoryName: business.categoryName,
-    serviceName: business.serviceName,
-    daysForward: business.daysForward || 7
+    bookingUrl: scrapeTarget.bookingUrl,
+    categoryName: scrapeTarget.categoryName,
+    serviceName: scrapeTarget.serviceName,
+    scrapeStartDate: scrapeTarget.scrapeStartDate,
+    scrapeEndDate: scrapeTarget.scrapeEndDate,
+    lookaheadHours: scrapeTarget.lookaheadHours,
+    daysForward: scrapeTarget.daysForward || 7,
+    scrapeWindowMode: scrapeTarget.scrapeWindowMode
   });
 
   const openings = Array.isArray(meevoResult.openings)
@@ -266,14 +416,14 @@ async function scrapeMeevoBusiness(business, attemptNumber) {
   const times = openings.map((opening) => opening.startTime).filter(Boolean);
 
   return {
-    businessName: business.businessName,
-    bookingUrl: business.bookingUrl,
-    platform: business.platform,
-    service: meevoResult.service?.name || business.serviceName,
-    serviceName: meevoResult.service?.name || business.serviceName,
-    serviceType: business.serviceType || "",
-    durationMinutes: business.durationMinutes || null,
-    platformServiceId: business.platformServiceId || business.serviceId || null,
+    businessName: scrapeTarget.businessName,
+    bookingUrl: scrapeTarget.bookingUrl,
+    platform: scrapeTarget.platform,
+    service: meevoResult.service?.name || scrapeTarget.serviceName,
+    serviceName: meevoResult.service?.name || scrapeTarget.serviceName,
+    serviceType: scrapeTarget.serviceType || "",
+    durationMinutes: scrapeTarget.durationMinutes || null,
+    platformServiceId: scrapeTarget.platformServiceId || scrapeTarget.serviceId || null,
     provider: "Any Therapist",
     date: null,
     times,
@@ -284,48 +434,61 @@ async function scrapeMeevoBusiness(business, attemptNumber) {
     openings,
     category: meevoResult.category || null,
     therapists: meevoResult.therapists || [],
-    distanceMiles: business.distanceMiles || null,
-    rawWidgetText: null
+    distanceMiles: scrapeTarget.distanceMiles || null,
+    rawWidgetText: null,
+    ...buildScrapeWindowPayload(scrapeTarget)
   };
 }
 
 async function scrapeWithRetries(browser, business) {
   let lastError = null;
+  const scrapeTarget = withScrapeWindow(business);
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const { page, context } = await createScrapePage(browser);
     const startedAt = Date.now();
 
     try {
-      if (business.integrationType === "api") {
+      console.log("[SCRAPE WINDOW]", {
+        businessName: scrapeTarget.businessName,
+        serviceName: scrapeTarget.serviceName,
+        scrapeStartDate: scrapeTarget.scrapeStartDate,
+        scrapeEndDate: scrapeTarget.scrapeEndDate,
+        lookaheadHours: scrapeTarget.lookaheadHours,
+        daysForward: scrapeTarget.daysForward,
+        scrapeWindowMode: scrapeTarget.scrapeWindowMode
+      });
+
+      if (scrapeTarget.integrationType === "api") {
         console.log(
-          `[API SYNC] Using API integration for ${business.businessName} | ${business.serviceName}`
+          `[API SYNC] Using API integration for ${scrapeTarget.businessName} | ${scrapeTarget.serviceName}`
         );
 
         const appointments = await syncBusinessViaApi({
-          business,
-          businessName: business.businessName,
-          platform: business.platform,
-          serviceName: business.serviceName,
-          serviceType: business.serviceType,
-          durationMinutes: business.durationMinutes,
-          bookingUrl: business.bookingUrl
+          business: scrapeTarget,
+          businessName: scrapeTarget.businessName,
+          platform: scrapeTarget.platform,
+          serviceName: scrapeTarget.serviceName,
+          serviceType: scrapeTarget.serviceType,
+          durationMinutes: scrapeTarget.durationMinutes,
+          bookingUrl: scrapeTarget.bookingUrl,
+          ...buildScrapeWindowPayload(scrapeTarget)
         });
 
         await closeScrapePage(page, context);
 
         return {
-          businessName: business.businessName,
-          bookingUrl: business.bookingUrl,
-          platform: business.platform,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: scrapeTarget.platform,
           integrationType: "api",
-          apiProvider: business.apiProvider || "",
-          service: business.serviceName,
-          serviceName: business.serviceName,
-          serviceType: business.serviceType || "",
-          durationMinutes: business.durationMinutes || null,
+          apiProvider: scrapeTarget.apiProvider || "",
+          service: scrapeTarget.serviceName,
+          serviceName: scrapeTarget.serviceName,
+          serviceType: scrapeTarget.serviceType || "",
+          durationMinutes: scrapeTarget.durationMinutes || null,
           platformServiceId:
-            business.platformServiceId || business.serviceId || null,
+            scrapeTarget.platformServiceId || scrapeTarget.serviceId || null,
           provider: "API",
           date: null,
           times: [],
@@ -335,155 +498,168 @@ async function scrapeWithRetries(browser, business) {
           lastChecked: new Date().toISOString(),
           appointments,
           openings: [],
-          distanceMiles: business.distanceMiles || null,
-          rawWidgetText: null
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          rawWidgetText: null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "schedulista") {
-        const result = await scrapeSchedulistaBusiness(browser, business);
+      if (scrapeTarget.platform === "schedulista") {
+        const result = await scrapeSchedulistaBusiness(browser, scrapeTarget);
         await closeScrapePage(page, context);
 
         return {
           ...result,
-          serviceName: business.serviceName || result.serviceName || result.service,
-          serviceType: business.serviceType || result.serviceType || "",
+          serviceName: scrapeTarget.serviceName || result.serviceName || result.service,
+          serviceType: scrapeTarget.serviceType || result.serviceType || "",
           durationMinutes:
-            business.durationMinutes || result.durationMinutes || null,
+            scrapeTarget.durationMinutes || result.durationMinutes || null,
           platformServiceId:
-            business.platformServiceId || business.serviceId || null,
-          distanceMiles: business.distanceMiles || null
+            scrapeTarget.platformServiceId || scrapeTarget.serviceId || null,
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "mindbody") {
-        const result = await scrapeMindbodyBusiness(page, business, attempt);
+      if (scrapeTarget.platform === "mindbody") {
+        const result = await scrapeMindbodyBusiness(page, scrapeTarget, attempt);
         await closeScrapePage(page, context);
 
         return {
           ...result,
-          distanceMiles: business.distanceMiles || null
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "mindbody-old") {
+      if (scrapeTarget.platform === "mindbody-old") {
         await closeScrapePage(page, context);
-        const result = await scrapeMindbodyOldBusiness(browser, business);
+        const result = await scrapeMindbodyOldBusiness(browser, scrapeTarget);
 
         return {
           ...result,
-          serviceName: business.serviceName || result.serviceName || result.service,
-          serviceType: business.serviceType || "",
-          durationMinutes: business.durationMinutes || null,
+          serviceName: scrapeTarget.serviceName || result.serviceName || result.service,
+          serviceType: scrapeTarget.serviceType || "",
+          durationMinutes: scrapeTarget.durationMinutes || null,
           platformServiceId:
-            business.platformServiceId || business.serviceId || null,
-          distanceMiles: business.distanceMiles || null
+            scrapeTarget.platformServiceId || scrapeTarget.serviceId || null,
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "oakhaven") {
+      if (scrapeTarget.platform === "oakhaven") {
         await closeScrapePage(page, context);
 
-        const result = await scrapeOakHavenBusiness(business);
+        const result = await scrapeOakHavenBusiness(scrapeTarget);
 
         return {
           ...result,
-          serviceName: business.serviceName || result.serviceName || result.service,
-          serviceType: business.serviceType || "",
-          durationMinutes: business.durationMinutes || null,
+          serviceName: scrapeTarget.serviceName || result.serviceName || result.service,
+          serviceType: scrapeTarget.serviceType || "",
+          durationMinutes: scrapeTarget.durationMinutes || null,
           platformServiceId:
-            business.platformServiceId || business.SessionTypeIds || null,
+            scrapeTarget.platformServiceId || scrapeTarget.SessionTypeIds || null,
           attemptNumber: attempt,
           scrapeDurationMs: Date.now() - startedAt,
-          distanceMiles: business.distanceMiles || null
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "meevo") {
+      if (scrapeTarget.platform === "meevo") {
         await closeScrapePage(page, context);
-        return await scrapeMeevoBusiness(business, attempt);
+        return await scrapeMeevoBusiness(scrapeTarget, attempt);
       }
 
-      if (business.platform === "axl3") {
+      if (scrapeTarget.platform === "axl3") {
         await closeScrapePage(page, context);
-        const result = await scrapeAxl3Business(browser, business);
+        const result = await scrapeAxl3Business(browser, scrapeTarget);
 
         return {
           ...result,
-          serviceName: business.serviceName || result.serviceName || result.service,
-          serviceType: business.serviceType || "",
-          durationMinutes: business.durationMinutes || null,
-          platformServiceId: business.platformServiceId || null,
-          distanceMiles: business.distanceMiles || null
+          serviceName: scrapeTarget.serviceName || result.serviceName || result.service,
+          serviceType: scrapeTarget.serviceType || "",
+          durationMinutes: scrapeTarget.durationMinutes || null,
+          platformServiceId: scrapeTarget.platformServiceId || null,
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "booker") {
+      if (scrapeTarget.platform === "booker") {
         await closeScrapePage(page, context);
-        const result = await scrapeBookerBusiness(browser, business);
+        const result = await scrapeBookerBusiness(browser, scrapeTarget);
 
         return {
           ...result,
-          serviceName: business.serviceName || result.serviceName || result.service,
-          serviceType: business.serviceType || "",
-          durationMinutes: business.durationMinutes || null,
-          platformServiceId: business.platformServiceId || null,
-          distanceMiles: business.distanceMiles || null
+          serviceName: scrapeTarget.serviceName || result.serviceName || result.service,
+          serviceType: scrapeTarget.serviceType || "",
+          durationMinutes: scrapeTarget.durationMinutes || null,
+          platformServiceId: scrapeTarget.platformServiceId || null,
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "massage-envy") {
+      if (scrapeTarget.platform === "massage-envy") {
         await closeScrapePage(page, context);
 
-        const result = await scrapeMassageEnvyBusiness(browser, business);
+        const result = await scrapeMassageEnvyBusiness(browser, scrapeTarget);
 
         return {
           ...result,
-          businessName: business.businessName,
-          bookingUrl: business.bookingUrl,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
           platform: "massage-envy",
           service:
-            business.serviceName ||
+            scrapeTarget.serviceName ||
             result.serviceName ||
             result.service ||
             "60 Min Relaxation Massage",
           serviceName:
-            business.serviceName ||
+            scrapeTarget.serviceName ||
             result.serviceName ||
             result.service ||
             "60 Min Relaxation Massage",
           serviceType:
-            business.serviceType ||
+            scrapeTarget.serviceType ||
             result.serviceType ||
             "swedish",
           durationMinutes:
-            business.durationMinutes ||
+            scrapeTarget.durationMinutes ||
             result.durationMinutes ||
             60,
           platformServiceId:
-            business.platformServiceId ||
-            business.serviceId ||
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceId ||
             result.platformServiceId ||
             null,
           provider:
             result.provider ||
-            business.providerText ||
+            scrapeTarget.providerText ||
             "First Available",
           attemptNumber: attempt,
           scrapeDurationMs: Date.now() - startedAt,
           lastChecked:
             result.lastChecked ||
             new Date().toISOString(),
-          distanceMiles: business.distanceMiles || null
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      if (business.platform === "zenoti") {
+      if (scrapeTarget.platform === "zenoti") {
         await closeScrapePage(page, context);
 
-        const result = await scrapeZenoti(business, {
-          serviceName: business.serviceName,
-          daysAhead: business.daysForward || 21
+        const result = await scrapeZenoti(scrapeTarget, {
+          serviceName: scrapeTarget.serviceName,
+          scrapeStartDate: scrapeTarget.scrapeStartDate,
+          scrapeEndDate: scrapeTarget.scrapeEndDate,
+          lookaheadHours: scrapeTarget.lookaheadHours,
+          daysForward: scrapeTarget.daysForward || 21,
+          daysAhead: scrapeTarget.daysForward || 21,
+          scrapeWindowMode: scrapeTarget.scrapeWindowMode
         });
 
         const appointments = Array.isArray(result.appointments)
@@ -495,18 +671,18 @@ async function scrapeWithRetries(browser, business) {
           .filter(Boolean);
 
         return {
-          businessName: business.businessName,
-          bookingUrl: business.bookingUrl,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
           platform: "zenoti",
           service:
-            business.serviceName || result.serviceName || result.service || "",
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
           serviceName:
-            business.serviceName || result.serviceName || result.service || "",
-          serviceType: business.serviceType || "",
-          durationMinutes: business.durationMinutes || null,
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
+          serviceType: scrapeTarget.serviceType || "",
+          durationMinutes: scrapeTarget.durationMinutes || null,
           platformServiceId:
-            business.platformServiceId || business.serviceId || null,
-          provider: business.providerText || "Any Therapist",
+            scrapeTarget.platformServiceId || scrapeTarget.serviceId || null,
+          provider: scrapeTarget.providerText || "Any Therapist",
           date: null,
           times,
           status: result.success
@@ -518,45 +694,46 @@ async function scrapeWithRetries(browser, business) {
           error: result.success ? null : result.error || "Zenoti scrape failed",
           scrapeDurationMs: Date.now() - startedAt,
           lastChecked: new Date().toISOString(),
-          distanceMiles: business.distanceMiles || null,
+          distanceMiles: scrapeTarget.distanceMiles || null,
           rawWidgetText: null,
-          appointments
+          appointments,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
 
-      throw new Error(`Unsupported platform: ${business.platform}`);
+      throw new Error(`Unsupported platform: ${scrapeTarget.platform}`);
     } catch (error) {
       lastError = error;
 
       console.error(
-        `Attempt ${attempt} failed for ${business.businessName} | ${business.serviceName}:`,
+        `Attempt ${attempt} failed for ${scrapeTarget.businessName} | ${scrapeTarget.serviceName}:`,
         error.message
       );
 
       await closeScrapePage(page, context);
 
       if (attempt < MAX_ATTEMPTS) {
-        console.log(`Retrying ${business.businessName} | ${business.serviceName}...`);
+        console.log(`Retrying ${scrapeTarget.businessName} | ${scrapeTarget.serviceName}...`);
       }
 
       if (attempt === MAX_ATTEMPTS) {
         const errorResult = {
-          businessName: business.businessName,
-          bookingUrl: business.bookingUrl,
-          platform: business.platform,
-          service: business.serviceName,
-          serviceName: business.serviceName,
-          serviceType: business.serviceType || "",
-          durationMinutes: business.durationMinutes || null,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: scrapeTarget.platform,
+          service: scrapeTarget.serviceName,
+          serviceName: scrapeTarget.serviceName,
+          serviceType: scrapeTarget.serviceType || "",
+          durationMinutes: scrapeTarget.durationMinutes || null,
           platformServiceId:
-            business.platformServiceId ||
-            business.serviceButtonId ||
-            business.serviceId ||
-            business.SessionTypeIds ||
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceButtonId ||
+            scrapeTarget.serviceId ||
+            scrapeTarget.SessionTypeIds ||
             null,
-          provider: business.skipProvider
+          provider: scrapeTarget.skipProvider
             ? "Auto-selected"
-            : business.providerText || "No preference",
+            : scrapeTarget.providerText || "No preference",
           date: null,
           times: [],
           status: "error",
@@ -564,8 +741,9 @@ async function scrapeWithRetries(browser, business) {
           error: lastError.message,
           scrapeDurationMs: Date.now() - startedAt,
           lastChecked: new Date().toISOString(),
-          distanceMiles: business.distanceMiles || null,
-          rawWidgetText: null
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          rawWidgetText: null,
+          ...buildScrapeWindowPayload(scrapeTarget)
         };
 
         appendErrorLog(errorResult);
@@ -658,10 +836,10 @@ async function run() {
     adminSettings.scraping.skipFreshCache !== false && !forceRefresh;
 
   if (adminSettings.scraping.enabled === false) {
-  console.log("[ADMIN] Scraping is disabled in admin-settings.json.");
-  console.log("[ADMIN] Leaving existing results.json untouched.");
-  return;
-}
+    console.log("[ADMIN] Scraping is disabled in admin-settings.json.");
+    console.log("[ADMIN] Leaving existing results.json untouched.");
+    return;
+  }
 
   const businesses = JSON.parse(fs.readFileSync("businesses.json", "utf8"));
 
@@ -695,6 +873,25 @@ async function run() {
     console.log(JSON.stringify(filters, null, 2));
   }
 
+  if (scrapeJobs.length > 0) {
+    console.log("[SCRAPE WINDOW SAMPLE]");
+    console.log(
+      JSON.stringify(
+        {
+          businessName: scrapeJobs[0].businessName,
+          serviceName: scrapeJobs[0].serviceName,
+          scrapeStartDate: scrapeJobs[0].scrapeStartDate,
+          scrapeEndDate: scrapeJobs[0].scrapeEndDate,
+          lookaheadHours: scrapeJobs[0].lookaheadHours,
+          daysForward: scrapeJobs[0].daysForward,
+          scrapeWindowMode: scrapeJobs[0].scrapeWindowMode
+        },
+        null,
+        2
+      )
+    );
+  }
+
   if (skipFreshCache) {
     console.log("[CACHE] Fresh-cache skipping is enabled.");
   } else {
@@ -702,10 +899,10 @@ async function run() {
   }
 
   if (scrapeJobs.length === 0) {
-  console.log("No scrape jobs matched the filters or enabled platforms.");
-  console.log("[RESULTS] Leaving existing results.json untouched.");
-  return;
-}
+    console.log("No scrape jobs matched the filters or enabled platforms.");
+    console.log("[RESULTS] Leaving existing results.json untouched.");
+    return;
+  }
 
   const browser = await chromium.launch({
     headless: true
@@ -713,17 +910,17 @@ async function run() {
 
   let results = [];
 
-if (fs.existsSync(RESULTS_FILE)) {
-  try {
-    const existingResults = JSON.parse(fs.readFileSync(RESULTS_FILE, "utf8"));
-    results = Array.isArray(existingResults) ? existingResults : [];
-  } catch (error) {
-    console.error("[RESULTS] Failed to load existing results.json:", error.message);
-    results = [];
+  if (fs.existsSync(RESULTS_FILE)) {
+    try {
+      const existingResults = JSON.parse(fs.readFileSync(RESULTS_FILE, "utf8"));
+      results = Array.isArray(existingResults) ? existingResults : [];
+    } catch (error) {
+      console.error("[RESULTS] Failed to load existing results.json:", error.message);
+      results = [];
+    }
   }
-}
 
-console.log(`[RESULTS] Starting with ${results.length} existing result(s).`);
+  console.log(`[RESULTS] Starting with ${results.length} existing result(s).`);
 
   try {
     for (const job of scrapeJobs) {
@@ -739,22 +936,23 @@ console.log(`[RESULTS] Starting with ${results.length} existing result(s).`);
             `[CACHE] Skipping scrape for ${job.businessName} | ${job.serviceName}. Reason: ${staleCheck.reason}`
           );
 
-          const filteredCachedResult = filterResultToLookahead(cachedResult, job);
+          const filteredCachedResult = filterResultToScrapeWindow(cachedResult, job);
 
           results = upsertResult(results, filteredCachedResult);
           saveResults(results);
           continue;
         }
       }
-        const rawResult = await scrapeWithRetries(browser, job);
-        const result = filterResultToLookahead(rawResult, job);
 
-        results = upsertResult(results, result);
-        cacheResult(result);
-        saveResults(results);
+      const rawResult = await scrapeWithRetries(browser, job);
+      const result = filterResultToScrapeWindow(rawResult, job);
 
-        console.log("----- RESULT -----");
-        console.log(JSON.stringify(result, null, 2));
+      results = upsertResult(results, result);
+      cacheResult(result);
+      saveResults(results);
+
+      console.log("----- RESULT -----");
+      console.log(JSON.stringify(result, null, 2));
     }
   } finally {
     await browser.close().catch(() => null);

@@ -1,18 +1,84 @@
 // scrapers/schedulista.js
-//
-// Reusable Schedulista scraper.
-// Strategy:
-// 1. Open the Schedulista business page.
-// 2. Find the service link by serviceName.
-// 3. Extract service_id.
-// 4. Go directly to choose_time?service_id=SERVICE_ID.
-// 5. Use "No preference -- see all available times" by skipping provider_id.
-// 6. Extract available times or next available date message.
 
 function cleanText(text) {
   return String(text || "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function formatDateKey(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function parseDateKey(value) {
+  if (!isDateKey(value)) return null;
+
+  const [year, month, day] = String(value).split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+function getTodayDateKey() {
+  const now = new Date();
+  return formatDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0));
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + Number(days || 0));
+  return next;
+}
+
+function buildDateList(startDateKey, endDateKey) {
+  const start = parseDateKey(startDateKey);
+  const end = parseDateKey(endDateKey);
+
+  if (!start || !end) return [];
+
+  const dates = [];
+  let cursor = start;
+
+  while (formatDateKey(cursor) <= formatDateKey(end)) {
+    dates.push(formatDateKey(cursor));
+    cursor = addDays(cursor, 1);
+  }
+
+  return dates;
+}
+
+function getScrapeWindow(business = {}) {
+  const today = getTodayDateKey();
+  const daysForward = Math.max(1, Number(business.daysForward || 1));
+
+  const scrapeStartDate = isDateKey(business.scrapeStartDate)
+    ? business.scrapeStartDate
+    : today;
+
+  const defaultEndDate = formatDateKey(
+    addDays(parseDateKey(scrapeStartDate), daysForward - 1)
+  );
+
+  const scrapeEndDate = isDateKey(business.scrapeEndDate)
+    ? business.scrapeEndDate
+    : defaultEndDate;
+
+  const dateList = buildDateList(scrapeStartDate, scrapeEndDate);
+
+  return {
+    scrapeStartDate,
+    scrapeEndDate,
+    lookaheadHours: business.lookaheadHours || dateList.length * 24 || daysForward * 24,
+    daysForward: dateList.length || daysForward,
+    scrapeWindowMode: business.scrapeWindowMode || "days_forward",
+    dateList
+  };
 }
 
 function extractServiceIdFromUrl(url) {
@@ -44,31 +110,64 @@ function extractNextAvailableDate(text) {
 function buildChooseTimeUrl(baseScheduleUrl, serviceId) {
   const cleanBase = String(baseScheduleUrl || "").replace(/\/+$/, "");
 
-  // Handles:
-  // https://mantismassage.schedulista.com/
-  // and:
-  // https://www.schedulista.com/schedule/mantismassage
   if (cleanBase.includes("schedulista.com/schedule/")) {
     return `${cleanBase}/choose_time?service_id=${serviceId}`;
   }
 
-  // Schedulista subdomain business pages usually redirect service links to:
-  // https://www.schedulista.com/schedule/BUSINESSCODE/...
-  // So if the original bookingUrl is a subdomain, this fallback is not always enough.
-  // We prefer deriving the final choose_time URL from the actual service link when possible.
   return `${cleanBase}/choose_time?service_id=${serviceId}`;
 }
 
 function buildChooseTimeUrlFromServiceHref(serviceHref, serviceId) {
   const href = String(serviceHref || "");
-
-  // Example:
-  // https://www.schedulista.com/schedule/mantismassage/choose_provider?service_id=1073958786
   return href.replace(/choose_provider.*$/i, `choose_time?service_id=${serviceId}`);
+}
+
+function addDateToChooseTimeUrl(chooseTimeUrl, dateKey) {
+  const url = new URL(chooseTimeUrl);
+
+  url.searchParams.set("date", dateKey);
+
+  return url.toString();
+}
+
+function buildOpenings({
+  business,
+  serviceId,
+  dateKey,
+  times,
+  scrapeWindow
+}) {
+  return times.map((time) => ({
+    businessName: business.businessName,
+    bookingUrl: business.bookingUrl,
+    platform: "schedulista",
+    service: business.serviceName || null,
+    serviceName: business.serviceName || null,
+    serviceType: business.serviceType || "",
+    durationMinutes: business.durationMinutes || null,
+    platformServiceId:
+      business.platformServiceId ||
+      business.serviceId ||
+      serviceId ||
+      null,
+    serviceId,
+    provider: "No preference -- see all available times",
+    date: dateKey,
+    appointmentDate: dateKey,
+    time,
+    appointmentTime: time,
+    startTime: `${dateKey} ${time}`,
+    scrapeStartDate: scrapeWindow.scrapeStartDate,
+    scrapeEndDate: scrapeWindow.scrapeEndDate,
+    lookaheadHours: scrapeWindow.lookaheadHours,
+    daysForward: scrapeWindow.daysForward,
+    scrapeWindowMode: scrapeWindow.scrapeWindowMode
+  }));
 }
 
 async function scrapeSchedulistaBusiness(browser, business) {
   const startedAt = Date.now();
+  const scrapeWindow = getScrapeWindow(business);
 
   const page = await browser.newPage({
     viewport: {
@@ -89,8 +188,21 @@ async function scrapeSchedulistaBusiness(browser, business) {
       throw new Error("Missing serviceName or serviceId for Schedulista business.");
     }
 
+    if (!scrapeWindow.dateList.length) {
+      throw new Error(
+        `Invalid Schedulista scrape window: ${scrapeWindow.scrapeStartDate} to ${scrapeWindow.scrapeEndDate}`
+      );
+    }
+
     console.log(`\n[Schedulista] Scraping: ${business.businessName}`);
     console.log(`[Schedulista] Opening: ${bookingUrl}`);
+    console.log("[Schedulista] Scrape window:", {
+      scrapeStartDate: scrapeWindow.scrapeStartDate,
+      scrapeEndDate: scrapeWindow.scrapeEndDate,
+      lookaheadHours: scrapeWindow.lookaheadHours,
+      daysForward: scrapeWindow.daysForward,
+      scrapeWindowMode: scrapeWindow.scrapeWindowMode
+    });
 
     await page.goto(bookingUrl, {
       waitUntil: "domcontentloaded",
@@ -99,7 +211,7 @@ async function scrapeSchedulistaBusiness(browser, business) {
 
     await page.waitForTimeout(2500);
 
-    let serviceId = business.serviceId || null;
+    let serviceId = business.serviceId || business.platformServiceId || null;
     let serviceHref = null;
 
     if (!serviceId) {
@@ -139,14 +251,24 @@ async function scrapeSchedulistaBusiness(browser, business) {
         bookingUrl: business.bookingUrl,
         platform: "schedulista",
         service: business.serviceName || null,
+        serviceName: business.serviceName || null,
+        serviceType: business.serviceType || "",
+        durationMinutes: business.durationMinutes || null,
         provider: "No preference -- see all available times",
         date: null,
         times: [],
+        openings: [],
+        appointments: [],
         status: "service_not_found",
         scrapeDurationMs: Date.now() - startedAt,
         lastChecked: new Date().toISOString(),
         rawWidgetText: bodyText.slice(0, 5000),
-        error: `Could not find service: ${business.serviceName}`
+        error: `Could not find service: ${business.serviceName}`,
+        scrapeStartDate: scrapeWindow.scrapeStartDate,
+        scrapeEndDate: scrapeWindow.scrapeEndDate,
+        lookaheadHours: scrapeWindow.lookaheadHours,
+        daysForward: scrapeWindow.daysForward,
+        scrapeWindowMode: scrapeWindow.scrapeWindowMode
       };
     }
 
@@ -161,45 +283,94 @@ async function scrapeSchedulistaBusiness(browser, business) {
     }
 
     console.log(`[Schedulista] Service ID: ${serviceId}`);
-    console.log(`[Schedulista] Choose time URL: ${chooseTimeUrl}`);
+    console.log(`[Schedulista] Base choose time URL: ${chooseTimeUrl}`);
 
-    await page.goto(chooseTimeUrl, {
-      waitUntil: "domcontentloaded",
-      timeout: 60000
-    });
+    const allOpenings = [];
+    const triedDates = [];
+    let rawWidgetText = "";
+    let nextAvailableDate = null;
+    let resultStatus = "no_times_found";
 
-    await page.waitForTimeout(3000);
+    for (const dateKey of scrapeWindow.dateList) {
+      triedDates.push(dateKey);
 
-    const bodyText = cleanText(await page.locator("body").innerText().catch(() => ""));
+      const datedChooseTimeUrl = addDateToChooseTimeUrl(chooseTimeUrl, dateKey);
 
-    const times = extractTimesFromText(bodyText);
-    const nextAvailableDate = extractNextAvailableDate(bodyText);
+      console.log(`[Schedulista] Checking ${dateKey}`);
+      console.log(`[Schedulista] URL: ${datedChooseTimeUrl}`);
 
-    let status = "unknown";
+      await page.goto(datedChooseTimeUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: 60000
+      });
 
-    if (times.length > 0) {
-      status = "success";
-    } else if (/no available appointment times today/i.test(bodyText)) {
-      status = "no_times_today";
-    } else if (nextAvailableDate) {
-      status = "next_available_found";
-    } else {
-      status = "no_times_found";
+      await page.waitForTimeout(3000);
+
+      const bodyText = cleanText(await page.locator("body").innerText().catch(() => ""));
+      rawWidgetText = bodyText;
+
+      const times = extractTimesFromText(bodyText);
+      const nextDate = extractNextAvailableDate(bodyText);
+
+      if (nextDate) {
+        nextAvailableDate = nextDate;
+      }
+
+      if (times.length > 0) {
+        resultStatus = "success";
+
+        allOpenings.push(
+          ...buildOpenings({
+            business,
+            serviceId,
+            dateKey,
+            times,
+            scrapeWindow
+          })
+        );
+      } else if (/no available appointment times today/i.test(bodyText)) {
+        resultStatus = resultStatus === "success" ? resultStatus : "no_times_found";
+      } else if (nextDate) {
+        resultStatus = resultStatus === "success" ? resultStatus : "next_available_found";
+      }
     }
+
+    const allTimes = allOpenings
+      .map((opening) => opening.time)
+      .filter(Boolean);
 
     return {
       businessName: business.businessName,
       bookingUrl: business.bookingUrl,
       platform: "schedulista",
       service: business.serviceName || null,
+      serviceName: business.serviceName || null,
+      serviceType: business.serviceType || "",
+      durationMinutes: business.durationMinutes || null,
+      platformServiceId:
+        business.platformServiceId ||
+        business.serviceId ||
+        serviceId ||
+        null,
       serviceId,
       provider: "No preference -- see all available times",
-      date: nextAvailableDate || null,
-      times,
-      status,
+      date: allOpenings[0]?.date || nextAvailableDate || null,
+      times: allTimes,
+      openings: allOpenings,
+      appointments: allOpenings,
+      status: allOpenings.length > 0 ? "success" : resultStatus,
       scrapeDurationMs: Date.now() - startedAt,
       lastChecked: new Date().toISOString(),
-      rawWidgetText: bodyText.slice(0, 5000)
+      rawWidgetText: rawWidgetText.slice(0, 5000),
+      scrapeStartDate: scrapeWindow.scrapeStartDate,
+      scrapeEndDate: scrapeWindow.scrapeEndDate,
+      lookaheadHours: scrapeWindow.lookaheadHours,
+      daysForward: scrapeWindow.daysForward,
+      scrapeWindowMode: scrapeWindow.scrapeWindowMode,
+      debug: {
+        triedDates,
+        nextAvailableDate
+      }
     };
   } catch (error) {
     return {
@@ -207,14 +378,24 @@ async function scrapeSchedulistaBusiness(browser, business) {
       bookingUrl: business.bookingUrl,
       platform: "schedulista",
       service: business.serviceName || null,
+      serviceName: business.serviceName || null,
+      serviceType: business.serviceType || "",
+      durationMinutes: business.durationMinutes || null,
       provider: "No preference -- see all available times",
       date: null,
       times: [],
+      openings: [],
+      appointments: [],
       status: "error",
       scrapeDurationMs: Date.now() - startedAt,
       lastChecked: new Date().toISOString(),
       rawWidgetText: null,
-      error: error.message
+      error: error.message,
+      scrapeStartDate: scrapeWindow.scrapeStartDate,
+      scrapeEndDate: scrapeWindow.scrapeEndDate,
+      lookaheadHours: scrapeWindow.lookaheadHours,
+      daysForward: scrapeWindow.daysForward,
+      scrapeWindowMode: scrapeWindow.scrapeWindowMode
     };
   } finally {
     await page.close().catch(() => {});

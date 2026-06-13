@@ -40,6 +40,105 @@ function determineStatus(text, times) {
   return "unknown";
 }
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function formatDateKey(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function parseDateKey(value) {
+  if (!isDateKey(value)) {
+    return null;
+  }
+
+  const [year, month, day] = String(value).split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+function parseMindbodyDisplayDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(`${value} 12:00:00`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return formatDateKey(parsed);
+}
+
+function getScrapeWindowPayload(business = {}) {
+  return {
+    scrapeStartDate: business.scrapeStartDate || "",
+    scrapeEndDate: business.scrapeEndDate || "",
+    lookaheadHours: business.lookaheadHours ? Number(business.lookaheadHours) : null,
+    daysForward: business.daysForward ? Number(business.daysForward) : null,
+    scrapeWindowMode: business.scrapeWindowMode || ""
+  };
+}
+
+function dateIsInsideScrapeWindow(dateText, business = {}) {
+  const dateKey = isDateKey(dateText)
+    ? dateText
+    : parseMindbodyDisplayDate(dateText);
+
+  if (!dateKey) {
+    return true;
+  }
+
+  const startDate = business.scrapeStartDate || "";
+  const endDate = business.scrapeEndDate || "";
+
+  if (isDateKey(startDate) && dateKey < startDate) {
+    return false;
+  }
+
+  if (isDateKey(endDate) && dateKey > endDate) {
+    return false;
+  }
+
+  return true;
+}
+
+function maybeApplyScrapeWindowToResult(result = {}, business = {}) {
+  const windowPayload = getScrapeWindowPayload(business);
+
+  const resultDateKey = result.date
+    ? parseMindbodyDisplayDate(result.date)
+    : "";
+
+  if (result.date && !dateIsInsideScrapeWindow(result.date, business)) {
+    return {
+      ...result,
+      ...windowPayload,
+      times: [],
+      status: "outside_scrape_window",
+      originalStatus: result.status,
+      scrapeWindowFiltered: true,
+      scrapeWindowFilterReason:
+        `Mindbody result date ${resultDateKey || result.date} is outside ${windowPayload.scrapeStartDate} to ${windowPayload.scrapeEndDate}.`
+    };
+  }
+
+  return {
+    ...result,
+    ...windowPayload,
+    scrapeWindowFiltered: false
+  };
+}
+
 async function wait(page, ms = 1500) {
   await page.waitForTimeout(ms);
 }
@@ -351,13 +450,23 @@ async function clickContinueIfPresent(frame, page) {
   return Boolean(clicked);
 }
 
-async function clickNextAvailableIfNeeded(frame, page) {
+async function clickNextAvailableIfNeeded(frame, page, business = {}) {
   let text = await getBodyText(frame);
   const nextAvailableMatch = text.match(/Go to ([A-Za-z]+ \d{1,2}, \d{4})/);
 
   if (!nextAvailableMatch) return text;
 
-  const goToText = `Go to ${nextAvailableMatch[1]}`;
+  const suggestedDate = nextAvailableMatch[1];
+
+  if (!dateIsInsideScrapeWindow(suggestedDate, business)) {
+    console.log(
+      `[MINDBODY] Suggested next available date ${suggestedDate} is outside scrape window. Not clicking.`
+    );
+
+    return text;
+  }
+
+  const goToText = `Go to ${suggestedDate}`;
 
   console.log(`Clicking next available date: ${goToText}`);
 
@@ -434,10 +543,19 @@ async function runModernMindbodyFlow(frame, page, business) {
 
 async function scrapeMindbodyBusiness(page, business, attemptNumber) {
   const startedAt = Date.now();
+  const scrapeWindow = getScrapeWindowPayload(business);
 
   console.log(
     `\n===== Scraping ${business.businessName} | ${business.serviceName} | Attempt ${attemptNumber} =====`
   );
+
+  console.log("[MINDBODY] Scrape window:", {
+    scrapeStartDate: scrapeWindow.scrapeStartDate,
+    scrapeEndDate: scrapeWindow.scrapeEndDate,
+    lookaheadHours: scrapeWindow.lookaheadHours,
+    daysForward: scrapeWindow.daysForward,
+    scrapeWindowMode: scrapeWindow.scrapeWindowMode
+  });
 
   await page.goto(business.bookingUrl, {
     waitUntil: "domcontentloaded",
@@ -473,7 +591,7 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
 
   let text = await runModernMindbodyFlow(frame, page, business);
 
-  text = await clickNextAvailableIfNeeded(frame, page);
+  text = await clickNextAvailableIfNeeded(frame, page, business);
 
   const times = extractAppointmentTimes(text);
   const date = extractAvailabilityDate(text);
@@ -482,7 +600,7 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
   console.log("----- FINAL WIDGET TEXT -----");
   console.log(text);
 
-  return {
+  const result = {
     businessName: business.businessName,
     bookingUrl: business.bookingUrl,
     platform: business.platform,
@@ -504,8 +622,11 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
     attemptNumber,
     scrapeDurationMs: Date.now() - startedAt,
     lastChecked: new Date().toISOString(),
-    rawWidgetText: text
+    rawWidgetText: text,
+    ...scrapeWindow
   };
+
+  return maybeApplyScrapeWindowToResult(result, business);
 }
 
 module.exports = {

@@ -1,7 +1,105 @@
 const { chromium } = require("playwright");
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function formatDateKey(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
 function formatZenotiDate(date) {
-  return date.toISOString().split("T")[0] + " 00:00:00";
+  return formatDateKey(date) + " 00:00:00";
+}
+
+function parseDateKey(value) {
+  if (!isDateKey(value)) {
+    return null;
+  }
+
+  const [year, month, day] = String(value).split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+function getTodayDateKey() {
+  const now = new Date();
+  return formatDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0));
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + Number(days || 0));
+  return next;
+}
+
+function buildDateList(startDateKey, endDateKey) {
+  const start = parseDateKey(startDateKey);
+  const end = parseDateKey(endDateKey);
+
+  if (!start || !end) {
+    return [];
+  }
+
+  const dates = [];
+  let cursor = start;
+
+  while (formatDateKey(cursor) <= formatDateKey(end)) {
+    dates.push(new Date(cursor));
+    cursor = addDays(cursor, 1);
+  }
+
+  return dates;
+}
+
+function getScrapeWindow(options = {}, business = {}) {
+  const today = getTodayDateKey();
+  const daysForward = Math.max(
+    1,
+    Number(
+      options.daysForward ||
+        business.daysForward ||
+        options.daysAhead ||
+        7
+    )
+  );
+
+  const scrapeStartDate = isDateKey(options.scrapeStartDate)
+    ? options.scrapeStartDate
+    : isDateKey(business.scrapeStartDate)
+      ? business.scrapeStartDate
+      : today;
+
+  const defaultEndDate = formatDateKey(
+    addDays(parseDateKey(scrapeStartDate), daysForward - 1)
+  );
+
+  const scrapeEndDate = isDateKey(options.scrapeEndDate)
+    ? options.scrapeEndDate
+    : isDateKey(business.scrapeEndDate)
+      ? business.scrapeEndDate
+      : defaultEndDate;
+
+  const dateList = buildDateList(scrapeStartDate, scrapeEndDate);
+
+  return {
+    scrapeStartDate,
+    scrapeEndDate,
+    lookaheadHours:
+      options.lookaheadHours ||
+      business.lookaheadHours ||
+      dateList.length * 24 ||
+      daysForward * 24,
+    daysForward: dateList.length || daysForward,
+    scrapeWindowMode:
+      options.scrapeWindowMode ||
+      business.scrapeWindowMode ||
+      "days_forward",
+    dateList
+  };
 }
 
 async function safeClick(page, text, timeout = 15000) {
@@ -52,9 +150,10 @@ async function safeClick(page, text, timeout = 15000) {
 
 async function scrapeZenoti(business, options = {}) {
   const {
-    serviceName = "",
-    daysAhead = 7
+    serviceName = ""
   } = options;
+
+  const scrapeWindow = getScrapeWindow(options, business);
 
   const browser = await chromium.launch({
     headless: true
@@ -97,6 +196,19 @@ async function scrapeZenoti(business, options = {}) {
     });
 
     console.log(`\n[ZENOTI] Opening ${business.businessName}`);
+    console.log("[ZENOTI] Scrape window:", {
+      scrapeStartDate: scrapeWindow.scrapeStartDate,
+      scrapeEndDate: scrapeWindow.scrapeEndDate,
+      lookaheadHours: scrapeWindow.lookaheadHours,
+      daysForward: scrapeWindow.daysForward,
+      scrapeWindowMode: scrapeWindow.scrapeWindowMode
+    });
+
+    if (!scrapeWindow.dateList.length) {
+      throw new Error(
+        `Invalid Zenoti scrape window: ${scrapeWindow.scrapeStartDate} to ${scrapeWindow.scrapeEndDate}`
+      );
+    }
 
     await page.goto(business.bookingUrl, {
       waitUntil: "networkidle",
@@ -211,13 +323,12 @@ async function scrapeZenoti(business, options = {}) {
 
     const results = [];
 
-    for (let i = 0; i < daysAhead; i++) {
+    for (const date of scrapeWindow.dateList) {
       const payload = JSON.parse(
         JSON.stringify(basePayload)
       );
 
-      const date = new Date();
-      date.setDate(date.getDate() + i);
+      const dateKey = formatDateKey(date);
 
       payload.CenterDate = formatZenotiDate(date);
       payload.CheckFutureDayAvailability = true;
@@ -259,7 +370,7 @@ async function scrapeZenoti(business, options = {}) {
       const slots = response.OpenSlots || [];
 
       console.log(
-        `[ZENOTI] Slots found: ${slots.length}`
+        `[ZENOTI] Slots found on ${dateKey}: ${slots.length}`
       );
 
       for (const slot of slots) {
@@ -267,9 +378,23 @@ async function scrapeZenoti(business, options = {}) {
           businessName: business.businessName,
           platform: "zenoti",
           service: serviceName,
-          date: slot.Time,
+          serviceName,
+          serviceType: business.serviceType || "",
+          durationMinutes: business.durationMinutes || null,
+          platformServiceId:
+            business.platformServiceId ||
+            business.serviceId ||
+            business.serviceButtonId ||
+            null,
+          date: slot.Time || dateKey,
           time: slot.Time,
-          bookingUrl: business.bookingUrl
+          startTime: slot.Time,
+          bookingUrl: business.bookingUrl,
+          scrapeStartDate: scrapeWindow.scrapeStartDate,
+          scrapeEndDate: scrapeWindow.scrapeEndDate,
+          lookaheadHours: scrapeWindow.lookaheadHours,
+          daysForward: scrapeWindow.daysForward,
+          scrapeWindowMode: scrapeWindow.scrapeWindowMode
         });
       }
     }
@@ -280,8 +405,22 @@ async function scrapeZenoti(business, options = {}) {
       success: true,
       businessName: business.businessName,
       platform: "zenoti",
+      service: serviceName,
+      serviceName,
+      serviceType: business.serviceType || "",
+      durationMinutes: business.durationMinutes || null,
+      platformServiceId:
+        business.platformServiceId ||
+        business.serviceId ||
+        business.serviceButtonId ||
+        null,
       totalAppointments: results.length,
-      appointments: results
+      appointments: results,
+      scrapeStartDate: scrapeWindow.scrapeStartDate,
+      scrapeEndDate: scrapeWindow.scrapeEndDate,
+      lookaheadHours: scrapeWindow.lookaheadHours,
+      daysForward: scrapeWindow.daysForward,
+      scrapeWindowMode: scrapeWindow.scrapeWindowMode
     };
   } catch (error) {
     await browser.close();
@@ -290,7 +429,12 @@ async function scrapeZenoti(business, options = {}) {
       success: false,
       businessName: business.businessName,
       platform: "zenoti",
-      error: error.message
+      error: error.message,
+      scrapeStartDate: scrapeWindow.scrapeStartDate,
+      scrapeEndDate: scrapeWindow.scrapeEndDate,
+      lookaheadHours: scrapeWindow.lookaheadHours,
+      daysForward: scrapeWindow.daysForward,
+      scrapeWindowMode: scrapeWindow.scrapeWindowMode
     };
   }
 }

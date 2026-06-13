@@ -1,15 +1,106 @@
 const AVAILABILITY_URL =
   "https://www.massageenvy.com/scheduling/check-multiple-availability";
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function formatDateKey(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function parseDateKey(value) {
+  if (!isDateKey(value)) {
+    return null;
+  }
+
+  const [year, month, day] = String(value).split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+function getTodayDateKey() {
+  const now = new Date();
+  return formatDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0));
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + Number(days || 0));
+  return next;
+}
+
 function formatDateForPayload(date) {
   return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 }
 
 function toIsoDate(date) {
-  return date.toISOString().split("T")[0];
+  return formatDateKey(date);
 }
 
-function normalizeAppointments(payload, business) {
+function getScrapeWindow(business = {}) {
+  const today = getTodayDateKey();
+  const daysForward = Math.max(1, Number(business.daysForward || 7));
+
+  const scrapeStartDate = isDateKey(business.scrapeStartDate)
+    ? business.scrapeStartDate
+    : today;
+
+  const defaultEndDate = formatDateKey(
+    addDays(parseDateKey(scrapeStartDate), daysForward - 1)
+  );
+
+  const scrapeEndDate = isDateKey(business.scrapeEndDate)
+    ? business.scrapeEndDate
+    : defaultEndDate;
+
+  return {
+    scrapeStartDate,
+    scrapeEndDate,
+    lookaheadHours:
+      business.lookaheadHours ||
+      daysForward * 24,
+    daysForward,
+    scrapeWindowMode:
+      business.scrapeWindowMode ||
+      "days_forward"
+  };
+}
+
+function appointmentDateKey(item = {}) {
+  const raw =
+    item.date ||
+    item.startTime ||
+    item.startDateTime ||
+    "";
+
+  const match = String(raw || "").match(/^(\d{4}-\d{2}-\d{2})/);
+
+  return match ? match[1] : "";
+}
+
+function appointmentInsideWindow(item = {}, scrapeWindow = {}) {
+  const dateKey = appointmentDateKey(item);
+
+  if (!dateKey) {
+    return true;
+  }
+
+  if (isDateKey(scrapeWindow.scrapeStartDate) && dateKey < scrapeWindow.scrapeStartDate) {
+    return false;
+  }
+
+  if (isDateKey(scrapeWindow.scrapeEndDate) && dateKey > scrapeWindow.scrapeEndDate) {
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeAppointments(payload, business, scrapeWindow) {
   const clinicId = String(business.clinicId || "");
   const serviceId = String(business.platformServiceId || business.serviceId || "");
 
@@ -17,27 +108,34 @@ function normalizeAppointments(payload, business) {
     payload?.data?.[clinicId]?.[serviceId] ||
     [];
 
-  return rows.map((item) => ({
-    date: item.date || "",
-    startTime: item.startTime || "",
-    endTime: item.endTime || "",
-    serviceName: item.serviceName || business.serviceName || "",
-    serviceType: business.serviceType || "",
-    durationMinutes: business.durationMinutes || null,
-    therapistName:
-      item.employeeName ||
-      item.employeeFirstName ||
-      item.employeeDisplayName ||
-      "Any Therapist",
-    employeeId: item.employeeId || "",
-    providerName:
-      item.employeeName ||
-      item.employeeFirstName ||
-      item.employeeDisplayName ||
-      "",
-    bookingUrl: business.bookingUrl || "",
-    platform: "massage-envy"
-  }));
+  return rows
+    .filter((item) => appointmentInsideWindow(item, scrapeWindow))
+    .map((item) => ({
+      date: item.date || "",
+      startTime: item.startTime || "",
+      endTime: item.endTime || "",
+      serviceName: item.serviceName || business.serviceName || "",
+      serviceType: business.serviceType || "",
+      durationMinutes: business.durationMinutes || null,
+      therapistName:
+        item.employeeName ||
+        item.employeeFirstName ||
+        item.employeeDisplayName ||
+        "Any Therapist",
+      employeeId: item.employeeId || "",
+      providerName:
+        item.employeeName ||
+        item.employeeFirstName ||
+        item.employeeDisplayName ||
+        "",
+      bookingUrl: business.bookingUrl || "",
+      platform: "massage-envy",
+      scrapeStartDate: scrapeWindow.scrapeStartDate,
+      scrapeEndDate: scrapeWindow.scrapeEndDate,
+      lookaheadHours: scrapeWindow.lookaheadHours,
+      daysForward: scrapeWindow.daysForward,
+      scrapeWindowMode: scrapeWindow.scrapeWindowMode
+    }));
 }
 
 async function scrapeMassageEnvyBusiness(browser, business) {
@@ -45,13 +143,14 @@ async function scrapeMassageEnvyBusiness(browser, business) {
 
   const page = await browser.newPage();
 
-  const today = new Date();
-  const end = new Date();
-  end.setDate(today.getDate() + Number(business.daysForward || 7));
+  const scrapeWindow = getScrapeWindow(business);
 
-  const startDate = formatDateForPayload(today);
+  const start = parseDateKey(scrapeWindow.scrapeStartDate);
+  const end = parseDateKey(scrapeWindow.scrapeEndDate);
+
+  const startDate = formatDateForPayload(start);
   const endDate = formatDateForPayload(end);
-  const todayDate = toIsoDate(today);
+  const todayDate = toIsoDate(start);
 
   const serviceId =
     business.platformServiceId ||
@@ -82,6 +181,14 @@ async function scrapeMassageEnvyBusiness(browser, business) {
   });
 
   try {
+    console.log(`\n[MASSAGE ENVY] Opening ${business.businessName}`);
+    console.log("[MASSAGE ENVY] Scrape window:", scrapeWindow);
+    console.log("[MASSAGE ENVY] Payload dates:", {
+      start_date: startDate,
+      end_date: endDate,
+      todayDate
+    });
+
     await page.goto(business.bookingUrl, {
       waitUntil: "domcontentloaded",
       timeout: 60000
@@ -123,7 +230,7 @@ async function scrapeMassageEnvyBusiness(browser, business) {
     }
 
     const appointments = capturedPayload
-      ? normalizeAppointments(capturedPayload, business)
+      ? normalizeAppointments(capturedPayload, business, scrapeWindow)
       : [];
 
     await page.close().catch(() => null);
@@ -147,7 +254,8 @@ async function scrapeMassageEnvyBusiness(browser, business) {
       appointments,
       openings: appointments,
       distanceMiles: business.distanceMiles || null,
-      rawWidgetText: capturedText ? capturedText.slice(0, 5000) : null
+      rawWidgetText: capturedText ? capturedText.slice(0, 5000) : null,
+      ...scrapeWindow
     };
   } catch (error) {
     await page.close().catch(() => null);
@@ -171,7 +279,8 @@ async function scrapeMassageEnvyBusiness(browser, business) {
       lastChecked: new Date().toISOString(),
       appointments: [],
       openings: [],
-      rawWidgetText: null
+      rawWidgetText: null,
+      ...scrapeWindow
     };
   }
 }

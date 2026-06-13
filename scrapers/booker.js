@@ -20,6 +20,15 @@ function addDays(date, days) {
   return next;
 }
 
+function parseDateKey(dateText) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateText || ""))) {
+    return null;
+  }
+
+  const [year, month, day] = String(dateText).split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
 function getTodayLocalDate() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
@@ -48,6 +57,65 @@ function buildBookerUrl(url, date) {
   }
 
   return raw;
+}
+
+function getScrapeWindowDates(business = {}) {
+  const today = formatDateYYYYMMDD(getTodayLocalDate());
+
+  const explicitStartDate =
+    business.scrapeStartDate && parseDateKey(business.scrapeStartDate)
+      ? business.scrapeStartDate
+      : "";
+
+  const explicitEndDate =
+    business.scrapeEndDate && parseDateKey(business.scrapeEndDate)
+      ? business.scrapeEndDate
+      : "";
+
+  if (explicitStartDate || explicitEndDate) {
+    const startDate = explicitStartDate || today;
+    const endDate = explicitEndDate || startDate;
+
+    return {
+      startDate,
+      endDate,
+      source: business.scrapeWindowMode || "scrape_window"
+    };
+  }
+
+  const originalDate = extractDateFromBookerUrl(business.bookingUrl);
+  const safeOriginalDate = isPastDate(originalDate) ? "" : originalDate;
+
+  const startDate = safeOriginalDate || today;
+  const daysForward = Math.max(1, Number(business.daysForward || 7));
+  const endDate = formatDateYYYYMMDD(
+    addDays(parseDateKey(startDate), daysForward - 1)
+  );
+
+  return {
+    startDate,
+    endDate,
+    source: "legacy_days_forward"
+  };
+}
+
+function buildDateList(startDate, endDate) {
+  const start = parseDateKey(startDate);
+  const end = parseDateKey(endDate);
+
+  if (!start || !end) {
+    return [];
+  }
+
+  const dates = [];
+  let cursor = start;
+
+  while (formatDateYYYYMMDD(cursor) <= formatDateYYYYMMDD(end)) {
+    dates.push(formatDateYYYYMMDD(cursor));
+    cursor = addDays(cursor, 1);
+  }
+
+  return dates;
 }
 
 function extractTimesFromButtonText(buttons = []) {
@@ -220,27 +288,30 @@ async function scrapeBookerBusiness(browser, business) {
       throw new Error("Missing bookingUrl for Booker business.");
     }
 
-    const daysForward = Number(business.daysForward || 7);
     const originalDate = extractDateFromBookerUrl(business.bookingUrl);
-    const startDate = isPastDate(originalDate)
-      ? formatDateYYYYMMDD(getTodayLocalDate())
-      : originalDate || formatDateYYYYMMDD(getTodayLocalDate());
+    const scrapeWindow = getScrapeWindowDates(business);
+    const startDate = scrapeWindow.startDate;
+    const endDate = scrapeWindow.endDate;
+    const datesToTry = buildDateList(startDate, endDate);
+    const daysForward = datesToTry.length || Math.max(1, Number(business.daysForward || 7));
+
+    if (!datesToTry.length) {
+      throw new Error(`Invalid Booker scrape date window: ${startDate} to ${endDate}`);
+    }
 
     console.log(`\n[BOOKER] Opening ${business.businessName}`);
     console.log(`[BOOKER] Service: ${business.serviceName}`);
     console.log(`[BOOKER] Search start date: ${startDate}`);
+    console.log(`[BOOKER] Search end date: ${endDate}`);
     console.log(`[BOOKER] Days forward: ${daysForward}`);
+    console.log(`[BOOKER] Window mode: ${business.scrapeWindowMode || scrapeWindow.source}`);
 
     const triedDates = [];
     let finalDate = startDate;
     let finalUrl = business.bookingUrl;
     let finalTimes = [];
 
-    for (let offset = 0; offset <= daysForward; offset++) {
-      const date = formatDateYYYYMMDD(
-        addDays(new Date(`${startDate}T12:00:00`), offset)
-      );
-
+    for (const date of datesToTry) {
       const url = buildBookerUrl(business.bookingUrl, date);
 
       triedDates.push(date);
@@ -303,11 +374,20 @@ async function scrapeBookerBusiness(browser, business) {
       scrapeDurationMs: Date.now() - startedAt,
       lastChecked: new Date().toISOString(),
       rawWidgetText: cleanText(rawWidgetText).slice(0, 5000),
+
+      scrapeStartDate: business.scrapeStartDate || startDate,
+      scrapeEndDate: business.scrapeEndDate || endDate,
+      lookaheadHours: business.lookaheadHours || daysForward * 24,
+      daysForward,
+      scrapeWindowMode: business.scrapeWindowMode || scrapeWindow.source,
+
       debug: {
         originalDate,
         startDate,
+        endDate,
         daysForward,
-        triedDates
+        triedDates,
+        scrapeWindowSource: scrapeWindow.source
       }
     };
   } catch (error) {
@@ -333,7 +413,13 @@ async function scrapeBookerBusiness(browser, business) {
       error: error.message,
       scrapeDurationMs: Date.now() - startedAt,
       lastChecked: new Date().toISOString(),
-      rawWidgetText: rawWidgetText ? cleanText(rawWidgetText).slice(0, 5000) : null
+      rawWidgetText: rawWidgetText ? cleanText(rawWidgetText).slice(0, 5000) : null,
+
+      scrapeStartDate: business.scrapeStartDate || "",
+      scrapeEndDate: business.scrapeEndDate || "",
+      lookaheadHours: business.lookaheadHours || null,
+      daysForward: business.daysForward || null,
+      scrapeWindowMode: business.scrapeWindowMode || ""
     };
   } finally {
     await page.close().catch(() => {});

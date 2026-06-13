@@ -9,6 +9,101 @@ function normalize(value) {
     .trim();
 }
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function getTodayDateKey() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+
+  const map = {};
+
+  parts.forEach((part) => {
+    if (part.type !== "literal") {
+      map[part.type] = part.value;
+    }
+  });
+
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function isValidDateKey(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) {
+    return false;
+  }
+
+  const [year, month, day] = String(value).split("-").map(Number);
+  const date = new Date(year, month - 1, day, 12, 0, 0);
+
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() + 1 === month &&
+    date.getDate() === day
+  );
+}
+
+function normalizeDateKey(value) {
+  if (!value) return "";
+
+  const raw = String(value).trim();
+
+  if (isValidDateKey(raw)) {
+    return raw;
+  }
+
+  const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})(\/(\d{2,4}))?$/);
+
+  if (slashMatch) {
+    const month = Number(slashMatch[1]);
+    const day = Number(slashMatch[2]);
+    let year = slashMatch[4] ? Number(slashMatch[4]) : new Date().getFullYear();
+
+    if (year < 100) {
+      year += 2000;
+    }
+
+    const candidate = `${year}-${pad2(month)}-${pad2(day)}`;
+
+    return isValidDateKey(candidate) ? candidate : "";
+  }
+
+  return "";
+}
+
+function addDaysToDateKey(dateKey, daysToAdd) {
+  const safeDateKey = normalizeDateKey(dateKey) || getTodayDateKey();
+  const [year, month, day] = safeDateKey.split("-").map(Number);
+
+  const date = new Date(year, month - 1, day + Number(daysToAdd || 0), 12, 0, 0);
+
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function getDaysBetweenInclusive(startDateKey, endDateKey) {
+  const start = normalizeDateKey(startDateKey);
+  const end = normalizeDateKey(endDateKey);
+
+  if (!start || !end) {
+    return 1;
+  }
+
+  const [startYear, startMonth, startDay] = start.split("-").map(Number);
+  const [endYear, endMonth, endDay] = end.split("-").map(Number);
+
+  const startDate = new Date(startYear, startMonth - 1, startDay, 12, 0, 0);
+  const endDate = new Date(endYear, endMonth - 1, endDay, 12, 0, 0);
+
+  const diffMs = endDate.getTime() - startDate.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  return Math.max(1, diffDays + 1);
+}
+
 function businessMatchesSearch(business = {}, businessSearch = "") {
   const target = normalize(businessSearch);
 
@@ -117,6 +212,14 @@ function parseCliFilters(argv = []) {
 
   if (filters.longitude) {
     filters.longitude = Number(filters.longitude);
+  }
+
+  if (filters.lookaheadHours) {
+    filters.lookaheadHours = Number(filters.lookaheadHours);
+  }
+
+  if (filters.daysForward) {
+    filters.daysForward = Number(filters.daysForward);
   }
 
   return filters;
@@ -244,9 +347,14 @@ function getEnabledServicesForBusiness(business) {
             "",
 
           daysForward:
-          service.daysForward ||
-          business.daysForward ||
-          null
+            service.daysForward ||
+            business.daysForward ||
+            null,
+
+          lookaheadHours:
+            service.lookaheadHours ||
+            business.lookaheadHours ||
+            null
         };
       });
   }
@@ -285,34 +393,132 @@ function getEnabledServicesForBusiness(business) {
       enabled: true,
       priority: business.priority || "medium",
       discoveryStatus: business.discoveryStatus || "manual",
-      daysForward: business.daysForward || null
+      daysForward: business.daysForward || null,
+      lookaheadHours: business.lookaheadHours || null
     }
   ];
 }
 
-function getResolvedDaysForward(service = {}, business = {}, filters = {}, adminSettings = null) {
+function getRequestedDate(filters = {}) {
+  return (
+    normalizeDateKey(filters.scrapeDate) ||
+    normalizeDateKey(filters.targetDate) ||
+    normalizeDateKey(filters.appointmentDate) ||
+    normalizeDateKey(filters.date) ||
+    normalizeDateKey(filters.targetLocalDateKey) ||
+    ""
+  );
+}
+
+function getResolvedScrapeWindow(service = {}, business = {}, filters = {}, adminSettings = null) {
   const settings = adminSettings || loadAdminSettings();
+  const today = getTodayDateKey();
+
+  const explicitStartDate =
+    normalizeDateKey(filters.scrapeStartDate) ||
+    normalizeDateKey(filters.startDate) ||
+    "";
+
+  const explicitEndDate =
+    normalizeDateKey(filters.scrapeEndDate) ||
+    normalizeDateKey(filters.endDate) ||
+    "";
+
+  const requestedDate = getRequestedDate(filters);
+
+  if (requestedDate) {
+    return {
+      scrapeStartDate: requestedDate,
+      scrapeEndDate: requestedDate,
+      lookaheadHours: 24,
+      daysForward: 1,
+      scrapeWindowMode: "specific_date"
+    };
+  }
+
+  if (explicitStartDate || explicitEndDate) {
+    const scrapeStartDate = explicitStartDate || today;
+    const scrapeEndDate = explicitEndDate || scrapeStartDate;
+    const daysForward = getDaysBetweenInclusive(scrapeStartDate, scrapeEndDate);
+
+    return {
+      scrapeStartDate,
+      scrapeEndDate,
+      lookaheadHours: daysForward * 24,
+      daysForward,
+      scrapeWindowMode: "custom_range"
+    };
+  }
 
   if (filters.daysForward) {
-    return Math.max(1, Number(filters.daysForward));
+    const daysForward = Math.max(1, Number(filters.daysForward));
+
+    return {
+      scrapeStartDate: today,
+      scrapeEndDate: addDaysToDateKey(today, daysForward - 1),
+      lookaheadHours: daysForward * 24,
+      daysForward,
+      scrapeWindowMode: "days_forward"
+    };
   }
 
   if (filters.lookaheadHours) {
-    return Math.max(1, Math.ceil(Number(filters.lookaheadHours) / 24));
+    const lookaheadHours = Math.max(1, Number(filters.lookaheadHours));
+    const daysForward = Math.max(1, Math.ceil(lookaheadHours / 24));
+
+    return {
+      scrapeStartDate: today,
+      scrapeEndDate: addDaysToDateKey(today, daysForward - 1),
+      lookaheadHours,
+      daysForward,
+      scrapeWindowMode: "lookahead_hours"
+    };
   }
 
-  if (service.daysForward) {
-    return Math.max(1, Number(service.daysForward));
+  if (service.lookaheadHours || business.lookaheadHours) {
+    const lookaheadHours = Math.max(
+      1,
+      Number(service.lookaheadHours || business.lookaheadHours)
+    );
+
+    const daysForward = Math.max(1, Math.ceil(lookaheadHours / 24));
+
+    return {
+      scrapeStartDate: today,
+      scrapeEndDate: addDaysToDateKey(today, daysForward - 1),
+      lookaheadHours,
+      daysForward,
+      scrapeWindowMode: "business_or_service_lookahead"
+    };
   }
 
-  if (business.daysForward) {
-    return Math.max(1, Number(business.daysForward));
+  if (service.daysForward || business.daysForward) {
+    const daysForward = Math.max(1, Number(service.daysForward || business.daysForward));
+
+    return {
+      scrapeStartDate: today,
+      scrapeEndDate: addDaysToDateKey(today, daysForward - 1),
+      lookaheadHours: daysForward * 24,
+      daysForward,
+      scrapeWindowMode: "business_or_service_days_forward"
+    };
   }
 
-  const defaultLookaheadHours =
-    settings.scraping?.defaultLookaheadHours || 48;
+  const defaultLookaheadHours = Number(settings.scraping?.defaultLookaheadHours || 48);
+  const lookaheadHours = Math.max(1, defaultLookaheadHours);
+  const daysForward = Math.max(1, Math.ceil(lookaheadHours / 24));
 
-  return Math.max(1, Math.ceil(Number(defaultLookaheadHours) / 24));
+  return {
+    scrapeStartDate: today,
+    scrapeEndDate: addDaysToDateKey(today, daysForward - 1),
+    lookaheadHours,
+    daysForward,
+    scrapeWindowMode: "default_lookahead"
+  };
+}
+
+function getResolvedDaysForward(service = {}, business = {}, filters = {}, adminSettings = null) {
+  return getResolvedScrapeWindow(service, business, filters, adminSettings).daysForward;
 }
 
 function getScrapeMode(filters = {}) {
@@ -571,6 +777,13 @@ function buildScrapeJobs(businesses, filters = {}) {
             )
           : null;
 
+      const scrapeWindow = getResolvedScrapeWindow(
+        service,
+        business,
+        filters,
+        adminSettings
+      );
+
       jobs.push({
         ...business,
 
@@ -595,11 +808,12 @@ function buildScrapeJobs(businesses, filters = {}) {
         servicePriority: service.priority,
         priority: service.priority,
         discoveryStatus: service.discoveryStatus,
-        daysForward: getResolvedDaysForward(service, business, filters, adminSettings),
-        lookaheadHours:
-        filters.lookaheadHours ||
-        adminSettings.scraping?.defaultLookaheadHours ||
-        48,
+
+        scrapeStartDate: scrapeWindow.scrapeStartDate,
+        scrapeEndDate: scrapeWindow.scrapeEndDate,
+        lookaheadHours: scrapeWindow.lookaheadHours,
+        daysForward: scrapeWindow.daysForward,
+        scrapeWindowMode: scrapeWindow.scrapeWindowMode,
 
         distanceMiles:
           typeof distanceMiles === "number"
@@ -619,5 +833,7 @@ module.exports = {
   servicePassesServiceRules,
   serviceMatchesFilters,
   businessMatchesSearch,
-  getScrapeMode
+  getScrapeMode,
+  getResolvedDaysForward,
+  getResolvedScrapeWindow
 };
