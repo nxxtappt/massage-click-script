@@ -150,6 +150,101 @@ async function closeScrapePage(page, context) {
   await context?.close?.().catch(() => null);
 }
 
+function getLookaheadHours(job = {}) {
+  if (job.lookaheadHours) return Number(job.lookaheadHours);
+  if (job.daysForward) return Number(job.daysForward) * 24;
+  return null;
+}
+
+function parseAppointmentDateTime(item, parentResult = {}) {
+  if (!item) return null;
+
+  if (typeof item === "string") {
+    if (item.includes("T")) return new Date(item);
+
+    if (parentResult.date) {
+      return new Date(`${parentResult.date} ${item}`);
+    }
+
+    return null;
+  }
+
+  const raw =
+    item.startTime ||
+    item.startDateTime ||
+    item.appointmentStartTime ||
+    item.from ||
+    item.dateTime ||
+    item.datetime ||
+    item.time ||
+    "";
+
+  if (raw && String(raw).includes("T")) {
+    return new Date(raw);
+  }
+
+  const date =
+    item.date ||
+    item.appointmentDate ||
+    item.AvailableDate ||
+    parentResult.date ||
+    "";
+
+  const time =
+    item.time ||
+    item.startTime ||
+    item.appointmentTime ||
+    "";
+
+  if (date && time) {
+    return new Date(`${date} ${time}`);
+  }
+
+  return null;
+}
+
+function isWithinLookahead(item, result, cutoff) {
+  const parsed = parseAppointmentDateTime(item, result);
+
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    return true;
+  }
+
+  return parsed.getTime() <= cutoff.getTime();
+}
+
+function filterResultToLookahead(result = {}, job = {}) {
+  const lookaheadHours = getLookaheadHours(job);
+
+  if (!lookaheadHours || Number.isNaN(lookaheadHours)) {
+    return result;
+  }
+
+  const cutoff = new Date(Date.now() + lookaheadHours * 60 * 60 * 1000);
+
+  const filtered = {
+    ...result,
+    lookaheadHoursApplied: lookaheadHours,
+    lookaheadCutoff: cutoff.toISOString()
+  };
+
+  ["appointments", "openings", "availability", "results"].forEach((key) => {
+    if (Array.isArray(filtered[key])) {
+      filtered[key] = filtered[key].filter((item) =>
+        isWithinLookahead(item, filtered, cutoff)
+      );
+    }
+  });
+
+  if (Array.isArray(filtered.times)) {
+    filtered.times = filtered.times.filter((time) =>
+      isWithinLookahead(time, filtered, cutoff)
+    );
+  }
+
+  return filtered;
+}
+
 async function scrapeMeevoBusiness(business, attemptNumber) {
   const startedAt = Date.now();
 
@@ -644,20 +739,22 @@ console.log(`[RESULTS] Starting with ${results.length} existing result(s).`);
             `[CACHE] Skipping scrape for ${job.businessName} | ${job.serviceName}. Reason: ${staleCheck.reason}`
           );
 
-          results = upsertResult(results, cachedResult);
+          const filteredCachedResult = filterResultToLookahead(cachedResult, job);
+
+          results = upsertResult(results, filteredCachedResult);
           saveResults(results);
           continue;
         }
       }
+        const rawResult = await scrapeWithRetries(browser, job);
+        const result = filterResultToLookahead(rawResult, job);
 
-      const result = await scrapeWithRetries(browser, job);
+        results = upsertResult(results, result);
+        cacheResult(result);
+        saveResults(results);
 
-      results = upsertResult(results, result);
-      cacheResult(result);
-      saveResults(results);
-
-      console.log("----- RESULT -----");
-      console.log(JSON.stringify(result, null, 2));
+        console.log("----- RESULT -----");
+        console.log(JSON.stringify(result, null, 2));
     }
   } finally {
     await browser.close().catch(() => null);
