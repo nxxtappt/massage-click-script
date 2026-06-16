@@ -418,12 +418,9 @@ router.post("/auth/request-code", (req, res) => {
 
     const loginCode = createLoginCode(email);
 
-    console.log(`[BUSINESS LOGIN CODE] ${loginCode.email} -> ${loginCode.code}`);
-
     res.json({
       success: true,
       message: "Login code generated.",
-      developmentCode: loginCode.code,
       expiresAt: loginCode.expiresAt
     });
   } catch (error) {

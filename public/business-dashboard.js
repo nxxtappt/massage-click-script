@@ -830,9 +830,10 @@ async function requestLoginCode() {
       body: JSON.stringify({ email })
     });
 
-    console.log("DEV LOGIN CODE:", data.developmentCode);
-
-    setStatus(`Development login code: ${data.developmentCode}`, "success");
+    setStatus(
+  "If this email belongs to a verified business account, a login code has been sent.",
+  "success"
+);
 
     renderCodeVerification(email);
   } catch (error) {
