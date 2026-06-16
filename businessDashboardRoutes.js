@@ -13,6 +13,10 @@ const {
   destroySession
 } = require("./businessAuthManager");
 
+const {
+  sendBusinessLoginCode
+} = require("./emailManager");
+
 const router = express.Router();
 
 const LOGO_UPLOAD_DIR = path.join(
@@ -405,7 +409,7 @@ router.get("/health", (req, res) => {
   });
 });
 
-router.post("/auth/request-code", (req, res) => {
+router.post("/auth/request-code", async (req, res) => {
   try {
     const { email } = req.body || {};
 
@@ -418,12 +422,21 @@ router.post("/auth/request-code", (req, res) => {
 
     const loginCode = createLoginCode(email);
 
+    await sendBusinessLoginCode({
+      to: loginCode.email,
+      code: loginCode.code,
+      businessName: loginCode.businessName,
+      expiresAt: loginCode.expiresAt
+    });
+
     res.json({
       success: true,
-      message: "Login code generated.",
+      message: "Login code sent.",
       expiresAt: loginCode.expiresAt
     });
   } catch (error) {
+    console.error("[BUSINESS LOGIN EMAIL ERROR]", error.message);
+
     res.status(400).json({
       success: false,
       error: error.message
