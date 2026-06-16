@@ -21,7 +21,7 @@ const CLAIMS_FILE = path.join(
 );
 
 const SESSION_TTL_HOURS = 24 * 7;
-const LOGIN_CODE_TTL_MINUTES = 15;
+const LOGIN_CODE_TTL_MINUTES = 1440;
 
 function ensureFile(filePath) {
   const dir = path.dirname(filePath);
