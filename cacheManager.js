@@ -1,12 +1,16 @@
 const fs = require("fs");
-const path = require("path");
 
 const { normalizeServiceType } = require("./normalizationUtils");
 
-const CACHE_DIR = path.join(__dirname, "cache");
+const {
+  storagePath,
+  writeJsonAtomic
+} = require("./storagePaths");
 
-const APPOINTMENT_CACHE_FILE = path.join(
-  CACHE_DIR,
+const CACHE_DIR = storagePath("cache");
+
+const APPOINTMENT_CACHE_FILE = storagePath(
+  "cache",
   "appointment-cache.json"
 );
 
@@ -56,9 +60,9 @@ function loadAppointmentCache() {
 function saveAppointmentCache(cache) {
   ensureCacheExists();
 
-  fs.writeFileSync(
+  writeJsonAtomic(
     APPOINTMENT_CACHE_FILE,
-    JSON.stringify(cache, null, 2)
+    cache
   );
 }
 
