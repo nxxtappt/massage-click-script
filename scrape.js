@@ -3,6 +3,12 @@ require("dotenv").config();
 const { chromium } = require("playwright");
 const fs = require("fs");
 
+const {
+  storagePath,
+  writeJsonAtomic,
+  readJson
+} = require("./storagePaths");
+
 const { parseCliFilters, buildScrapeJobs } = require("./jobBuilder");
 const { upsertAppointmentResult, getCacheStats } = require("./cacheManager");
 const { shouldSkipScrapeForFreshCache } = require("./staleChecker");
@@ -27,8 +33,9 @@ const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 
 const MAX_ATTEMPTS = 2;
-const RESULTS_FILE = "results.json";
-const VAGARO_DISCOVERY_FILE = "vagaro-marketplace-results.json";
+const RESULTS_FILE = storagePath("results.json");
+const ERROR_LOGS_FILE = storagePath("errorLogs.json");
+const VAGARO_DISCOVERY_FILE = storagePath("vagaro-marketplace-results.json");
 
 const scrapeVagaroMarketplace =
   vagaroModule.scrapeVagaroMarketplace ||
@@ -36,7 +43,7 @@ const scrapeVagaroMarketplace =
   vagaroModule;
 
 function saveResults(results) {
-  fs.writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2));
+  writeJsonAtomic(RESULTS_FILE, results);
   console.log(`Saved ${results.length} result(s) to ${RESULTS_FILE}`);
 }
 
@@ -80,7 +87,7 @@ function upsertResult(results = [], incomingResult = {}) {
 }
 
 function appendErrorLog(entry) {
-  const file = "errorLogs.json";
+  const file = ERROR_LOGS_FILE;
   let existing = [];
 
   if (fs.existsSync(file)) {
@@ -97,7 +104,7 @@ function appendErrorLog(entry) {
     loggedAt: new Date().toISOString()
   });
 
-  fs.writeFileSync(file, JSON.stringify(existing.slice(0, 500), null, 2));
+  writeJsonAtomic(file, existing.slice(0, 500));
 }
 
 function cacheResult(result) {
@@ -908,18 +915,15 @@ async function run() {
     headless: true
   });
 
-  let results = [];
+let results = readJson(RESULTS_FILE, []);
 
-  if (fs.existsSync(RESULTS_FILE)) {
-    try {
-      const existingResults = JSON.parse(fs.readFileSync(RESULTS_FILE, "utf8"));
-      results = Array.isArray(existingResults) ? existingResults : [];
-    } catch (error) {
-      console.error("[RESULTS] Failed to load existing results.json:", error.message);
-      results = [];
-    }
-  }
+if (!Array.isArray(results)) {
+  console.error(
+    "[RESULTS] Existing results file was not an array. Starting with empty results."
+  );
 
+  results = [];
+}
   console.log(`[RESULTS] Starting with ${results.length} existing result(s).`);
 
   try {
