@@ -1,16 +1,17 @@
 const fs = require("fs");
-const path = require("path");
 
-const LOCKS_FILE = path.join(__dirname, "search-locks.json");
+const {
+  storagePath,
+  writeJsonAtomic
+} = require("./storagePaths");
+
+const LOCKS_FILE = storagePath("search-locks.json");
 
 const DEFAULT_LOCK_MINUTES = 5;
 
 function ensureLocksFileExists() {
   if (!fs.existsSync(LOCKS_FILE)) {
-    fs.writeFileSync(
-      LOCKS_FILE,
-      JSON.stringify([], null, 2)
-    );
+    writeJsonAtomic(LOCKS_FILE, []);
   }
 }
 
@@ -41,9 +42,9 @@ function loadLocks() {
 function saveLocks(locks = []) {
   ensureLocksFileExists();
 
-  fs.writeFileSync(
+  writeJsonAtomic(
     LOCKS_FILE,
-    JSON.stringify(locks, null, 2)
+    Array.isArray(locks) ? locks : []
   );
 }
 
