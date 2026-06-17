@@ -2,20 +2,22 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const LOGIN_CODES_FILE = path.join(
-  __dirname,
+const {
+  storagePath,
+  writeJsonAtomic
+} = require("./storagePaths");
+
+const LOGIN_CODES_FILE = storagePath(
   "secure",
   "business-login-codes.json"
 );
 
-const SESSIONS_FILE = path.join(
-  __dirname,
+const SESSIONS_FILE = storagePath(
   "secure",
   "business-sessions.json"
 );
 
-const CLAIMS_FILE = path.join(
-  __dirname,
+const CLAIMS_FILE = storagePath(
   "secure",
   "business-claims.json"
 );
@@ -49,10 +51,7 @@ function loadJson(filePath) {
 function saveJson(filePath, value) {
   ensureFile(filePath);
 
-  fs.writeFileSync(
-    filePath,
-    JSON.stringify(value, null, 2)
-  );
+  writeJsonAtomic(filePath, value);
 }
 
 function normalizeEmail(email) {
