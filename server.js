@@ -1485,11 +1485,11 @@ function loadNormalizedAppointments(query, options = {}) {
     String(query.useOrchestration || "") === "true" ||
     String(query.orchestrated || "") === "true";
 
-  const resultsPath = path.join(__dirname, "results.json");
+  const resultsPath = storagePath("results.json");
   const hasResultsFile = fs.existsSync(resultsPath);
   const cacheBusinesses = includeAppointmentCache ? loadCacheBusinesses() : [];
 
-  if (!hasResultsFile && cacheBusinesses.length === 0) {
+  if (!hasResultsFile) {
     return {
       missingResultsFile: true,
       businesses: [],
