@@ -19,8 +19,11 @@ const {
 
 const router = express.Router();
 
-const LOGO_UPLOAD_DIR = path.join(
-  __dirname,
+const {
+  storagePath
+} = require("./storagePaths");
+
+const LOGO_UPLOAD_DIR = storagePath(
   "public",
   "uploads",
   "business-logos"
