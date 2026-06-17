@@ -5,6 +5,11 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+const {
+  storagePath,
+  readJson,
+  writeJsonAtomic
+} = require("./storagePaths");
 const adminRoutes = require("./adminRoutes");
 const businessPortalRoutes = require("./businessPortalRoutes");
 const businessDashboardRoutes = require("./businessDashboardRoutes");
@@ -88,6 +93,7 @@ app.get("/austin/massage", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+app.use("/uploads", express.static(storagePath("public", "uploads")));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/admin", adminRoutes);
@@ -111,7 +117,16 @@ function pad2(value) {
 }
 
 function readJsonFile(fileName, fallback) {
-  const filePath = path.join(__dirname, fileName);
+  const persistentFiles = new Set([
+  "results.json",
+  "errorLogs.json",
+  "search-locks.json",
+  path.join("cache", "appointment-cache.json")
+]);
+
+const filePath = persistentFiles.has(fileName)
+  ? storagePath(fileName)
+  : path.join(__dirname, fileName);
 
   if (!fs.existsSync(filePath)) {
     return fallback;
@@ -126,7 +141,22 @@ function readJsonFile(fileName, fallback) {
 }
 
 function writeJsonFile(fileName, data) {
-  const filePath = path.join(__dirname, fileName);
+  const persistentFiles = new Set([
+    "results.json",
+    "errorLogs.json",
+    "search-locks.json",
+    path.join("cache", "appointment-cache.json")
+  ]);
+
+  const filePath = persistentFiles.has(fileName)
+    ? storagePath(fileName)
+    : path.join(__dirname, fileName);
+
+  if (persistentFiles.has(fileName)) {
+    writeJsonAtomic(filePath, data);
+    return;
+  }
+
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
