@@ -1,9 +1,13 @@
 const fs = require("fs");
-const path = require("path");
 const crypto = require("crypto");
 
-const SECURE_DIR = path.join(__dirname, "secure");
-const CLAIMS_FILE = path.join(SECURE_DIR, "business-claims.json");
+const {
+  storagePath,
+  writeJsonAtomic
+} = require("./storagePaths");
+
+const SECURE_DIR = storagePath("secure");
+const CLAIMS_FILE = storagePath("secure", "business-claims.json");
 
 const VALID_CLAIM_STATUSES = [
   "claimed_pending",
@@ -37,7 +41,7 @@ function loadClaims() {
 
 function saveClaims(claims = []) {
   ensureClaimsFileExists();
-  fs.writeFileSync(CLAIMS_FILE, JSON.stringify(claims, null, 2));
+writeJsonAtomic(CLAIMS_FILE, claims);
 }
 
 function normalize(value) {
