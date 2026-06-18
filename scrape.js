@@ -30,6 +30,7 @@ const { scrapeOakHavenBusiness } = require("./scrapers/oakhaven");
 const { scrapeMindbodyOldBusiness } = require("./scrapers/mindbody-old");
 const { scrapeZenoti } = require("./scrapers/zenoti");
 const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
+const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 
 const MAX_ATTEMPTS = 2;
@@ -609,6 +610,48 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+            if (scrapeTarget.platform === "mangomint") {
+        await closeScrapePage(page, context);
+
+        const result = await scrapeMangomintBusiness(scrapeTarget);
+
+        return {
+          ...result,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: "mangomint",
+          serviceName:
+            scrapeTarget.serviceName ||
+            result.serviceName ||
+            result.service ||
+            "",
+          service:
+            scrapeTarget.serviceName ||
+            result.serviceName ||
+            result.service ||
+            "",
+          serviceType:
+            scrapeTarget.serviceType ||
+            result.serviceType ||
+            "massage",
+          durationMinutes:
+            scrapeTarget.durationMinutes ||
+            result.durationMinutes ||
+            null,
+          platformServiceId:
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceId ||
+            result.platformServiceId ||
+            null,
+          provider:
+            result.provider ||
+            scrapeTarget.staffCategory ||
+            "Anyone",
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+
       if (scrapeTarget.platform === "massage-envy") {
         await closeScrapePage(page, context);
 
@@ -859,7 +902,8 @@ async function run() {
     "booker",
     "zenoti",
     "oakhaven",
-    "massage-envy"
+    "massage-envy",
+    "mangomint"
   ];
 
   const scrapeableBusinesses = businesses.filter((business) => {

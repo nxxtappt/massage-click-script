@@ -1,0 +1,12 @@
+Initializing Meevo session...
+[MEEVO] Scrape window: {
+  scrapeStartDate: '2026-06-17',
+  scrapeEndDate: '2026-06-23',
+  lookaheadHours: 168,
+  daysForward: 7,
+  scrapeWindowMode: 'days_forward'
+}
+Loading service categories...
+Error: Category not found: Signature Massage
+    at scrapeMeevoAvailability (/workspaces/massage-click-script/scrapers/meevo.js:149:13)
+    at async /workspaces/massage-click-script/test-meevo.js:8:7

@@ -6,19 +6,18 @@ const {
   try {
     const results =
       await scrapeMeevoAvailability({
-        bookingUrl:
-          "https://na2.meevo.com/CustomerPortal/onlinebooking/booking/guestinfo?tenantId=502059&locationId=502797",
+        bookingUrl: "https://na2.meevo.com/CustomerPortal/onlinebooking/booking/guestinfo?tenantId=500970&locationId=501258",
 
-        categoryName: "Swedish Massage",
+        appointmentType: "Individual Appointment",
+        categoryName: "Massage Therapy",
+        serviceName: "50 Min Relaxation Massage",
+        providerText: "Any employee",
 
-        serviceName: "1 Hour Swedish Massage",
-
-        daysForward: 7
+        daysForward: 7,
+        debug: true
       });
 
-    console.log(
-      JSON.stringify(results, null, 2)
-    );
+    console.log(JSON.stringify(results, null, 2));
   } catch (error) {
     console.error(error);
   }

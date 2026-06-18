@@ -1652,5 +1652,26 @@
         "discoveryStatus": "approved"
       }
     ]
-  }
+  },
+
+  {
+  "businessName": "Form and Function Massage",
+  "platform": "mangomint",
+  "bookingUrl": "https://booking.mangomint.com/formfunctionmassage1",
+  "companyId": "977962",
+  "locationId": "1",
+  "address": "900 E 6th St #103, Austin, TX 78702",
+  "latitude": 30.265407,
+  "longitude": -97.732993,
+  "services": [
+    {
+      "serviceName": "60 Minute Customized Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": 8,
+      "priority": "high",
+      "discoveryStatus": "manual"
+    }
+  ]
+}
 ]
