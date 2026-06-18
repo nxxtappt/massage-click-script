@@ -1655,7 +1655,7 @@
   },
 
   {
-  "businessName": "Form and Function Massage",
+  "businessName": "Form+Function Massage",
   "platform": "mangomint",
   "bookingUrl": "https://booking.mangomint.com/formfunctionmassage1",
   "companyId": "977962",
@@ -1669,6 +1669,33 @@
       "serviceType": "massage",
       "durationMinutes": 60,
       "serviceId": 8,
+      "priority": "high",
+      "discoveryStatus": "manual"
+    }
+  ]
+},
+{
+  "businessName": "Cherry Blossoms Massage - Bastrop",
+  "platform": "mangomint",
+  "enabled": true,
+
+  "bookingUrl": "https://booking.mangomint.com/cherryblossomsmassage",
+
+  "companyId": "548076",
+  "locationId": "1",
+
+  "address": "Bastrop, TX",
+  "latitude": null,
+  "longitude": null,
+
+  "services": [
+    {
+      "serviceName": "Restorative Massage 60 minutes",
+      "serviceType": "Massages",
+      "durationMinutes": 60,
+
+      "serviceId": 193,
+
       "priority": "high",
       "discoveryStatus": "manual"
     }
