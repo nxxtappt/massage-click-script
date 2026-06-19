@@ -92,6 +92,68 @@ app.get("/", (req, res) => {
 app.get("/austin/massage", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+const EMAIL_CAPTURE_FILE = path.join(__dirname, "secure", "email-captures.json");
+
+function ensureEmailCaptureFile() {
+  const secureDir = path.join(__dirname, "secure");
+
+  if (!fs.existsSync(secureDir)) {
+    fs.mkdirSync(secureDir, { recursive: true });
+  }
+
+  if (!fs.existsSync(EMAIL_CAPTURE_FILE)) {
+    fs.writeFileSync(EMAIL_CAPTURE_FILE, JSON.stringify([], null, 2));
+  }
+}
+
+function loadEmailCaptures() {
+  ensureEmailCaptureFile();
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(EMAIL_CAPTURE_FILE, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+app.post("/api/email-capture", (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const source = String(req.body?.source || "unknown").trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: "Please enter a valid email."
+      });
+    }
+
+    const captures = loadEmailCaptures();
+
+    const existing = captures.find((item) => item.email === email);
+
+    if (!existing) {
+      captures.unshift({
+        email,
+        source,
+        createdAt: new Date().toISOString()
+      });
+
+      fs.writeFileSync(EMAIL_CAPTURE_FILE, JSON.stringify(captures, null, 2));
+    }
+
+    res.json({
+      success: true,
+      message: "Email saved."
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 app.use("/uploads", express.static(storagePath("public", "uploads")));
 app.use(express.static(path.join(__dirname, "public")));

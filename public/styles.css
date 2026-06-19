@@ -204,6 +204,12 @@ body {
   align-items: start;
 }
 
+.business-card.verified-business-card {
+  border: 2px solid #002b49;
+  box-shadow: 0 18px 40px rgba(0, 43, 73, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f4f9fc 100%);
+}
+
 .logo-circle {
   width: 52px;
   height: 52px;
@@ -241,6 +247,11 @@ body {
   margin: 0 0 4px;
   line-height: 1.15;
   color: #0f172a;
+}
+
+.business-card.verified-business-card .business-title-row h2 {
+  color: #002b49;
+  font-weight: 900;
 }
 
 .business-address {
@@ -365,26 +376,95 @@ body {
   min-height: 590px;
 }
 
-.map-thumb-marker {
-  width: 44px;
-  height: 44px;
+/* Leaflet custom icon reset */
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/* New map pin structure */
+.standard-map-pin,
+.verified-map-pin,
+.map-pin-shell {
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.standard-map-pin,
+.map-pin-shell {
   background: #0075b9;
-  color: white;
-  border: 3px solid white;
+  border: 3px solid #ffffff;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.verified-map-pin,
+.map-pin-shell.verified-map-pin-shell {
+  background: #ffffff;
+  border: 2px solid #002b49;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Logo area inside pins */
+.map-logo-circle,
+.map-thumb-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0075b9;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
+  font-weight: 900;
   font-size: 13px;
+  line-height: 1;
 }
 
+/* Non-logo initials for standard pins */
+.standard-map-pin .map-logo-circle,
+.map-pin-shell .map-thumb-marker {
+  background: #0075b9;
+  color: #ffffff;
+}
+
+/* Verified initials only. Does not touch uploaded logo image. */
+.verified-map-pin .map-logo-circle,
+.map-pin-shell.verified-map-pin-shell .map-thumb-marker,
+.map-thumb-marker.verified-map-marker {
+  background: #ffffff;
+  color: #002b49;
+}
+
+/* Uploaded logos stay untouched */
+.map-logo-circle img,
 .map-thumb-marker img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: transparent;
+  display: block;
+  filter: none;
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+
+/* Map popup base */
+.map-popup {
+  padding: 2px;
+  min-width: 210px;
+}
+
+.map-popup-header {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 7px;
 }
 
 .map-popup h3 {
@@ -403,6 +483,34 @@ body {
   text-decoration: none;
 }
 
+/* Verified popup */
+.map-popup.verified-map-popup {
+  padding: 10px;
+  border-left: 5px solid #002b49;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f9fc 100%);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(0, 43, 73, 0.08);
+}
+
+.map-popup.verified-map-popup h3 {
+  color: #002b49;
+  font-weight: 900;
+}
+
+.map-popup-verified-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin: 2px 0 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .empty-state {
   text-align: center;
   background: white;
@@ -417,6 +525,65 @@ body {
 
 .hidden-control {
   display: none !important;
+}
+
+.assistant-response {
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+
+.thinking-card {
+  background: #f1f5f9;
+  border: 1px solid #dbe4ee;
+  border-radius: 18px;
+  padding: 14px;
+  animation: pulseThinking 1.3s ease-in-out infinite;
+}
+
+.thinking-line {
+  height: 13px;
+  background: #d7e0ea;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.thinking-line.short {
+  width: 45%;
+}
+
+.thinking-line.medium {
+  width: 70%;
+}
+
+.thinking-line.long {
+  width: 92%;
+}
+
+.thinking-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.thinking-button {
+  width: 110px;
+  height: 34px;
+  border-radius: 999px;
+  background: #d7e0ea;
+}
+
+@keyframes pulseThinking {
+  0% {
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.72;
+  }
 }
 
 @media (max-width: 1100px) {
@@ -492,84 +659,89 @@ body {
     text-align: center;
     padding: 12px;
   }
-}
-.assistant-response {
-  margin-top: 14px;
-  margin-bottom: 0;
-}
-
-.thinking-card {
-  background: #f1f5f9;
+  .email-capture-form {
+  margin-top: 22px;
+  background: white;
   border: 1px solid #dbe4ee;
   border-radius: 18px;
-  padding: 14px;
-  animation: pulseThinking 1.3s ease-in-out infinite;
+  padding: 18px;
+  box-shadow: 0 12px 30px rgba(0, 43, 73, 0.08);
 }
 
-.thinking-line {
-  height: 13px;
-  background: #d7e0ea;
-  border-radius: 999px;
-  margin-bottom: 10px;
-}
-
-.thinking-line.short {
-  width: 45%;
-}
-
-.thinking-line.medium {
-  width: 70%;
-}
-
-.thinking-line.long {
-  width: 92%;
-}
-
-.thinking-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.thinking-button {
-  width: 110px;
-  height: 34px;
-  border-radius: 999px;
-  background: #d7e0ea;
-}
-
-@keyframes pulseThinking {
-  0% {
-    opacity: 0.72;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0.72;
-  }
-}
-.business-card.verified-business-card {
-  border: 2px solid #002b49;
-  box-shadow: 0 18px 40px rgba(0, 43, 73, 0.18);
-  background: linear-gradient(180deg, #ffffff 0%, #f4f9fc 100%);
-}
-
-.business-card.verified-business-card .business-title-row h2 {
+.email-capture-title {
+  margin: 0 0 10px;
+  font-weight: 800;
   color: #002b49;
-  font-weight: 900;
 }
 
-.map-thumb-marker.verified-map-marker {
-  background: #ffffff;
-  border: 4px solid #002b49;
-  box-shadow: 0 8px 22px rgba(0, 43, 73, 0.35);
+.email-capture-copy {
+  margin: 0 0 12px;
+  color: #52616f;
+  font-size: 14px;
 }
 
-.map-thumb-marker.verified-map-marker img {
-  width: 84%;
-  height: 84%;
+.email-capture-row {
+  display: flex;
+  gap: 10px;
+}
+
+.email-capture-row input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
   border-radius: 999px;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.email-capture-row button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #0075b9;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.email-capture-status {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #002b49;
+}
+
+.email-capture-popup {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: min(360px, calc(100vw - 44px));
+  z-index: 9999;
+  background: white;
+  border: 2px solid #002b49;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 18px 50px rgba(0, 43, 73, 0.22);
+}
+
+.email-capture-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+  color: #002b49;
+}
+
+@media (max-width: 640px) {
+  .email-capture-row {
+    flex-direction: column;
+  }
+
+  .email-capture-popup {
+    right: 14px;
+    bottom: 14px;
+    width: calc(100vw - 28px);
+  }
+}
 }

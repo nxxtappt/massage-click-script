@@ -761,23 +761,12 @@ function renderMapMarkers(appointments) {
         address: firstAppointment.address || "",
         bookingUrl: firstAppointment.bookingUrl || "#",
         logoUrl: firstAppointment.logoUrl || "",
+        verificationStatus:
+          firstAppointment.verificationStatus || "unclaimed",
         latitude: Number(firstAppointment.latitude),
         longitude: Number(firstAppointment.longitude),
         appointments: group.appointments
       };
-      return {
-      businessName: firstAppointment.businessName || "Unknown Business",
-      address: firstAppointment.address || "",
-      bookingUrl: firstAppointment.bookingUrl || "#",
-      logoUrl: firstAppointment.logoUrl || "",
-
-      verificationStatus:
-      firstAppointment.verificationStatus || "unclaimed",
-
-  latitude: Number(firstAppointment.latitude),
-  longitude: Number(firstAppointment.longitude),
-  appointments: group.appointments
-};
     })
     .filter((business) => {
       return Number.isFinite(business.latitude) && Number.isFinite(business.longitude);
@@ -791,37 +780,58 @@ function renderMapMarkers(appointments) {
   const bounds = [];
 
   businessesWithCoordinates.forEach((business) => {
+    const isVerifiedBusiness =
+      business.verificationStatus === "verified";
+
     const icon = L.divIcon({
       className: "",
       html: `
-          <div class="map-thumb-marker ${
-          business.verificationStatus === "verified" ? "verified-map-marker" : ""
-          }">
-          ${
-            business.logoUrl
-              ? `<img src="${escapeAttribute(business.logoUrl)}" alt="">`
-              : escapeHtml(getInitials(business.businessName))
-          }
+        <div class="${
+          isVerifiedBusiness ? "verified-map-pin" : "standard-map-pin"
+        }">
+          <div class="map-logo-circle">
+            ${
+              business.logoUrl
+                ? `<img src="${escapeAttribute(business.logoUrl)}" alt="">`
+                : `<span>${escapeHtml(getInitials(business.businessName))}</span>`
+            }
+          </div>
         </div>
       `,
-      iconSize: [44, 44],
-      iconAnchor: [22, 22],
-      popupAnchor: [0, -22]
+      iconSize: [56, 56],
+      iconAnchor: [28, 28],
+      popupAnchor: [0, -28]
     });
 
     const marker = L.marker([business.latitude, business.longitude], { icon });
 
     marker.bindPopup(`
-      <div class="map-popup">
-        <h3>${escapeHtml(business.businessName)}</h3>
+      <div class="map-popup ${
+        isVerifiedBusiness ? "verified-map-popup" : ""
+      }">
+        <div class="map-popup-header">
+          <h3>${escapeHtml(business.businessName)}</h3>
+
+          ${
+            isVerifiedBusiness
+              ? `<span class="map-popup-verified-badge">Verified Business</span>`
+              : ""
+          }
+        </div>
+
         <p>${escapeHtml(business.address || "Address not listed")}</p>
         <p>${escapeHtml(formatTimeButtonText(business.appointments[0]))}</p>
-        <a href="${escapeAttribute(business.bookingUrl)}" target="_blank" rel="noopener noreferrer">Book appointment</a>
+
+        <a href="${escapeAttribute(business.bookingUrl)}" target="_blank" rel="noopener noreferrer">
+          Book appointment
+        </a>
       </div>
     `);
 
     marker.on("click", () => {
-      const card = document.getElementById(makeBusinessCardId(business.businessName));
+      const card = document.getElementById(
+        makeBusinessCardId(business.businessName)
+      );
 
       if (card) {
         card.scrollIntoView({
@@ -1022,5 +1032,87 @@ if (heroSubtitle) {
     });
   }
 }
+function submitEmailCapture(form) {
+  const emailInput = form.querySelector("input[name='email']");
+  const status = form.querySelector("[data-email-capture-status]");
+  const source = form.dataset.emailSource || "unknown";
+  const email = emailInput?.value?.trim() || "";
 
+  if (!email) {
+    if (status) status.textContent = "Please enter your email.";
+    return;
+  }
+
+  fetch("/api/email-capture", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, source })
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (!data.success) throw new Error(data.error || "Email capture failed.");
+
+      if (status) status.textContent = "Thanks — you’re on the list.";
+      form.reset();
+
+      localStorage.setItem("nextappt_email_captured", "true");
+
+      const popup = document.getElementById("emailCapturePopup");
+      if (popup) popup.remove();
+    })
+    .catch((error) => {
+      if (status) status.textContent = error.message;
+    });
+}
+
+document.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-email-capture-form]");
+
+  if (!form) return;
+
+  event.preventDefault();
+  submitEmailCapture(form);
+});
+
+function showSearchEmailPopup() {
+  if (localStorage.getItem("nextappt_email_captured") === "true") return;
+  if (localStorage.getItem("nextappt_email_popup_closed") === "true") return;
+  if (document.getElementById("emailCapturePopup")) return;
+
+  const popup = document.createElement("div");
+  popup.id = "emailCapturePopup";
+  popup.className = "email-capture-popup";
+
+  popup.innerHTML = `
+    <button class="email-capture-close" type="button" aria-label="Close">×</button>
+
+    <p class="email-capture-title">Want appointment alerts?</p>
+
+    <p class="email-capture-copy">
+      Get updates as NextAppt adds more live appointment inventory in Austin.
+    </p>
+
+    <form data-email-capture-form data-email-source="search_popup">
+      <div class="email-capture-row">
+        <input type="email" name="email" placeholder="Enter your email" required />
+        <button type="submit">Notify Me</button>
+      </div>
+
+      <p class="email-capture-status" data-email-capture-status></p>
+    </form>
+  `;
+
+  document.body.appendChild(popup);
+
+  popup.querySelector(".email-capture-close")?.addEventListener("click", () => {
+    localStorage.setItem("nextappt_email_popup_closed", "true");
+    popup.remove();
+  });
+}
+
+if (window.location.pathname === "/austin/massage") {
+  setTimeout(showSearchEmailPopup, 10000);
+}
 initializeApp();
