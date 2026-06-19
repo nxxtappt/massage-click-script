@@ -1679,14 +1679,42 @@
   "platform": "mangomint",
   "enabled": true,
 
-  "bookingUrl": "https://booking.mangomint.com/cherryblossomsmassage",
+  "bookingUrl": "https://booking.mangomint.com/cherryblossomspa",
 
   "companyId": "548076",
   "locationId": "1",
 
-  "address": "Bastrop, TX",
-  "latitude": null,
-  "longitude": null,
+  "address": "1011 Chestnut St, Bastrop, TX 78602",
+  "latitude": 30.110359,
+  "longitude": -97.315251,
+
+  "services": [
+    {
+      "serviceName": "Restorative Massage 60 minutes",
+      "serviceType": "Massages",
+      "durationMinutes": 60,
+
+      "serviceId": 193,
+
+      "priority": "high",
+      "discoveryStatus": "manual"
+    }
+  ]
+},
+
+{
+  "businessName": "Cherry Blossoms Massage - Lockhart",
+  "platform": "mangomint",
+  "enabled": true,
+
+  "bookingUrl": "https://booking.mangomint.com/cherryblossomspa",
+
+  "companyId": "548076",
+  "locationId": "2",
+
+  "address": "704 State Park Rd, Lockhart, TX 78644",
+  "latitude": 29.867032,
+  "longitude": -97.67928,
 
   "services": [
     {
