@@ -593,7 +593,9 @@ function renderBusinessCards(appointments) {
     const nextAppointments = group.appointments.slice(0, 4);
 
     const card = document.createElement("article");
-    card.className = "business-card";
+    card.className = isVerifiedBusiness
+    ? "business-card verified-business-card"
+    : "business-card";
     card.id = makeBusinessCardId(businessName);
 
     card.innerHTML = `
@@ -763,6 +765,19 @@ function renderMapMarkers(appointments) {
         longitude: Number(firstAppointment.longitude),
         appointments: group.appointments
       };
+      return {
+      businessName: firstAppointment.businessName || "Unknown Business",
+      address: firstAppointment.address || "",
+      bookingUrl: firstAppointment.bookingUrl || "#",
+      logoUrl: firstAppointment.logoUrl || "",
+
+      verificationStatus:
+      firstAppointment.verificationStatus || "unclaimed",
+
+  latitude: Number(firstAppointment.latitude),
+  longitude: Number(firstAppointment.longitude),
+  appointments: group.appointments
+};
     })
     .filter((business) => {
       return Number.isFinite(business.latitude) && Number.isFinite(business.longitude);
@@ -779,7 +794,9 @@ function renderMapMarkers(appointments) {
     const icon = L.divIcon({
       className: "",
       html: `
-        <div class="map-thumb-marker">
+          <div class="map-thumb-marker ${
+          business.verificationStatus === "verified" ? "verified-map-marker" : ""
+          }">
           ${
             business.logoUrl
               ? `<img src="${escapeAttribute(business.logoUrl)}" alt="">`
