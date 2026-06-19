@@ -1728,5 +1728,33 @@
       "discoveryStatus": "manual"
     }
   ]
+},
+
+{
+  "businessName": "The Massage Studio",
+  "platform": "mangomint",
+  "enabled": true,
+
+  "bookingUrl": "https://booking.mangomint.com/365818",
+
+  "companyId": "365818",
+  "locationId": "1",
+
+  "address": "645 Ranch to Market Rd 967 Ste 109, Buda, TX",
+  "latitude": 30.0890378,
+  "longitude": -97.8495902,
+
+  "services": [
+    {
+      "serviceName": "60 Minute Signature Massage",
+      "serviceType": "Massages",
+      "durationMinutes": 60,
+
+      "serviceId": 76,
+
+      "priority": "high",
+      "discoveryStatus": "manual"
+    }
+  ]
 }
 ]
