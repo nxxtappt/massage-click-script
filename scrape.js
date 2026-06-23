@@ -31,6 +31,7 @@ const { scrapeMindbodyOldBusiness } = require("./scrapers/mindbody-old");
 const { scrapeZenoti } = require("./scrapers/zenoti");
 const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
 const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
+const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 
 const MAX_ATTEMPTS = 2;
@@ -652,6 +653,31 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+
+      if (scrapeTarget.platform === "hand-stone") {
+      await closeScrapePage(page, context);
+
+     const result = await scrapeHandStoneBusiness(scrapeTarget);
+
+     return {
+      ...result,
+     businessName: scrapeTarget.businessName,
+     bookingUrl: scrapeTarget.bookingUrl,
+     platform: "hand-stone",
+     serviceName: scrapeTarget.serviceName || result.serviceName,
+     serviceType: scrapeTarget.serviceType || result.serviceType || "massage",
+     durationMinutes:
+      scrapeTarget.durationMinutes || result.durationMinutes || null,
+     platformServiceId:
+      scrapeTarget.platformServiceId ||
+      scrapeTarget.serviceId ||
+      result.platformServiceId ||
+      null,
+     distanceMiles: scrapeTarget.distanceMiles || null,
+     attemptNumber: attempt,
+     ...buildScrapeWindowPayload(scrapeTarget)
+  };
+}
       if (scrapeTarget.platform === "massage-envy") {
         await closeScrapePage(page, context);
 
@@ -903,7 +929,8 @@ async function run() {
     "zenoti",
     "oakhaven",
     "massage-envy",
-    "mangomint"
+    "mangomint",
+    "hand-stone"
   ];
 
   const scrapeableBusinesses = businesses.filter((business) => {

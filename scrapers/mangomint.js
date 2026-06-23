@@ -33,28 +33,46 @@ function addDaysToDateKey(dateKey, daysToAdd) {
   )}`;
 }
 
-function formatDisplayTime(startAtLocal) {
-  const parsed = new Date(startAtLocal);
+function getLocalDateKey(startAtLocal, fallbackDateKey = "") {
+  const match = String(startAtLocal || "").match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : fallbackDateKey || "";
+}
 
-  if (Number.isNaN(parsed.getTime())) {
+function getLocalTimeKey(startAtLocal) {
+  const match = String(startAtLocal || "").match(/T?(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : "";
+}
+
+function formatDisplayTime(startAtLocal) {
+  const localTimeKey = getLocalTimeKey(startAtLocal);
+
+  if (!localTimeKey) {
     return String(startAtLocal || "");
   }
 
-  return parsed.toLocaleTimeString("en-US", {
-    timeZone: "America/Chicago",
-    hour: "numeric",
-    minute: "2-digit"
-  });
+  const [rawHour, minute] = localTimeKey.split(":");
+  let hour = Number(rawHour);
+  const suffix = hour >= 12 ? "PM" : "AM";
+
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+
+  return `${hour}:${minute} ${suffix}`;
 }
 
 function normalizeSlot(slot, dateKey, timeGroup, business = {}) {
   const startAtLocal = slot?.startAtLocal || "";
+  const localDateKey = getLocalDateKey(startAtLocal, dateKey);
+  const localTimeKey = getLocalTimeKey(startAtLocal);
 
   return {
-    date: dateKey,
+    date: localDateKey,
     time: formatDisplayTime(startAtLocal),
     startTime: startAtLocal,
     startAtLocal,
+    localDateKey,
+    localTimeKey,
+    rawTime: startAtLocal,
     providerName: "Anyone",
     therapistName: "Anyone",
     staffName: "Anyone",

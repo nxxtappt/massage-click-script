@@ -4,13 +4,13 @@ const { chromium } = require("playwright");
 const { scrapeSchedulistaBusiness } = require("./scrapers/schedulista");
 
 const testBusiness = {
-  businessName: "Mantis Massage South Congress",
+  businessName: "Indigo Moon",
   platform: "schedulista",
-  bookingUrl: "https://mantismassage1.schedulista.com/",
-  serviceName: "60 Minute Massage",
+  bookingUrl: "https://www.indigomoonmassage.com/#schedule",
+  serviceName: "60 Minute Deep Tissue Massage",
   serviceId: "1074317466",
   chooseTimeUrl:
-    "https://www.schedulista.com/schedule/mantismassage1/choose_time?service_id=1074317466",
+    "https://www.indigomoonmassage.com/#schedule",
   providerPreference: "no_preference"
 };
 

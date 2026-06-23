@@ -615,6 +615,34 @@
       }
     ]
   },
+
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Indigo Moon",
+    "platform": "schedulista",
+    "bookingUrl": "https://www.schedulista.com/schedule/kalliwildmassage1",
+    "serviceName": "60 Minute Deep Tissue Massage",
+    "serviceId": "1074496239",
+    "chooseTimeUrl": "https://www.schedulista.com/schedule/kalliwildmassage1/choose_time?provider_id=1073913485&service_id=1074496239",
+    "providerPreference": "no_preference",
+    "address": "6516 Berkman Dr, Austin, Tx 78723",
+    "latitude": 30.3191835,
+    "longitude": -97.6897181,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Deep Tissue Massage",
+        "platformServiceId": "1074496239",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved"
+      }
+    ]
+  },
+
   {
     "enabled": true,
     "adminNotes": "",
@@ -1756,5 +1784,182 @@
       "discoveryStatus": "manual"
     }
   ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Austin South",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/austin-south/booking/?center_id=730cad3d-f8a4-4f87-b22a-fd224f1d97ee&step=category",
+  "address": "4301 W William Cannon Dr Bldg. E , Ste 230, Austin, TX 78749",
+  "latitude": 30.220432,
+  "longitude": -97.8930827,
+  "centerId": "730cad3d-f8a4-4f87-b22a-fd224f1d97ee",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Great Hills",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/austin-great-hills/booking/?center_id=b6646905-dc8f-4e0c-8030-e8eefc5e0d7f&step=category",
+  "address": "10740 Research Boulevard #120, Austin, TX 78759",
+  "latitude": 30.391417,
+  "longitude": -97.7500412,
+  "centerId": "b6646905-dc8f-4e0c-8030-e8eefc5e0d7f",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Bee Caves",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/bee-cave/booking/?center_id=31c33694-46c7-4392-8c1e-4846d96615c5&category=ec93e9f1-7885-43b6-9d75-07134a0a0fa4&step=service",
+  "address": "13500 Galleria Cir Ste U-105, Bee Cave, TX 78738",
+  "latitude": 30.3093377,
+  "longitude": -97.938797,
+  "centerId": "31c33694-46c7-4392-8c1e-4846d96615c5",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Avery Ranch",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/austin-avery-ranch/booking/?center_id=d9ad76bf-57f3-45ef-9ae2-cd5253909fc1&step=category",
+  "address": "10526 W Parmer Ln #413, Austin, TX 78717",
+  "latitude": 30.4979419,
+  "longitude": -97.7738018,
+  "centerId": "d9ad76bf-57f3-45ef-9ae2-cd5253909fc1",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Leander",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/leander/booking/?center_id=f140fd5a-93d8-4eda-9cdd-e05617888fd6&step=category",
+  "address": "651 N US Hwy 183 Ste 135, Leander, TX 78641",
+  "latitude": 30.5846814,
+  "longitude": -97.8569479,
+  "centerId": "f140fd5a-93d8-4eda-9cdd-e05617888fd6",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Hutto-Pflugerville",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/hutto-pflugerville/booking/?center_id=68480b2f-88a7-412e-8b10-0c2c6391beb0&step=category",
+  "address": "5004 Gattis School Rd Suite 3, Hutto, TX 78634",
+  "latitude": 30.5039264,
+  "longitude": -97.5820181,
+  "centerId": "68480b2f-88a7-412e-8b10-0c2c6391beb0",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Round Rock",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/round-rock/booking/?center_id=5a972e47-d9ea-46eb-ba28-f426bed08798&step=category",
+  "address": "200 University Blvd #415, Round Rock, TX 78665",
+  "latitude": 30.5614103,
+  "longitude": -97.6896932,
+  "centerId": "5a972e47-d9ea-46eb-ba28-f426bed08798",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
+},
+
+{
+  "businessName": "Hand & Stone Massage and Facial Spa - Georgetown",
+  "platform": "hand-stone",
+  "enabled": true,
+  "bookingUrl": "https://handandstone.com/locations/georgetown/booking/?center_id=78a3798a-e77d-4e31-97d5-b3f632e1a77f&step=category",
+  "address": "1225 S I-35 Frontage Rd #115, Georgetown, TX 78626",
+  "latitude": 30.745419,
+  "longitude": -97.636215,
+  "centerId": "78a3798a-e77d-4e31-97d5-b3f632e1a77f",
+  "services": [
+    {
+      "serviceName": "Classic Massage",
+      "serviceType": "massage",
+      "durationMinutes": 60,
+      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+      "priority": "high",
+      "discoveryStatus": "approved",
+      "daysForward": 2
+    }
+  ]
 }
+
 ]
