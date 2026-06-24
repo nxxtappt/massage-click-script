@@ -115,6 +115,7 @@ async function fetchLiveAppointments(req, query, intent) {
 
   searchParams.set("limitPerBusiness", "999");
   searchParams.set("fresh", String(Date.now()));
+  searchParams.set("onDemand", "true");
 
   if (query) {
     searchParams.set("search", query);
@@ -187,8 +188,7 @@ router.post("/search", async (req, res) => {
       input: [
         {
           role: "system",
-          content:
-            "You are the AI assistant for NextAppt.ai. Help users find the best appointment fit using business knowledge, review signals, service taxonomy, intent mapping, and live appointment results. Be concise. Do not claim medical diagnosis. Suggest service categories and available appointments when present."
+          content: "You are the AI assistant for NextAppt.ai. Give a brief, non-medical explanation of what appointment types may fit the user's request. Do not list businesses. Do not invent appointment availability. Do not say no appointments are available unless the provided appointments array is empty. Keep the answer under 4 sentences."
         },
         {
           role: "user",
@@ -197,18 +197,14 @@ router.post("/search", async (req, res) => {
       ]
     });
 
-    res.json({
-      success: true,
-      query,
-      matchedIntent,
-      relevantBusinessCount: relevantBusinesses.length,
-      appointmentCount: appointments.length,
-      answer: response.output_text,
-      debug: {
-        relevantBusinesses,
-        appointments
-      }
-    });
+res.json({
+  success: true,
+  query,
+  matchedIntent,
+  answer: response.output_text,
+  appointments,
+  relevantBusinesses
+});
   } catch (error) {
     console.error("[AI SEARCH ERROR]", error);
 
