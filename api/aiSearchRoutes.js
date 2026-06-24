@@ -183,7 +183,7 @@ router.post("/search", async (req, res) => {
     };
 
     const response = await openai.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5.5-mini",
+      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
       input: [
         {
           role: "system",
