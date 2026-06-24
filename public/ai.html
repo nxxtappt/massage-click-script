@@ -3,27 +3,517 @@
 <head>
   <title>NextAppt AI Search</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
-    body { font-family: Arial, sans-serif; background:#f4f7fb; color:#14213d; margin:0; padding:32px; }
-    .wrap { max-width:900px; margin:auto; }
-    textarea { width:100%; min-height:100px; padding:14px; font-size:16px; border-radius:12px; border:1px solid #ccd5e1; }
-    button { margin-top:12px; background:#0075b9; color:white; border:0; padding:12px 18px; border-radius:999px; font-weight:700; cursor:pointer; }
-    .box { margin-top:20px; background:white; border-radius:18px; padding:20px; box-shadow:0 12px 30px rgba(0,0,0,.08); white-space:pre-wrap; }
-    .debug { font-size:13px; color:#555; }
+    :root {
+      --dark-blue: #002b49;
+      --blue: #0075b9;
+      --bg: #f4f7fb;
+      --text: #14213d;
+      --muted: #5f6f7f;
+      --border: #d8e4ee;
+      --card: #ffffff;
+      --danger: #b42318;
+      --success: #067647;
+      --composer-height: 132px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding-bottom: var(--composer-height);
+    }
+
+    .page-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 22px 20px 28px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--dark-blue);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      font-size: 21px;
+    }
+
+    .brand-dot {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--dark-blue), var(--blue));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .nav-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .ai-hero {
+      background: linear-gradient(135deg, var(--dark-blue), #005f95);
+      color: white;
+      border-radius: 26px;
+      padding: 24px;
+      box-shadow: 0 18px 46px rgba(0, 43, 73, 0.20);
+      margin-bottom: 18px;
+    }
+
+    .ai-hero h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: -0.04em;
+    }
+
+    .ai-hero p {
+      margin: 0;
+      color: rgba(255,255,255,.86);
+      font-size: 16px;
+      line-height: 1.45;
+      max-width: 760px;
+    }
+
+    .starter-prompts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .starter-prompt {
+      border: 1px solid rgba(255,255,255,.32);
+      background: rgba(255,255,255,.11);
+      color: white;
+      border-radius: 999px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .results-panel {
+      min-height: 300px;
+    }
+
+    .assistant-bubble {
+      margin: 0 0 14px;
+      background: white;
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.08);
+      line-height: 1.5;
+      color: var(--text);
+      border: 1px solid rgba(216,228,238,.72);
+    }
+
+    .assistant-bubble.error {
+      color: var(--danger);
+      border-color: rgba(180,35,24,.22);
+    }
+
+    .assistant-bubble.success {
+      color: var(--success);
+      border-color: rgba(6,118,71,.22);
+    }
+
+    .results-summary {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .appointments-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .business-card {
+      background: var(--card);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.08);
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      border: 1px solid rgba(216,228,238,.7);
+    }
+
+    .logo-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #eef4f8;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      font-weight: 900;
+      color: var(--dark-blue);
+      letter-spacing: .02em;
+    }
+
+    .logo-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .business-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .business-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .business-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .business-title-row h2 {
+      margin: 0;
+      color: var(--dark-blue);
+      font-size: 21px;
+      letter-spacing: -0.02em;
+    }
+
+    .business-address {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .verified-business-badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--blue);
+      color: var(--blue);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 900;
+      background: white;
+    }
+
+    .claim-business-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .business-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .distance-pill,
+    .platform-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #f8fafc;
+    }
+
+    .business-service {
+      margin: 12px 0 0;
+      color: var(--text);
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .next-label {
+      margin: 14px 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .time-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .time-button {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--blue);
+      color: white;
+      text-decoration: none;
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .empty-state,
+    .debug-box {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.08);
+      border: 1px solid rgba(216,228,238,.72);
+    }
+
+    .empty-state h2 {
+      margin: 0 0 8px;
+      color: var(--dark-blue);
+    }
+
+    .empty-state p { margin: 0; color: var(--muted); line-height: 1.5; }
+
+    .debug-box {
+      margin-top: 20px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .debug-box pre {
+      white-space: pre-wrap;
+      overflow: auto;
+      font-size: 12px;
+    }
+
+    .chat-thread {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 4px;
+    }
+
+    .chat-message {
+      max-width: 82%;
+      border-radius: 18px;
+      padding: 12px 14px;
+      line-height: 1.45;
+      font-size: 15px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.06);
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      background: var(--blue);
+      color: white;
+      border-bottom-right-radius: 6px;
+    }
+
+    .chat-message.assistant {
+      align-self: flex-start;
+      background: white;
+      color: var(--text);
+      border: 1px solid rgba(216,228,238,.72);
+      border-bottom-left-radius: 6px;
+    }
+
+    .chat-message.system {
+      align-self: center;
+      max-width: 92%;
+      background: transparent;
+      color: var(--muted);
+      box-shadow: none;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+
+    .composer-shell {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      background: linear-gradient(to top, rgba(244,247,251,1), rgba(244,247,251,.92), rgba(244,247,251,0));
+      padding: 22px 14px 14px;
+    }
+
+    .composer-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 18px 48px rgba(0,43,73,.18);
+      padding: 10px;
+    }
+
+    .composer-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 54px;
+      max-height: 150px;
+      padding: 15px 16px;
+      font-size: 16px;
+      border-radius: 18px;
+      border: 1px solid transparent;
+      background: #f8fafc;
+      resize: none;
+      font-family: Arial, sans-serif;
+      outline: none;
+      line-height: 1.35;
+    }
+
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0,117,185,.12);
+      background: white;
+    }
+
+    button {
+      background: var(--blue);
+      color: white;
+      border: 0;
+      padding: 0 22px;
+      border-radius: 999px;
+      font-weight: 900;
+      cursor: pointer;
+      min-width: 96px;
+      height: 50px;
+      font-size: 15px;
+    }
+
+    button:disabled {
+      opacity: .65;
+      cursor: not-allowed;
+    }
+
+    .composer-hint {
+      margin: 8px 10px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 720px) {
+      :root { --composer-height: 154px; }
+
+      .page-shell { padding: 16px 14px 22px; }
+      .top-bar { margin-bottom: 12px; }
+      .ai-hero { padding: 20px; border-radius: 22px; }
+      .ai-hero h1 { font-size: 27px; }
+      .business-card { padding: 15px; border-radius: 18px; gap: 12px; }
+      .logo-circle { width: 54px; height: 54px; }
+      .business-title-row h2 { font-size: 18px; }
+      .chat-message { max-width: 94%; }
+      .composer-row { flex-direction: column; align-items: stretch; }
+      button { width: 100%; height: 46px; }
+    }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <h1>NextAppt AI Search</h1>
-    <p>Experimental AI search layer.</p>
+  <main class="page-shell">
+    <div class="top-bar">
+      <div class="brand-lockup">
+        <div class="brand-dot">NA</div>
+        <span>NextAppt AI</span>
+      </div>
 
-    <textarea id="query" placeholder="Example: My neck hurts and I need a massage today"></textarea>
-    <br />
-    <button id="searchBtn">Ask AI</button>
+      <a class="nav-link" href="/austin/massage">Standard search</a>
+    </div>
 
-    <div id="answer" class="box">Ask a question to test the AI layer.</div>
-    <div id="debug" class="box debug"></div>
-  </div>
+    <section class="ai-hero">
+      <h1>Ask for the appointment you need.</h1>
+      <p>
+        Search live appointment availability in plain English. You can start broad,
+        then follow up with things like “tomorrow instead”, “90 minute only”,
+        “south Austin”, or “with infrared sauna.”
+      </p>
+
+      <div class="starter-prompts" aria-label="Example searches">
+        <button class="starter-prompt" type="button" data-prompt="deep tissue massage today">Deep tissue today</button>
+        <button class="starter-prompt" type="button" data-prompt="next available swedish massage">Next Swedish massage</button>
+        <button class="starter-prompt" type="button" data-prompt="are there any businesses with infrared sauna that have massage openings today?">Infrared sauna + massage</button>
+        <button class="starter-prompt" type="button" data-prompt="sports recovery massage today">Sports recovery today</button>
+      </div>
+    </section>
+
+    <section class="results-panel" aria-live="polite">
+      <div id="answer" class="assistant-bubble">
+        Ask a question below. Results will show here first, with the chat continuing underneath.
+      </div>
+
+      <p id="resultsSummary" class="results-summary"></p>
+
+      <section id="appointmentsGrid" class="appointments-grid">
+        <div class="empty-state">
+          <h2>No search yet</h2>
+          <p>Try “massage today”, “deep tissue tomorrow”, or “businesses with infrared sauna”.</p>
+        </div>
+      </section>
+
+      <div id="debug"></div>
+    </section>
+
+    <section id="chatThread" class="chat-thread" aria-label="AI search conversation"></section>
+  </main>
+
+  <form id="chatForm" class="composer-shell">
+    <div class="composer-inner">
+      <div class="composer-row">
+        <textarea
+          id="query"
+          placeholder="Ask for an appointment..."
+          rows="1"
+        ></textarea>
+
+        <button id="searchBtn" type="submit">Ask AI</button>
+      </div>
+
+      <div class="composer-hint">
+        Press Enter to send. Shift + Enter for a new line.
+      </div>
+    </div>
+  </form>
 
   <script src="/ai.js"></script>
 </body>
