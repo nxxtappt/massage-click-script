@@ -1,0 +1,435 @@
+[{
+  "businessId": "dimensions-massage-therapy",
+  "businessName": "Dimensions Massage Therapy",
+  "status": "active",
+
+  "market": {
+    "city": "Austin",
+    "state": "TX",
+    "areaTags": [
+      "south-austin",
+      "westgate",
+      "south-lamar",
+      "78704",
+      "78745"
+    ]
+  },
+
+  "businessType": "massage_studio",
+
+  "positioning": {
+    "shortDescription": "Therapist-owned massage studio offering therapeutic massage and infrared sauna.",
+
+    "bestFor": [
+      "chronic-pain",
+      "deep-pressure",
+      "sports-recovery",
+      "neck-and-shoulder-tension",
+      "maintenance-massage",
+      "prenatal-care"
+    ],
+
+    "notBestFor": [
+      "luxury-spa-experience"
+    ],
+
+    "styleTags": [
+      "therapeutic",
+      "locally-owned",
+      "no-frills",
+      "clinical-massage-therapy"
+    ]
+  },
+
+  "specialties": [
+    "deep-tissue",
+    "swedish",
+    "sports-massage",
+    "ashiatsu",
+    "prenatal",
+    "lomi-lomi"
+  ],
+
+  "amenities": [
+    "infrared-sauna",
+    "hydraulic-tables",
+    "ashiatsu-bars"
+  ],
+
+  "clientTypes": [
+    "athletes",
+    "active-adults",
+    "office-workers",
+    "chronic-pain-clients",
+    "prenatal-clients"
+  ],
+
+  "businessAttributes": {
+    "therapistOwned": true,
+    "verifiedBusiness": true,
+    "acceptsOnlineBooking": true
+  },
+
+  "rankingBoosts": {
+    "verifiedBusinessBoost": true,
+    "reviewSignalBoost": true,
+    "localOwnerBoost": true
+  },
+
+  "faqRefs": [
+    "dimensions-cancellation-policy",
+    "dimensions-sauna"
+  ],
+
+  "reviewSignalRef": "dimensions-massage-therapy",
+
+  "lastUpdated": "2026-06-24"
+},
+{
+    "businessId": "generator-athlete-lab",
+    "businessName": "Generator Athlete Lab",
+    "status": "active",
+    "market": {
+      "city": "Austin",
+      "state": "TX",
+      "areaTags": ["austin", "downtown-austin"]
+    },
+    "businessType": "athlete_wellness_center",
+    "positioning": {
+      "shortDescription": "Athlete wellness and recovery center offering massage as part of a broader recovery protocol.",
+      "bestFor": [
+        "athletic-recovery",
+        "sports-recovery",
+        "injury-recovery",
+        "chronic-pain",
+        "muscle-soreness",
+        "mobility-recovery",
+        "stress-relief"
+      ],
+      "notBestFor": [
+        "spa treatments",
+        "budget-only-appointments"
+      ],
+      "styleTags": [
+        "athlete-focused",
+        "recovery-focused",
+        "premium-wellness",
+        "guided-first-time-experience",
+        "modern-facility"
+      ]
+    },
+    "specialties": [
+      "athletic-recovery",
+      "sports-massage",
+      "deep-manual-therapy",
+      "contrast-therapy",
+      "cold-plunge",
+      "infrared-sauna",
+      "compression-therapy",
+      "red-light-therapy",
+      "personal-training"
+    ],
+    "amenities": [
+      "cold-plunge",
+      "hot-tub",
+      "infrared-sauna",
+      "compression-boots",
+      "red-light-therapy",
+      "vibration-plate",
+      "clean-facility",
+      "modern-facility",
+      "validated-parking"
+    ],
+    "clientTypes": [
+      "athletes",
+      "runners",
+      "triathletes",
+      "strength-training-clients",
+      "injury-recovery-clients",
+      "chronic-pain-clients",
+      "biohackers",
+      "wellness-membership-clients",
+      "stress-relief-seekers",
+      "first-time-cold-plunge-users"
+    ],
+    "businessAttributes": {
+      "therapistOwned": null,
+      "verifiedBusiness": false,
+      "acceptsOnlineBooking": true,
+      "membershipFocused": true
+    },
+    "rankingBoosts": {
+      "verifiedBusinessBoost": false,
+      "reviewSignalBoost": true,
+      "localOwnerBoost": false
+    },
+    "reviewSignalRef": "generator-athlete-lab",
+    "lastUpdated": "2026-06-24"
+  },
+  {
+    "businessId": "austin-community-wellness",
+    "businessName": "Austin Community Wellness",
+    "status": "active",
+    "market": {
+      "city": "Austin",
+      "state": "TX",
+      "areaTags": ["austin"]
+    },
+    "businessType": "chiropractic_and_massage_office",
+    "positioning": {
+      "shortDescription": "Holistic chiropractic and massage office focused on therapeutic bodywork, pain relief, and individualized wellness care.",
+      "bestFor": [
+        "back-pain",
+        "neck-pain",
+        "joint-pain",
+        "chronic-pain",
+        "headaches",
+        "injury-recovery",
+        "stress-relief",
+        "holistic-care"
+      ],
+      "notBestFor": [
+        "luxury-spa-experience"
+      ],
+      "styleTags": [
+        "holistic",
+        "small-local-practice",
+        "therapeutic",
+        "non-salesy",
+        "patient-centered",
+        "warm-and-welcoming"
+      ]
+    },
+    "specialties": [
+      "therapeutic-massage",
+      "customized-massage",
+      "deep-tissue",
+      "chiropractic-adjustment",
+      "craniosacral-therapy",
+      "activator-method",
+      "cupping",
+      "infrared-sauna",
+      "prenatal-chiropractic"
+    ],
+    "amenities": [
+      "infrared-sauna",
+      "cozy-office-vibe",
+      "clean-facility",
+      "body-scans",
+      "tea-station",
+      "plentiful-parking",
+      "massage-chair"
+    ],
+    "clientTypes": [
+      "chronic-pain-clients",
+      "chiropractic-clients",
+      "therapeutic-massage-clients",
+      "stress-relief-seekers",
+      "pregnant-clients",
+      "clients-with-joint-hypermobility",
+      "athletes-or-active-people",
+      "families",
+      "clients-seeking-holistic-care",
+      "clients-who-prefer-small-local-practices"
+    ],
+    "businessAttributes": {
+      "therapistOwned": null,
+      "verifiedBusiness": false,
+      "acceptsOnlineBooking": true,
+      "oneStopChiroAndMassage": true
+    },
+    "rankingBoosts": {
+      "verifiedBusinessBoost": false,
+      "reviewSignalBoost": true,
+      "localOwnerBoost": false
+    },
+    "reviewSignalRef": "austin-community-wellness",
+    "lastUpdated": "2026-06-24"
+  },
+  {
+    "businessId": "mantra-wellness",
+    "businessName": "Mantra Wellness",
+    "status": "active",
+    "market": {
+      "city": "Austin",
+      "state": "TX",
+      "areaTags": ["austin"]
+    },
+    "businessType": "holistic_wellness_studio",
+    "positioning": {
+      "shortDescription": "Holistic wellness studio with strong massage, facial, skincare, and calming spa-environment signals.",
+      "bestFor": [
+        "customized-massage",
+        "deep-tissue",
+        "neck-and-shoulder-pain",
+        "back-pain",
+        "chronic-pain",
+        "stress-relief",
+        "headache-relief",
+        "migraine-support",
+        "facials",
+        "skincare",
+        "relaxing-spa-environment"
+      ],
+      "notBestFor": [
+        "strictly-clinical-no-frills-bodywork-only"
+      ],
+      "styleTags": [
+        "holistic",
+        "calming",
+        "spa-like",
+        "therapeutic",
+        "relaxing",
+        "welcoming"
+      ]
+    },
+    "specialties": [
+      "customized-massage",
+      "therapeutic-massage",
+      "deep-tissue",
+      "relaxation-massage",
+      "intuitive-massage",
+      "cupping",
+      "ashiatsu",
+      "prenatal",
+      "facials",
+      "skincare",
+      "facial-massage",
+      "buccal-massage",
+      "yoga"
+    ],
+    "amenities": [
+      "comfortable-studio",
+      "relaxing-atmosphere",
+      "clean-facility",
+      "calming-environment",
+      "gift-shop",
+      "wellness-products",
+      "aromatherapy",
+      "facial-services",
+      "tea-or-water-service"
+    ],
+    "clientTypes": [
+      "chronic-pain-clients",
+      "stress-relief-seekers",
+      "neck-and-shoulder-pain-clients",
+      "headache-or-migraine-clients",
+      "prenatal-clients",
+      "skincare-clients",
+      "wellness-membership-clients",
+      "athletes-or-active-people",
+      "clients-seeking-holistic-care",
+      "clients-who-prefer-relaxing-spa-environment"
+    ],
+    "businessAttributes": {
+      "therapistOwned": null,
+      "verifiedBusiness": false,
+      "acceptsOnlineBooking": true,
+      "membershipFocused": true
+    },
+    "rankingBoosts": {
+      "verifiedBusinessBoost": false,
+      "reviewSignalBoost": true,
+      "localOwnerBoost": false
+    },
+    "reviewSignalRef": "mantra-wellness",
+    "lastUpdated": "2026-06-24"
+  },
+  {
+    "businessId": "myo-massage",
+    "businessName": "Myo Massage",
+    "status": "active",
+    "market": {
+      "city": "Austin",
+      "state": "TX",
+      "areaTags": ["austin"]
+    },
+    "businessType": "massage_and_movement_clinic",
+    "positioning": {
+      "shortDescription": "Massage and movement clinic known for therapeutic bodywork, pain management, injury recovery, and long-term wellness support.",
+      "bestFor": [
+        "therapeutic-massage",
+        "deep-tissue",
+        "pain-management",
+        "neck-pain",
+        "back-pain",
+        "lower-back-pain",
+        "shoulder-pain",
+        "chronic-pain",
+        "injury-recovery",
+        "sports-recovery",
+        "mobility-limitations",
+        "couples-massage"
+      ],
+      "notBestFor": [
+        "lowest-price-only-clients",
+        "clients-who-do-not-want-detailed-intake"
+      ],
+      "styleTags": [
+        "clinical-bodywork",
+        "therapeutic",
+        "movement-focused",
+        "professional",
+        "consistent-long-term-care",
+        "inclusive"
+      ]
+    },
+    "specialties": [
+      "therapeutic-massage",
+      "deep-tissue",
+      "pain-management-massage",
+      "sports-massage",
+      "trigger-point-therapy",
+      "myofascial-release",
+      "prenatal",
+      "lymphatic-massage",
+      "acupuncture",
+      "couples-massage",
+      "couples-massage-classes",
+      "movement-classes",
+      "iyengar-yoga",
+      "feldenkrais"
+    ],
+    "amenities": [
+      "clean-facility",
+      "relaxing-atmosphere",
+      "comfortable-rooms",
+      "tea-service",
+      "friendly-front-desk",
+      "free-parking",
+      "online-intake-forms",
+      "music-preference-options",
+      "temperature-preference-options",
+      "wellness-products",
+      "inclusive-environment",
+      "health-and-safety-precautions"
+    ],
+    "clientTypes": [
+      "chronic-pain-clients",
+      "injury-recovery-clients",
+      "deep-tissue-seekers",
+      "athletes-or-active-people",
+      "desk-workers",
+      "stress-relief-seekers",
+      "pregnant-clients",
+      "couples",
+      "massage-education-clients",
+      "movement-class-clients",
+      "clients-seeking-clinical-bodywork",
+      "clients-who-prefer-consistent-long-term-care"
+    ],
+    "businessAttributes": {
+      "therapistOwned": null,
+      "verifiedBusiness": false,
+      "acceptsOnlineBooking": true,
+      "detailedIntakeProcess": true
+    },
+    "rankingBoosts": {
+      "verifiedBusinessBoost": false,
+      "reviewSignalBoost": true,
+      "localOwnerBoost": false
+    },
+    "reviewSignalRef": "myo-massage",
+    "lastUpdated": "2026-06-24"
+  }
+]

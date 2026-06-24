@@ -1,0 +1,313 @@
+{
+  "neck-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage", "myofascial-release"]
+  },
+  "stiff-neck": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "myofascial-release"]
+  },
+  "tech-neck": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "myofascial-release"]
+  },
+  "forward-head-posture": {
+    "recommendedServices": ["myofascial-release", "sports-massage"]
+  },
+  "whiplash-recovery": {
+    "recommendedServices": ["myofascial-release", "therapeutic-massage"]
+  },
+  "headaches": {
+    "recommendedServices": ["trigger-point", "swedish", "myofascial-release"]
+  },
+  "tension-headaches": {
+    "recommendedServices": ["trigger-point", "swedish", "myofascial-release"]
+  },
+  "migraines": {
+    "recommendedServices": ["trigger-point", "swedish", "craniosacral"]
+  },
+  "jaw-pain": {
+    "recommendedServices": ["trigger-point", "myofascial-release"]
+  },
+  "tmj": {
+    "recommendedServices": ["trigger-point", "myofascial-release"]
+  },
+  "facial-tension": {
+    "recommendedServices": ["myofascial-release", "buccal-massage"]
+  },
+
+  "frozen-shoulder": {
+    "recommendedServices": ["myofascial-release", "sports-massage", "deep-tissue"]
+  },
+  "rotator-cuff-pain": {
+    "recommendedServices": ["sports-massage", "deep-tissue", "trigger-point"]
+  },
+  "shoulder-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage"]
+  },
+  "shoulder-impingement": {
+    "recommendedServices": ["sports-massage", "myofascial-release"]
+  },
+  "upper-back-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "myofascial-release"]
+  },
+  "scapular-pain": {
+    "recommendedServices": ["trigger-point", "sports-massage"]
+  },
+  "thoracic-tightness": {
+    "recommendedServices": ["deep-tissue", "myofascial-release"]
+  },
+
+  "tennis-elbow": {
+    "recommendedServices": ["deep-tissue", "sports-massage", "trigger-point", "myofascial-release"]
+  },
+  "golfers-elbow": {
+    "recommendedServices": ["deep-tissue", "sports-massage", "trigger-point"]
+  },
+  "forearm-tightness": {
+    "recommendedServices": ["deep-tissue", "sports-massage"]
+  },
+  "carpal-tunnel-symptoms": {
+    "recommendedServices": ["myofascial-release", "trigger-point"]
+  },
+  "wrist-pain": {
+    "recommendedServices": ["trigger-point", "sports-massage"]
+  },
+  "repetitive-strain-injury": {
+    "recommendedServices": ["myofascial-release", "sports-massage"]
+  },
+  "mouse-arm": {
+    "recommendedServices": ["trigger-point", "myofascial-release"]
+  },
+
+  "back-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage"]
+  },
+  "lower-back-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage"]
+  },
+  "mid-back-pain": {
+    "recommendedServices": ["deep-tissue", "myofascial-release"]
+  },
+  "lumbar-tightness": {
+    "recommendedServices": ["deep-tissue", "sports-massage"]
+  },
+  "herniated-disc-support": {
+    "recommendedServices": ["therapeutic-massage", "myofascial-release"]
+  },
+  "sciatica": {
+    "recommendedServices": ["trigger-point", "deep-tissue", "myofascial-release"]
+  },
+  "piriformis-syndrome": {
+    "recommendedServices": ["trigger-point", "deep-tissue", "sports-massage"]
+  },
+  "spinal-stiffness": {
+    "recommendedServices": ["deep-tissue", "myofascial-release"]
+  },
+
+  "hip-pain": {
+    "recommendedServices": ["deep-tissue", "sports-massage", "trigger-point"]
+  },
+  "tight-hips": {
+    "recommendedServices": ["sports-massage", "thai-massage", "deep-tissue"]
+  },
+  "glute-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point"]
+  },
+  "it-band-tightness": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "hip-flexor-tightness": {
+    "recommendedServices": ["sports-massage", "thai-massage"]
+  },
+
+  "knee-pain": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "runners-knee": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "jumpers-knee": {
+    "recommendedServices": ["sports-massage", "trigger-point"]
+  },
+  "patellar-tendonitis": {
+    "recommendedServices": ["sports-massage", "myofascial-release"]
+  },
+
+  "hamstring-tightness": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "hamstring-strain": {
+    "recommendedServices": ["sports-massage", "myofascial-release"]
+  },
+  "quad-tightness": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "shin-splints": {
+    "recommendedServices": ["sports-massage", "trigger-point"]
+  },
+  "calf-tightness": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "leg-fatigue": {
+    "recommendedServices": ["sports-massage", "compression-therapy"]
+  },
+
+  "plantar-fasciitis": {
+    "recommendedServices": ["sports-massage", "deep-tissue", "trigger-point"]
+  },
+  "foot-pain": {
+    "recommendedServices": ["trigger-point", "sports-massage"]
+  },
+  "ankle-stiffness": {
+    "recommendedServices": ["sports-massage", "myofascial-release"]
+  },
+  "ankle-pain": {
+    "recommendedServices": ["sports-massage", "trigger-point"]
+  },
+  "achilles-tendonitis": {
+    "recommendedServices": ["sports-massage", "myofascial-release"]
+  },
+
+  "sports-recovery": {
+    "recommendedServices": ["sports-massage", "deep-tissue", "compression-therapy"]
+  },
+  "post-workout-recovery": {
+    "recommendedServices": ["sports-massage", "compression-therapy"]
+  },
+  "marathon-recovery": {
+    "recommendedServices": ["sports-massage", "compression-therapy", "cold-plunge"]
+  },
+  "triathlon-recovery": {
+    "recommendedServices": ["sports-massage", "compression-therapy", "cold-plunge"]
+  },
+  "crossfit-recovery": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "weightlifting-recovery": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "cycling-recovery": {
+    "recommendedServices": ["sports-massage", "compression-therapy"]
+  },
+  "muscle-soreness": {
+    "recommendedServices": ["sports-massage", "deep-tissue"]
+  },
+  "delayed-onset-muscle-soreness": {
+    "recommendedServices": ["sports-massage", "compression-therapy"]
+  },
+
+  "chronic-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point", "myofascial-release"]
+  },
+  "fibromyalgia": {
+    "recommendedServices": ["swedish", "lymphatic-drainage"]
+  },
+  "arthritis-discomfort": {
+    "recommendedServices": ["swedish", "myofascial-release"]
+  },
+  "mobility-limitations": {
+    "recommendedServices": ["thai-massage", "sports-massage", "myofascial-release"]
+  },
+  "joint-stiffness": {
+    "recommendedServices": ["thai-massage", "myofascial-release"]
+  },
+  "postural-issues": {
+    "recommendedServices": ["myofascial-release", "sports-massage"]
+  },
+  "scoliosis-related-pain": {
+    "recommendedServices": ["therapeutic-massage", "myofascial-release"]
+  },
+
+  "stress": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "stress-relief": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "anxiety": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "burnout": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "mental-fatigue": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "relaxation": {
+    "recommendedServices": ["swedish", "relaxation", "lomi-lomi"]
+  },
+  "sleep-issues": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "sleep-improvement": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+
+  "pregnancy": {
+    "recommendedServices": ["prenatal"]
+  },
+  "prenatal-care": {
+    "recommendedServices": ["prenatal"]
+  },
+  "pregnancy-back-pain": {
+    "recommendedServices": ["prenatal"]
+  },
+  "pregnancy-hip-pain": {
+    "recommendedServices": ["prenatal"]
+  },
+  "pregnancy-leg-swelling": {
+    "recommendedServices": ["prenatal", "lymphatic-drainage"]
+  },
+
+  "desk-job-pain": {
+    "recommendedServices": ["deep-tissue", "trigger-point"]
+  },
+  "computer-neck": {
+    "recommendedServices": ["trigger-point", "deep-tissue"]
+  },
+  "sitting-all-day": {
+    "recommendedServices": ["sports-massage", "thai-massage"]
+  },
+  "poor-posture": {
+    "recommendedServices": ["myofascial-release", "sports-massage"]
+  },
+  "office-worker-tension": {
+    "recommendedServices": ["deep-tissue", "trigger-point"]
+  },
+
+  "injury-recovery": {
+    "recommendedServices": ["sports-massage", "myofascial-release"]
+  },
+  "post-surgery-recovery": {
+    "recommendedServices": ["lymphatic-drainage"]
+  },
+  "scar-tissue": {
+    "recommendedServices": ["myofascial-release"]
+  },
+  "lymphatic-support": {
+    "recommendedServices": ["lymphatic-drainage"]
+  },
+  "swelling": {
+    "recommendedServices": ["lymphatic-drainage"]
+  },
+  "circulation": {
+    "recommendedServices": ["lymphatic-drainage", "swedish"]
+  },
+
+  "better-sleep": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "self-care": {
+    "recommendedServices": ["swedish", "relaxation"]
+  },
+  "wellness-maintenance": {
+    "recommendedServices": ["swedish", "deep-tissue"]
+  },
+  "preventative-care": {
+    "recommendedServices": ["swedish", "sports-massage"]
+  },
+  "monthly-maintenance": {
+    "recommendedServices": ["swedish", "deep-tissue"]
+  },
+  "general-body-tension": {
+    "recommendedServices": ["deep-tissue", "swedish", "trigger-point"]
+  }
+}

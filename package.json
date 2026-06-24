@@ -24,6 +24,7 @@
     "chrono-node": "^2.9.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "openai": "^6.44.0",
     "playwright": "^1.59.1",
     "resend": "^6.12.4"
   }

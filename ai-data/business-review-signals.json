@@ -1,0 +1,673 @@
+[
+  {
+    "businessId": "dimensions-massage-therapy",
+    "businessSlug": "dimensions-massage-therapy",
+    "businessName": "Dimensions Massage Therapy",
+    "market": "austin",
+    "businessCategories": ["massage", "infrared_sauna"],
+
+    "reviewStats": {
+      "googleRating": 4.9,
+      "googleReviewCount": 125,
+      "analysisVersion": 1
+    },
+
+    "reviewAnalysisMetadata": {
+      "source": "google_reviews",
+      "lastAnalyzed": "2026-06-24",
+      "reviewSampleSize": 125
+    },
+
+    "reviewSignals": {
+      "overallSentiment": "very_positive",
+      "confidence": "high",
+
+      "specialtySignals": [
+        { "specialty": "deep_tissue", "strength": 5 },
+        { "specialty": "ashiatsu", "strength": 4 },
+        { "specialty": "lomi_lomi", "strength": 4 },
+        { "specialty": "sports_massage", "strength": 4 },
+        { "specialty": "swedish", "strength": 3 },
+        { "specialty": "prenatal", "strength": 2 },
+        { "specialty": "cupping", "strength": 2 },
+        { "specialty": "infrared_sauna", "strength": 4 }
+      ],
+
+      "problemSignals": [
+        { "problem": "neck_pain", "strength": 5 },
+        { "problem": "back_pain", "strength": 5 },
+        { "problem": "muscle_tension", "strength": 5 },
+        { "problem": "sports_recovery", "strength": 4 },
+        { "problem": "shoulder_pain", "strength": 4 },
+        { "problem": "hip_tightness", "strength": 3 },
+        { "problem": "stress_relief", "strength": 4 },
+        { "problem": "chronic_pain", "strength": 3 }
+      ],
+
+      "staffSignals": {
+        "sentiment": "very_positive",
+        "strength": 5,
+        "namedStaffMentionVolume": "very_high",
+        "summary": "Staff receive consistent praise for deep tissue work, pain relief, pressure control, communication, professionalism, customized sessions, therapeutic effectiveness, and overall customer experience.",
+        "positiveThemes": [
+          "deep_tissue_expertise",
+          "pain_relief",
+          "customized_sessions",
+          "professionalism",
+          "communication",
+          "friendly_staff",
+          "knowledgeable",
+          "listens_to_client_needs",
+          "strong_pressure_available"
+        ],
+        "negativeThemes": []
+      },
+
+      "amenitySignals": [
+        { "amenity": "infrared_sauna", "strength": 4 },
+        { "amenity": "heated_tables", "strength": 2 },
+        { "amenity": "clean_facility", "strength": 5 },
+        { "amenity": "calming_environment", "strength": 4 }
+      ],
+
+      "valueSignals": [
+        { "signal": "reasonable_pricing", "strength": 4 },
+        { "signal": "package_deals", "strength": 5 },
+        { "signal": "good_value", "strength": 4 }
+      ],
+
+      "bookingSignals": [
+        { "signal": "easy_online_booking", "strength": 5 },
+        { "signal": "same_week_availability", "strength": 4 },
+        { "signal": "short_notice_appointments", "strength": 4 }
+      ],
+
+      "clientTypeSignals": [
+        { "clientType": "desk_workers", "strength": 4 },
+        { "clientType": "athletes", "strength": 4 },
+        { "clientType": "runners", "strength": 4 },
+        { "clientType": "chronic_pain_clients", "strength": 4 },
+        { "clientType": "stress_relief_seekers", "strength": 4 }
+      ]
+    },
+
+    "reviewSummary": "Dimensions Massage Therapy is strongly associated with deep tissue massage, pain relief, sports recovery, Ashiatsu, Lomi Lomi, infrared sauna, clean facilities, easy booking, fair pricing, package deals, and highly-rated staff experiences.",
+
+    "lastReviewAnalysisDate": "2026-06-24"
+  },
+  {
+  "businessId": "generator-athlete-lab",
+  "businessSlug": "generator-athlete-lab",
+  "businessName": "Generator Athlete Lab",
+  "market": "austin",
+  "businessCategories": [
+    "athlete_wellness",
+    "massage",
+    "sports_recovery",
+    "infrared_sauna",
+    "cold_plunge",
+    "contrast_therapy",
+    "compression_therapy",
+    "red_light_therapy",
+    "personal_training"
+  ],
+
+  "reviewStats": {
+    "googleRating": 4.9,
+    "googleReviewCount": 251,
+    "analysisVersion": 1
+  },
+
+  "reviewAnalysisMetadata": {
+    "source": "google_reviews",
+    "lastAnalyzed": "2026-06-24",
+    "reviewSampleSize": 251
+  },
+
+  "reviewSignals": {
+    "overallSentiment": "very_positive",
+    "confidence": "high",
+
+    "specialtySignals": [
+      { "specialty": "athletic_recovery", "strength": 5 },
+      { "specialty": "contrast_therapy", "strength": 5 },
+      { "specialty": "cold_plunge", "strength": 5 },
+      { "specialty": "infrared_sauna", "strength": 5 },
+      { "specialty": "compression_therapy", "strength": 5 },
+      { "specialty": "sports_massage", "strength": 4 },
+      { "specialty": "red_light_therapy", "strength": 4 },
+      { "specialty": "small_group_personal_training", "strength": 4 },
+      { "specialty": "hot_tub", "strength": 4 },
+      { "specialty": "mobility_recovery", "strength": 4 },
+      { "specialty": "deep_manual_therapy", "strength": 4 }
+    ],
+
+    "problemSignals": [
+      { "problem": "sports_recovery", "strength": 5 },
+      { "problem": "muscle_soreness", "strength": 5 },
+      { "problem": "injury_recovery", "strength": 5 },
+      { "problem": "chronic_pain", "strength": 5 },
+      { "problem": "neck_pain", "strength": 4 },
+      { "problem": "back_pain", "strength": 4 },
+      { "problem": "hip_pain", "strength": 4 },
+      { "problem": "knee_pain", "strength": 4 },
+      { "problem": "hamstring_pain", "strength": 3 },
+      { "problem": "stress_relief", "strength": 4 },
+      { "problem": "sleep_improvement", "strength": 4 },
+      { "problem": "low_energy", "strength": 4 },
+      { "problem": "mental_reset", "strength": 4 }
+    ],
+
+    "staffSignals": {
+      "sentiment": "very_positive",
+      "strength": 5,
+      "namedStaffMentionVolume": "very_high",
+      "summary": "Staff receive unusually strong praise for being knowledgeable, friendly, welcoming, attentive, recovery-focused, and helpful with first-time visitors. Reviews repeatedly mention staff guiding clients through cold plunge, sauna, contrast therapy, personal training, massage, pain relief, and athletic recovery protocols.",
+      "positiveThemes": [
+        "knowledgeable_staff",
+        "friendly_staff",
+        "welcoming_first_time_visitors",
+        "recovery_guidance",
+        "athlete_focused_care",
+        "massage_expertise",
+        "personal_training_expertise",
+        "pain_relief_support",
+        "clear_explanations",
+        "motivating_coaches",
+        "passionate_ownership"
+      ],
+      "negativeThemes": [
+        {
+          "theme": "billing_or_scheduling_frustration",
+          "severity": "moderate",
+          "frequency": "rare"
+        },
+        {
+          "theme": "weekend_availability_constraints",
+          "severity": "low",
+          "frequency": "rare"
+        }
+      ]
+    },
+
+    "amenitySignals": [
+      { "amenity": "cold_plunge", "strength": 5 },
+      { "amenity": "hot_plunge", "strength": 5 },
+      { "amenity": "infrared_sauna", "strength": 5 },
+      { "amenity": "compression_boots", "strength": 5 },
+      { "amenity": "red_light_therapy", "strength": 4 },
+      { "amenity": "vibration_plate", "strength": 4 },
+      { "amenity": "clean_facility", "strength": 5 },
+      { "amenity": "modern_facility", "strength": 5 },
+      { "amenity": "validated_parking", "strength": 3 },
+      { "amenity": "downtown_location", "strength": 4 }
+    ],
+
+    "valueSignals": [
+      { "signal": "membership_value", "strength": 5 },
+      { "signal": "wellness_package_value", "strength": 4 },
+      { "signal": "premium_recovery_experience", "strength": 5 },
+      { "signal": "massage_package_value", "strength": 3 },
+      { "signal": "price_concerns", "strength": 2 }
+    ],
+
+    "bookingSignals": [
+      { "signal": "easy_booking", "strength": 4 },
+      { "signal": "same_week_availability", "strength": 3 },
+      { "signal": "membership_based_usage", "strength": 5 },
+      { "signal": "first_time_guided_experience", "strength": 5 },
+      { "signal": "scheduling_constraints", "strength": 2 }
+    ],
+
+    "clientTypeSignals": [
+      { "clientType": "athletes", "strength": 5 },
+      { "clientType": "runners", "strength": 5 },
+      { "clientType": "triathletes", "strength": 4 },
+      { "clientType": "strength_training_clients", "strength": 4 },
+      { "clientType": "injury_recovery_clients", "strength": 5 },
+      { "clientType": "chronic_pain_clients", "strength": 4 },
+      { "clientType": "biohackers", "strength": 4 },
+      { "clientType": "wellness_membership_clients", "strength": 5 },
+      { "clientType": "stress_relief_seekers", "strength": 4 },
+      { "clientType": "first_time_cold_plunge_users", "strength": 4 },
+      { "clientType": "travelers_visiting_austin", "strength": 3 }
+    ]
+  },
+
+  "reviewSummary": "Generator Athlete Lab is strongly associated with athlete recovery, contrast therapy, cold plunge, infrared sauna, hot plunge, compression therapy, red light therapy, sports massage, personal training, chronic pain support, injury recovery, improved sleep, stress relief, and highly knowledgeable staff. It is best understood as a full athlete wellness and recovery center where massage is one part of a broader recovery protocol.",
+
+  "lastReviewAnalysisDate": "2026-06-24"
+},
+{
+  "businessId": "austin-community-wellness",
+  "businessSlug": "austin-community-wellness",
+  "businessName": "Austin Community Wellness",
+  "market": "austin",
+  "businessCategories": [
+    "chiropractic",
+    "massage",
+    "infrared_sauna",
+    "craniosacral_therapy",
+    "cupping",
+    "wellness"
+  ],
+
+  "reviewStats": {
+    "googleRating": 5.0,
+    "googleReviewCount": 85,
+    "analysisVersion": 1
+  },
+
+  "reviewAnalysisMetadata": {
+    "source": "google_reviews",
+    "lastAnalyzed": "2026-06-24",
+    "reviewSampleSize": 85
+  },
+
+  "reviewSignals": {
+    "overallSentiment": "very_positive",
+    "confidence": "high",
+
+    "specialtySignals": [
+      { "specialty": "therapeutic_massage", "strength": 5 },
+      { "specialty": "chiropractic_adjustment", "strength": 5 },
+      { "specialty": "deep_tissue", "strength": 4 },
+      { "specialty": "customized_massage", "strength": 5 },
+      { "specialty": "craniosacral_therapy", "strength": 4 },
+      { "specialty": "lomi_lomi", "strength": 3 },
+      { "specialty": "myofascial_massage", "strength": 3 },
+      { "specialty": "cupping", "strength": 3 },
+      { "specialty": "activator_method", "strength": 4 },
+      { "specialty": "infrared_sauna", "strength": 3 },
+      { "specialty": "prenatal_chiropractic", "strength": 3 }
+    ],
+
+    "problemSignals": [
+      { "problem": "back_pain", "strength": 5 },
+      { "problem": "neck_pain", "strength": 5 },
+      { "problem": "shoulder_pain", "strength": 4 },
+      { "problem": "joint_pain", "strength": 5 },
+      { "problem": "lower_back_pain", "strength": 4 },
+      { "problem": "headaches", "strength": 4 },
+      { "problem": "tmj_pain", "strength": 3 },
+      { "problem": "knee_pain", "strength": 4 },
+      { "problem": "hip_pain", "strength": 4 },
+      { "problem": "stress_relief", "strength": 4 },
+      { "problem": "chronic_pain", "strength": 5 },
+      { "problem": "injury_recovery", "strength": 4 },
+      { "problem": "scoliosis_related_pain", "strength": 3 },
+      { "problem": "plantar_fasciitis", "strength": 3 },
+      { "problem": "pregnancy_related_pain", "strength": 3 }
+    ],
+
+    "staffSignals": {
+      "sentiment": "very_positive",
+      "strength": 5,
+      "namedStaffMentionVolume": "very_high",
+      "summary": "Staff receive very strong praise for therapeutic massage, chiropractic care, bodywork knowledge, pain relief, listening carefully, customized care, warmth, professionalism, and a non-salesy patient-centered approach. Reviews repeatedly describe the team as intuitive, thorough, caring, and skilled at addressing chronic pain, joint issues, headaches, back pain, neck pain, and stress.",
+      "positiveThemes": [
+        "therapeutic_bodywork_expertise",
+        "chiropractic_expertise",
+        "pain_relief",
+        "customized_care",
+        "listens_to_client_needs",
+        "holistic_care",
+        "professionalism",
+        "warm_and_welcoming",
+        "non_salesy",
+        "thorough_intake",
+        "body_mechanics_knowledge",
+        "family_practice_feel"
+      ],
+      "negativeThemes": [
+        {
+          "theme": "massage_focus_mismatch",
+          "severity": "low",
+          "frequency": "rare"
+        },
+        {
+          "theme": "location_or_signage_confusion",
+          "severity": "low",
+          "frequency": "rare"
+        }
+      ]
+    },
+
+    "amenitySignals": [
+      { "amenity": "infrared_sauna", "strength": 3 },
+      { "amenity": "cozy_office_vibe", "strength": 4 },
+      { "amenity": "clean_facility", "strength": 4 },
+      { "amenity": "body_scans", "strength": 4 },
+      { "amenity": "tea_station", "strength": 2 },
+      { "amenity": "plentiful_parking", "strength": 3 },
+      { "amenity": "massage_chair", "strength": 2 }
+    ],
+
+    "valueSignals": [
+      { "signal": "reasonable_pricing", "strength": 5 },
+      { "signal": "package_deals", "strength": 4 },
+      { "signal": "family_pricing", "strength": 3 },
+      { "signal": "no_upsell_pressure", "strength": 4 },
+      { "signal": "good_value", "strength": 5 }
+    ],
+
+    "bookingSignals": [
+      { "signal": "same_day_availability", "strength": 3 },
+      { "signal": "short_session_options", "strength": 3 },
+      { "signal": "repeat_client_loyalty", "strength": 5 },
+      { "signal": "one_stop_chiro_and_massage", "strength": 5 }
+    ],
+
+    "clientTypeSignals": [
+      { "clientType": "chronic_pain_clients", "strength": 5 },
+      { "clientType": "chiropractic_clients", "strength": 5 },
+      { "clientType": "therapeutic_massage_clients", "strength": 5 },
+      { "clientType": "stress_relief_seekers", "strength": 4 },
+      { "clientType": "pregnant_clients", "strength": 3 },
+      { "clientType": "clients_with_joint_hypermobility", "strength": 3 },
+      { "clientType": "athletes_or_active_people", "strength": 3 },
+      { "clientType": "families", "strength": 3 },
+      { "clientType": "clients_seeking_holistic_care", "strength": 5 },
+      { "clientType": "clients_who_prefer_small_local_practices", "strength": 5 }
+    ]
+  },
+
+  "reviewSummary": "Austin Community Wellness is strongly associated with therapeutic massage, chiropractic care, customized bodywork, chronic pain relief, neck and back pain support, joint pain relief, craniosacral therapy, activator-method chiropractic, infrared sauna, reasonable pricing, and a warm small-practice experience. It is best understood as a holistic chiropractic and massage office with strong review signals for people seeking pain relief, individualized care, and non-salesy wellness support.",
+
+  "lastReviewAnalysisDate": "2026-06-24"
+},
+{
+  "businessId": "mantra-wellness",
+  "businessSlug": "mantra-wellness",
+  "businessName": "Mantra Wellness",
+  "market": "austin",
+  "businessCategories": [
+    "massage",
+    "facials",
+    "skincare",
+    "wellness",
+    "yoga"
+  ],
+
+  "reviewStats": {
+    "googleRating": 5.0,
+    "googleReviewCount": 234,
+    "analysisVersion": 1
+  },
+
+  "reviewAnalysisMetadata": {
+    "source": "google_reviews",
+    "lastAnalyzed": "2026-06-24",
+    "reviewSampleSize": 234
+  },
+
+  "reviewSignals": {
+    "overallSentiment": "very_positive",
+    "confidence": "high",
+
+    "specialtySignals": [
+      { "specialty": "customized_massage", "strength": 5 },
+      { "specialty": "therapeutic_massage", "strength": 5 },
+      { "specialty": "deep_tissue", "strength": 5 },
+      { "specialty": "relaxation_massage", "strength": 5 },
+      { "specialty": "intuitive_massage", "strength": 5 },
+      { "specialty": "cupping", "strength": 3 },
+      { "specialty": "ashiatsu", "strength": 3 },
+      { "specialty": "prenatal", "strength": 3 },
+      { "specialty": "facials", "strength": 5 },
+      { "specialty": "facial_massage", "strength": 4 },
+      { "specialty": "buccal_massage", "strength": 3 },
+      { "specialty": "chiropractic", "strength": 2 },
+      { "specialty": "yoga", "strength": 3 }
+    ],
+
+    "problemSignals": [
+      { "problem": "neck_pain", "strength": 5 },
+      { "problem": "shoulder_pain", "strength": 5 },
+      { "problem": "back_pain", "strength": 5 },
+      { "problem": "lower_back_pain", "strength": 4 },
+      { "problem": "hip_pain", "strength": 4 },
+      { "problem": "chronic_pain", "strength": 5 },
+      { "problem": "muscle_tension", "strength": 5 },
+      { "problem": "stress_relief", "strength": 5 },
+      { "problem": "migraine_relief", "strength": 4 },
+      { "problem": "headaches", "strength": 4 },
+      { "problem": "jaw_tension", "strength": 3 },
+      { "problem": "facial_tension", "strength": 3 },
+      { "problem": "sports_recovery", "strength": 3 },
+      { "problem": "mobility_limitations", "strength": 3 },
+      { "problem": "post_surgery_recovery", "strength": 2 }
+    ],
+
+    "staffSignals": {
+      "sentiment": "very_positive",
+      "strength": 5,
+      "namedStaffMentionVolume": "very_high",
+      "summary": "Staff receive exceptionally strong praise for intuitive massage, customized care, deep tissue work, relaxation, facials, skincare knowledge, professionalism, kindness, listening carefully, and creating a calm healing experience. Reviews repeatedly mention strong massage outcomes for neck pain, shoulder pain, headaches, migraines, chronic pain, stress relief, and general relaxation.",
+      "positiveThemes": [
+        "intuitive_bodywork",
+        "customized_sessions",
+        "deep_tissue_expertise",
+        "pain_relief",
+        "stress_relief",
+        "facial_and_skincare_expertise",
+        "professionalism",
+        "friendly_staff",
+        "welcoming_front_desk",
+        "listens_to_client_needs",
+        "calming_presence",
+        "knowledgeable_practitioners",
+        "repeat_client_loyalty"
+      ],
+      "negativeThemes": []
+    },
+
+    "amenitySignals": [
+      { "amenity": "comfortable_studio", "strength": 5 },
+      { "amenity": "relaxing_atmosphere", "strength": 5 },
+      { "amenity": "clean_facility", "strength": 5 },
+      { "amenity": "calming_environment", "strength": 5 },
+      { "amenity": "gift_shop", "strength": 3 },
+      { "amenity": "wellness_products", "strength": 3 },
+      { "amenity": "aromatherapy", "strength": 3 },
+      { "amenity": "facial_services", "strength": 5 },
+      { "amenity": "tea_or_water_service", "strength": 2 }
+    ],
+
+    "valueSignals": [
+      { "signal": "reasonable_pricing", "strength": 5 },
+      { "signal": "good_value", "strength": 5 },
+      { "signal": "membership_value", "strength": 4 },
+      { "signal": "worth_the_money", "strength": 5 },
+      { "signal": "repeat_visit_value", "strength": 5 }
+    ],
+
+    "bookingSignals": [
+      { "signal": "easy_online_booking", "strength": 4 },
+      { "signal": "same_day_availability", "strength": 3 },
+      { "signal": "on_time_service", "strength": 4 },
+      { "signal": "membership_based_usage", "strength": 4 },
+      { "signal": "repeat_client_loyalty", "strength": 5 }
+    ],
+
+    "clientTypeSignals": [
+      { "clientType": "chronic_pain_clients", "strength": 5 },
+      { "clientType": "stress_relief_seekers", "strength": 5 },
+      { "clientType": "neck_and_shoulder_pain_clients", "strength": 5 },
+      { "clientType": "headache_or_migraine_clients", "strength": 4 },
+      { "clientType": "prenatal_clients", "strength": 3 },
+      { "clientType": "skincare_clients", "strength": 5 },
+      { "clientType": "wellness_membership_clients", "strength": 4 },
+      { "clientType": "athletes_or_active_people", "strength": 3 },
+      { "clientType": "clients_seeking_holistic_care", "strength": 5 },
+      { "clientType": "clients_who_prefer_relaxing_spa_environment", "strength": 5 }
+    ]
+  },
+
+  "reviewSummary": "Mantra Wellness is strongly associated with customized massage, deep tissue massage, intuitive bodywork, stress relief, neck and shoulder pain relief, headache and migraine support, facials, skincare, relaxing atmosphere, clean facilities, reasonable pricing, and highly praised staff experiences. It is best understood as a holistic wellness studio with strong massage and spa signals, especially for clients seeking both therapeutic results and a calming environment.",
+
+  "lastReviewAnalysisDate": "2026-06-24"
+},
+{
+  "businessId": "myo-massage",
+  "businessSlug": "myo-massage",
+  "businessName": "Myo Massage",
+  "market": "austin",
+  "businessCategories": [
+    "massage",
+    "acupuncture",
+    "movement_classes",
+    "yoga",
+    "couples_massage_classes",
+    "wellness"
+  ],
+
+  "reviewStats": {
+    "googleRating": 4.8,
+    "googleReviewCount": 287,
+    "analysisVersion": 1
+  },
+
+  "reviewAnalysisMetadata": {
+    "source": "google_reviews",
+    "lastAnalyzed": "2026-06-24",
+    "reviewSampleSize": 287
+  },
+
+  "reviewSignals": {
+    "overallSentiment": "very_positive",
+    "confidence": "high",
+
+    "specialtySignals": [
+      { "specialty": "therapeutic_massage", "strength": 5 },
+      { "specialty": "deep_tissue", "strength": 5 },
+      { "specialty": "pain_management_massage", "strength": 5 },
+      { "specialty": "sports_massage", "strength": 4 },
+      { "specialty": "trigger_point_therapy", "strength": 4 },
+      { "specialty": "myofascial_release", "strength": 4 },
+      { "specialty": "prenatal", "strength": 3 },
+      { "specialty": "lymphatic_massage", "strength": 3 },
+      { "specialty": "acupuncture", "strength": 3 },
+      { "specialty": "ashiatsu", "strength": 2 },
+      { "specialty": "hot_stone", "strength": 2 },
+      { "specialty": "couples_massage", "strength": 4 },
+      { "specialty": "couples_massage_classes", "strength": 4 },
+      { "specialty": "movement_classes", "strength": 4 },
+      { "specialty": "iyengar_yoga", "strength": 3 },
+      { "specialty": "feldenkrais", "strength": 3 }
+    ],
+
+    "problemSignals": [
+      { "problem": "neck_pain", "strength": 5 },
+      { "problem": "back_pain", "strength": 5 },
+      { "problem": "lower_back_pain", "strength": 5 },
+      { "problem": "shoulder_pain", "strength": 5 },
+      { "problem": "chronic_pain", "strength": 5 },
+      { "problem": "muscle_tension", "strength": 5 },
+      { "problem": "sports_recovery", "strength": 4 },
+      { "problem": "injury_recovery", "strength": 5 },
+      { "problem": "hip_pain", "strength": 4 },
+      { "problem": "sciatica", "strength": 4 },
+      { "problem": "joint_pain", "strength": 3 },
+      { "problem": "tendonitis", "strength": 3 },
+      { "problem": "stress_relief", "strength": 4 },
+      { "problem": "pregnancy_related_pain", "strength": 3 },
+      { "problem": "mobility_limitations", "strength": 4 }
+    ],
+
+    "staffSignals": {
+      "sentiment": "very_positive",
+      "strength": 5,
+      "namedStaffMentionVolume": "very_high",
+      "summary": "Staff receive very strong praise for therapeutic skill, deep tissue work, pain management, listening carefully, pressure control, anatomical knowledge, customized sessions, professionalism, kindness, communication, and consistent results across many different practitioners. Reviews repeatedly describe staff as knowledgeable, intuitive, attentive, respectful, and effective for pain relief and injury recovery.",
+      "positiveThemes": [
+        "therapeutic_bodywork_expertise",
+        "deep_tissue_expertise",
+        "pain_relief",
+        "injury_recovery_support",
+        "customized_sessions",
+        "anatomy_knowledge",
+        "pressure_control",
+        "listens_to_client_needs",
+        "professionalism",
+        "friendly_staff",
+        "front_desk_helpfulness",
+        "clear_communication",
+        "repeat_client_loyalty",
+        "movement_instruction_expertise"
+      ],
+      "negativeThemes": [
+        {
+          "theme": "booking_or_cancellation_frustration",
+          "severity": "moderate",
+          "frequency": "rare"
+        },
+        {
+          "theme": "service_expectation_mismatch",
+          "severity": "moderate",
+          "frequency": "rare"
+        },
+        {
+          "theme": "price_concern",
+          "severity": "low",
+          "frequency": "occasional"
+        }
+      ]
+    },
+
+    "amenitySignals": [
+      { "amenity": "clean_facility", "strength": 5 },
+      { "amenity": "relaxing_atmosphere", "strength": 5 },
+      { "amenity": "comfortable_rooms", "strength": 5 },
+      { "amenity": "tea_service", "strength": 4 },
+      { "amenity": "friendly_front_desk", "strength": 5 },
+      { "amenity": "free_parking", "strength": 4 },
+      { "amenity": "online_intake_forms", "strength": 4 },
+      { "amenity": "music_preference_options", "strength": 4 },
+      { "amenity": "temperature_preference_options", "strength": 3 },
+      { "amenity": "wellness_products", "strength": 3 },
+      { "amenity": "inclusive_environment", "strength": 4 },
+      { "amenity": "health_and_safety_precautions", "strength": 4 }
+    ],
+
+    "valueSignals": [
+      { "signal": "reasonable_pricing", "strength": 4 },
+      { "signal": "good_value", "strength": 4 },
+      { "signal": "package_deals", "strength": 4 },
+      { "signal": "worth_the_money", "strength": 5 },
+      { "signal": "premium_but_effective", "strength": 3 },
+      { "signal": "price_concerns", "strength": 2 }
+    ],
+
+    "bookingSignals": [
+      { "signal": "easy_online_booking", "strength": 4 },
+      { "signal": "same_day_availability", "strength": 4 },
+      { "signal": "short_notice_appointments", "strength": 4 },
+      { "signal": "easy_check_in", "strength": 4 },
+      { "signal": "detailed_intake_process", "strength": 5 },
+      { "signal": "repeat_client_loyalty", "strength": 5 },
+      { "signal": "couples_booking_available", "strength": 4 },
+      { "signal": "occasional_scheduling_issues", "strength": 2 }
+    ],
+
+    "clientTypeSignals": [
+      { "clientType": "chronic_pain_clients", "strength": 5 },
+      { "clientType": "injury_recovery_clients", "strength": 5 },
+      { "clientType": "deep_tissue_seekers", "strength": 5 },
+      { "clientType": "athletes_or_active_people", "strength": 4 },
+      { "clientType": "desk_workers", "strength": 4 },
+      { "clientType": "stress_relief_seekers", "strength": 4 },
+      { "clientType": "pregnant_clients", "strength": 3 },
+      { "clientType": "couples", "strength": 4 },
+      { "clientType": "massage_education_clients", "strength": 4 },
+      { "clientType": "movement_class_clients", "strength": 4 },
+      { "clientType": "clients_seeking_clinical_bodywork", "strength": 5 },
+      { "clientType": "clients_who_prefer_consistent_long_term_care", "strength": 5 }
+    ]
+  },
+
+  "reviewSummary": "Myo Massage is strongly associated with therapeutic massage, deep tissue, pain management, sports massage, trigger point therapy, myofascial work, injury recovery, chronic pain relief, couples massage, acupuncture, and movement classes. Reviews repeatedly praise the staff for anatomical knowledge, listening, pressure control, customized sessions, professionalism, and consistent results. It is best understood as a massage and movement clinic with strong review signals for people seeking skilled bodywork, pain relief, injury recovery, deep pressure, and long-term wellness support.",
+
+  "lastReviewAnalysisDate": "2026-06-24"
+}
+]

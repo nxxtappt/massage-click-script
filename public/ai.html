@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+  <title>NextAppt AI Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f7fb; color:#14213d; margin:0; padding:32px; }
+    .wrap { max-width:900px; margin:auto; }
+    textarea { width:100%; min-height:100px; padding:14px; font-size:16px; border-radius:12px; border:1px solid #ccd5e1; }
+    button { margin-top:12px; background:#0075b9; color:white; border:0; padding:12px 18px; border-radius:999px; font-weight:700; cursor:pointer; }
+    .box { margin-top:20px; background:white; border-radius:18px; padding:20px; box-shadow:0 12px 30px rgba(0,0,0,.08); white-space:pre-wrap; }
+    .debug { font-size:13px; color:#555; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>NextAppt AI Search</h1>
+    <p>Experimental AI search layer.</p>
+
+    <textarea id="query" placeholder="Example: My neck hurts and I need a massage today"></textarea>
+    <br />
+    <button id="searchBtn">Ask AI</button>
+
+    <div id="answer" class="box">Ask a question to test the AI layer.</div>
+    <div id="debug" class="box debug"></div>
+  </div>
+
+  <script src="/ai.js"></script>
+</body>
+</html>

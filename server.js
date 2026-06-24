@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+const aiSearchRoutes = require("./api/aiSearchRoutes");
 const { loadAdminSettings } = require("./adminSettingsManager");
 const express = require("express");
 const fs = require("fs");
@@ -75,6 +75,7 @@ function requireAdminAuth(req, res, next) {
 }
 
 app.use(express.json({ limit: "10mb" }));
+app.use("/api/ai", aiSearchRoutes);
 
 app.use(
   [
@@ -92,6 +93,11 @@ app.get("/", (req, res) => {
 app.get("/austin/massage", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+app.get("/ai", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "ai.html"));
+});
+
 const EMAIL_CAPTURE_FILE = path.join(__dirname, "secure", "email-captures.json");
 
 function ensureEmailCaptureFile() {

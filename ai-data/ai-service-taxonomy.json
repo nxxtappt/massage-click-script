@@ -1,0 +1,179 @@
+{
+  "deep-tissue": {
+    "displayName": "Deep Tissue Massage",
+
+    "aliases": [
+      "deep tissue",
+      "deep pressure",
+      "firm massage"
+    ],
+
+    "category": "therapeutic",
+
+    "recommendedFor": [
+      "neck pain",
+      "shoulder pain",
+      "back pain",
+      "muscle tension",
+      "sports recovery",
+      "chronic pain"
+    ],
+
+    "avoidIf": [
+      "wants very light pressure"
+    ],
+
+    "commonGoals": [
+      "pain relief",
+      "mobility",
+      "recovery"
+    ],
+
+    "relatedServices": [
+      "sports-massage",
+      "trigger-point"
+    ]
+  },
+
+  "swedish": {
+    "displayName": "Swedish Massage",
+
+    "aliases": [
+      "relaxation massage",
+      "light massage"
+    ],
+
+    "category": "relaxation",
+
+    "recommendedFor": [
+      "stress",
+      "anxiety",
+      "general relaxation",
+      "first massage"
+    ],
+
+    "avoidIf": [],
+
+    "commonGoals": [
+      "relaxation",
+      "stress relief"
+    ],
+
+    "relatedServices": [
+      "lomi-lomi"
+    ]
+  },
+
+  "sports-massage": {
+    "displayName": "Sports Massage",
+
+    "aliases": [
+      "athletic massage",
+      "recovery massage"
+    ],
+
+    "category": "therapeutic",
+
+    "recommendedFor": [
+      "athletes",
+      "running recovery",
+      "gym recovery",
+      "performance"
+    ],
+
+    "avoidIf": [],
+
+    "commonGoals": [
+      "recovery",
+      "mobility",
+      "performance"
+    ],
+
+    "relatedServices": [
+      "deep-tissue"
+    ]
+  },
+
+  "trigger-point": {
+    "displayName": "Trigger Point Therapy",
+
+    "aliases": [
+      "trigger point",
+      "muscle knots"
+    ],
+
+    "category": "therapeutic",
+
+    "recommendedFor": [
+      "neck pain",
+      "headaches",
+      "shoulder pain",
+      "muscle knots"
+    ],
+
+    "avoidIf": [],
+
+    "commonGoals": [
+      "pain relief"
+    ],
+
+    "relatedServices": [
+      "deep-tissue"
+    ]
+  },
+
+  "ashiatsu": {
+    "displayName": "Ashiatsu Massage",
+
+    "aliases": [
+      "ashiatsu",
+      "barefoot massage"
+    ],
+
+    "category": "deep-pressure",
+
+    "recommendedFor": [
+      "deep pressure",
+      "large muscle groups",
+      "chronic tension"
+    ],
+
+    "avoidIf": [
+      "prefers light pressure"
+    ],
+
+    "commonGoals": [
+      "deep pressure",
+      "pain relief"
+    ],
+
+    "relatedServices": [
+      "deep-tissue"
+    ]
+  },
+
+  "prenatal": {
+    "displayName": "Prenatal Massage",
+
+    "aliases": [
+      "pregnancy massage"
+    ],
+
+    "category": "specialty",
+
+    "recommendedFor": [
+      "pregnancy",
+      "prenatal care",
+      "pregnancy discomfort"
+    ],
+
+    "avoidIf": [],
+
+    "commonGoals": [
+      "comfort",
+      "stress relief"
+    ],
+
+    "relatedServices": []
+  }
+}
