@@ -9,6 +9,7 @@
     "areaTags": [
       "south-austin",
       "westgate",
+      "westgate-shopping-center",
       "south-lamar",
       "78704",
       "78745"
@@ -92,7 +93,7 @@
     "market": {
       "city": "Austin",
       "state": "TX",
-      "areaTags": ["austin", "downtown-austin"]
+      "areaTags": ["austin", "downtown-austin", "Power-Plant"]
     },
     "businessType": "athlete_wellness_center",
     "positioning": {
@@ -173,7 +174,7 @@
     "market": {
       "city": "Austin",
       "state": "TX",
-      "areaTags": ["austin"]
+      "areaTags": ["south-austin","austin"]
     },
     "businessType": "chiropractic_and_massage_office",
     "positioning": {
@@ -253,7 +254,7 @@
     "market": {
       "city": "Austin",
       "state": "TX",
-      "areaTags": ["austin"]
+      "areaTags": ["austin","north austin","north-west-austin"]
     },
     "businessType": "holistic_wellness_studio",
     "positioning": {
@@ -342,7 +343,7 @@
     "market": {
       "city": "Austin",
       "state": "TX",
-      "areaTags": ["austin"]
+      "areaTags": ["austin","the-triangle","triangle","central-austin"]
     },
     "businessType": "massage_and_movement_clinic",
     "positioning": {

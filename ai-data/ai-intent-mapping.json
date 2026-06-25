@@ -1,27 +1,27 @@
 {
   "neck-pain": {
-    "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage", "myofascial-release"]
+    "recommendedServices": ["swedish massage","deep-tissue", "trigger-point", "sports-massage", "myofascial-release"]
   },
   "stiff-neck": {
-    "recommendedServices": ["deep-tissue", "trigger-point", "myofascial-release"]
+    "recommendedServices": ["swedish massage","deep-tissue", "trigger-point", "myofascial-release"]
   },
   "tech-neck": {
-    "recommendedServices": ["deep-tissue", "trigger-point", "myofascial-release"]
+    "recommendedServices": ["swedish massage","deep-tissue", "trigger-point", "myofascial-release"]
   },
   "forward-head-posture": {
-    "recommendedServices": ["myofascial-release", "sports-massage"]
+    "recommendedServices": ["swedish massage","deep-tissue","myofascial-release", "sports-massage"]
   },
   "whiplash-recovery": {
-    "recommendedServices": ["myofascial-release", "therapeutic-massage"]
+    "recommendedServices": ["seek advice from a physician"]
   },
   "headaches": {
-    "recommendedServices": ["trigger-point", "swedish", "myofascial-release"]
+    "recommendedServices": ["swedish massage","deep-tissue","trigger-point", "swedish", "myofascial-release"]
   },
   "tension-headaches": {
-    "recommendedServices": ["trigger-point", "swedish", "myofascial-release"]
+    "recommendedServices": ["swedish massage","deep-tissue","trigger-point", "swedish", "myofascial-release"]
   },
   "migraines": {
-    "recommendedServices": ["trigger-point", "swedish", "craniosacral"]
+    "recommendedServices": ["swedish massage","deep-tissue","trigger-point", "swedish", "craniosacral"]
   },
   "jaw-pain": {
     "recommendedServices": ["trigger-point", "myofascial-release"]
@@ -30,7 +30,7 @@
     "recommendedServices": ["trigger-point", "myofascial-release"]
   },
   "facial-tension": {
-    "recommendedServices": ["myofascial-release", "buccal-massage"]
+    "recommendedServices": ["myofascial-release","trigger-point"]
   },
 
   "frozen-shoulder": {
@@ -43,7 +43,7 @@
     "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage"]
   },
   "shoulder-impingement": {
-    "recommendedServices": ["sports-massage", "myofascial-release"]
+    "recommendedServices": ["trigger-point","sports-massage", "myofascial-release"]
   },
   "upper-back-pain": {
     "recommendedServices": ["deep-tissue", "trigger-point", "myofascial-release"]
@@ -78,41 +78,41 @@
   },
 
   "back-pain": {
-    "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage"]
+    "recommendedServices": ["ashiatsu","deep-tissue", "trigger-point", "sports-massage"]
   },
   "lower-back-pain": {
-    "recommendedServices": ["deep-tissue", "trigger-point", "sports-massage"]
+    "recommendedServices": ["ashiatsu","deep-tissue", "trigger-point", "sports-massage"]
   },
   "mid-back-pain": {
-    "recommendedServices": ["deep-tissue", "myofascial-release"]
+    "recommendedServices": ["ashiatsu","deep-tissue", "myofascial-release"]
   },
   "lumbar-tightness": {
-    "recommendedServices": ["deep-tissue", "sports-massage"]
+    "recommendedServices": ["ashiatsu","deep-tissue", "sports-massage"]
   },
   "herniated-disc-support": {
     "recommendedServices": ["therapeutic-massage", "myofascial-release"]
   },
   "sciatica": {
-    "recommendedServices": ["trigger-point", "deep-tissue", "myofascial-release"]
+    "recommendedServices": ["ashiatsu","trigger-point", "deep-tissue", "myofascial-release"]
   },
   "piriformis-syndrome": {
-    "recommendedServices": ["trigger-point", "deep-tissue", "sports-massage"]
+    "recommendedServices": ["ashiatsu","trigger-point", "deep-tissue", "sports-massage"]
   },
   "spinal-stiffness": {
-    "recommendedServices": ["deep-tissue", "myofascial-release"]
+    "recommendedServices": ["ashiatsu","deep-tissue", "myofascial-release"]
   },
 
   "hip-pain": {
-    "recommendedServices": ["deep-tissue", "sports-massage", "trigger-point"]
+    "recommendedServices": ["ashiatsu","deep-tissue", "sports-massage", "trigger-point"]
   },
   "tight-hips": {
-    "recommendedServices": ["sports-massage", "thai-massage", "deep-tissue"]
+    "recommendedServices": ["ashiatsu","sports-massage", "thai-massage", "deep-tissue"]
   },
   "glute-pain": {
-    "recommendedServices": ["deep-tissue", "trigger-point"]
+    "recommendedServices": ["ashiatsu","deep-tissue", "trigger-point"]
   },
   "it-band-tightness": {
-    "recommendedServices": ["sports-massage", "deep-tissue"]
+    "recommendedServices": ["ashiatsu","sports-massage", "deep-tissue"]
   },
   "hip-flexor-tightness": {
     "recommendedServices": ["sports-massage", "thai-massage"]

@@ -1,179 +1,206 @@
 {
   "deep-tissue": {
     "displayName": "Deep Tissue Massage",
-
-    "aliases": [
-      "deep tissue",
-      "deep pressure",
-      "firm massage"
-    ],
-
+    "description": "A therapeutic western massage modality focused on connective tissue, fascia, chronic pain, structural dysfunction, and rehabilitation. Deep Tissue is an umbrella term that can include many advanced techniques rather than one single style.",
     "category": "therapeutic",
-
-    "recommendedFor": [
-      "neck pain",
-      "shoulder pain",
-      "back pain",
-      "muscle tension",
-      "sports recovery",
-      "chronic pain"
-    ],
-
-    "avoidIf": [
-      "wants very light pressure"
-    ],
-
-    "commonGoals": [
-      "pain relief",
-      "mobility",
-      "recovery"
-    ],
-
-    "relatedServices": [
-      "sports-massage",
-      "trigger-point"
-    ]
+    "aliases": ["deep tissue", "deep pressure massage", "clinical massage", "therapeutic massage", "firm massage"],
+    "userPhrases": ["my back hurts", "my neck hurts", "i have chronic pain", "i need pain relief", "work the knots out", "my muscles feel locked up"],
+    "recommendedFor": ["chronic pain", "neck pain", "shoulder pain", "back pain", "hip pain", "soft tissue injury", "arthritis symptoms", "restricted mobility"],
+    "commonSymptoms": ["muscle knots", "adhesions", "scar tissue", "tight muscles", "restricted range of motion", "stiffness"],
+    "commonGoals": ["pain relief", "rehabilitation", "mobility", "restore function", "soft tissue recovery"],
+    "techniques": ["myofascial release", "trigger point therapy", "neuromuscular therapy", "muscle stripping", "cross fiber friction", "deep compression", "active stretching", "passive stretching"],
+    "pressure": ["medium", "firm", "deep"],
+    "sessionLengths": [30, 45, 60, 75, 90],
+    "equipment": ["massage table", "oil", "lotion"],
+    "bodyRegions": ["neck", "shoulders", "back", "hips", "legs", "arms"],
+    "expectedBenefits": ["reduced chronic pain", "improved range of motion", "reduced stiffness", "improved recovery", "improved circulation", "lower blood pressure"],
+    "contraindications": ["acute injury", "red hot swollen tissue", "active inflammation", "blood clots", "blood clotting disorders", "chemotherapy", "radiation therapy", "osteoporosis", "skin infection", "open wounds", "later pregnancy without clearance"],
+    "avoidIf": ["wants only relaxation", "prefers extremely gentle pressure"],
+    "worksWellWith": ["trigger-point", "sports-massage", "myofascial-release", "stretch-therapy"],
+    "relatedServices": ["sports-massage", "trigger-point", "ashiatsu", "swedish"],
+    "searchTerms": ["deep knots", "pain relief", "lower back pain", "neck pain", "rehab massage", "muscle tension"],
+    "aiHints": ["Recommend when users mention chronic pain, injuries, or rehabilitation.", "Distinguish from Swedish by treatment intent rather than pressure alone.", "Explain that multiple sessions may be needed for chronic issues."]
   },
 
   "swedish": {
     "displayName": "Swedish Massage",
-
-    "aliases": [
-      "relaxation massage",
-      "light massage"
-    ],
-
+    "description": "A classic western massage performed on a massage table with oil or lotion. Swedish massage is generally full-body, relaxation-focused, and uses foundational massage techniques to relax, energize, improve circulation, and loosen tight muscles.",
     "category": "relaxation",
-
-    "recommendedFor": [
-      "stress",
-      "anxiety",
-      "general relaxation",
-      "first massage"
-    ],
-
-    "avoidIf": [],
-
-    "commonGoals": [
-      "relaxation",
-      "stress relief"
-    ],
-
-    "relatedServices": [
-      "lomi-lomi"
-    ]
+    "aliases": ["swedish", "swedish massage", "classic massage", "relaxation massage", "full body massage", "light massage"],
+    "userPhrases": ["i just want to relax", "i am stressed", "i need to unwind", "first massage", "i want a full body massage", "nothing painful"],
+    "recommendedFor": ["stress", "anxiety", "general relaxation", "first massage", "wellness", "muscle stiffness", "self care"],
+    "commonSymptoms": ["stress", "muscle soreness", "stiffness", "anxiety", "fatigue"],
+    "commonGoals": ["relaxation", "stress relief", "improve circulation", "wellbeing", "rest and reset", "general maintenance"],
+    "techniques": ["effleurage", "petrissage", "friction", "tapotement", "vibration", "long gliding strokes", "compression", "passive joint movement"],
+    "pressure": ["light", "medium", "firm"],
+    "sessionLengths": [60, 90],
+    "equipment": ["massage table", "oil", "lotion", "draping"],
+    "bodyRegions": ["full body", "neck", "shoulders", "back", "arms", "hands", "legs", "feet"],
+    "expectedBenefits": ["reduced anxiety", "reduced muscle soreness", "improved circulation", "improved lymph flow", "reduced blood pressure", "relaxation"],
+    "contraindications": [],
+    "avoidIf": ["needs focused injury rehabilitation", "needs highly clinical bodywork"],
+    "worksWellWith": ["lomi-lomi", "hot-stone", "aromatherapy"],
+    "relatedServices": ["deep-tissue", "lomi-lomi", "hot-stone"],
+    "searchTerms": ["relaxing massage", "full body massage", "stress relief", "classic massage", "first massage"],
+    "aiHints": ["Recommend when the user primarily wants relaxation, stress relief, or a first massage.", "Swedish can still include firm pressure, but the primary intent is relaxation rather than rehabilitation."]
   },
 
   "sports-massage": {
     "displayName": "Sports Massage",
-
-    "aliases": [
-      "athletic massage",
-      "recovery massage"
-    ],
-
+    "description": "A performance and recovery focused massage designed for athletes and active individuals. In traditional event settings it may be pre-event, mid-event, or post-event. In massage studios it is usually a 30, 60, or 90 minute recovery-focused session blending deep tissue, compressions, range-of-motion, stretching, muscle-warming, and table Thai techniques.",
     "category": "therapeutic",
-
-    "recommendedFor": [
-      "athletes",
-      "running recovery",
-      "gym recovery",
-      "performance"
-    ],
-
-    "avoidIf": [],
-
-    "commonGoals": [
-      "recovery",
-      "mobility",
-      "performance"
-    ],
-
-    "relatedServices": [
-      "deep-tissue"
-    ]
+    "aliases": ["sports massage", "athletic massage", "athlete massage", "recovery massage", "performance massage", "event massage", "runner massage"],
+    "userPhrases": ["i am training for a race", "i need workout recovery", "my legs are sore from running", "i lift weights", "i need athletic recovery", "i have a competition"],
+    "recommendedFor": ["athletes", "running recovery", "gym recovery", "sports performance", "post workout soreness", "marathon training", "active lifestyle", "mobility improvement"],
+    "commonSymptoms": ["muscle fatigue", "exercise soreness", "tight muscles", "reduced mobility", "stiffness"],
+    "commonGoals": ["recovery", "performance", "mobility", "injury prevention", "competition preparation", "reduce soreness"],
+    "techniques": ["compressions", "passive range of motion", "active stretching", "passive stretching", "deep tissue", "muscle warming", "table thai"],
+    "pressure": ["light", "medium", "firm"],
+    "sessionLengths": [30, 45, 60, 75, 90],
+    "equipment": ["massage table", "oil optional", "lotion optional", "clothing optional depending on approach"],
+    "bodyRegions": ["legs", "hips", "back", "shoulders", "neck", "full body"],
+    "expectedBenefits": ["improved recovery", "reduced soreness", "improved mobility", "better athletic readiness", "reduced muscle fatigue"],
+    "contraindications": ["acute injury without clearance", "active inflammation"],
+    "avoidIf": ["wants only relaxation", "does not want movement or stretching"],
+    "worksWellWith": ["deep-tissue", "trigger-point", "thai", "stretch-therapy"],
+    "relatedServices": ["deep-tissue", "trigger-point", "thai", "ashiatsu"],
+    "searchTerms": ["marathon recovery", "runner recovery", "crossfit recovery", "gym soreness", "sports injury", "performance recovery"],
+    "sessionTypes": {
+      "pre-event": {
+        "durationMinutes": [5, 15],
+        "goal": "Warm muscles and prepare the athlete for performance.",
+        "techniques": ["compressions", "passive range of motion", "muscle warming"]
+      },
+      "mid-event": {
+        "durationMinutes": [1, 10],
+        "goal": "Keep the athlete warm and active between competition periods.",
+        "techniques": ["compressions", "range of motion", "muscle warming"]
+      },
+      "post-event": {
+        "durationMinutes": [5, 30],
+        "goal": "Support recovery after competition.",
+        "techniques": ["compressions", "stretching", "range of motion"]
+      },
+      "studio": {
+        "durationMinutes": [30, 60, 90],
+        "goal": "Recovery-focused athletic bodywork in a traditional massage setting."
+      }
+    },
+    "aiHints": ["Recommend when users mention sports, races, workouts, competitions, soreness, or athletic recovery.", "Sports Massage overlaps with Deep Tissue but emphasizes performance, recovery, and mobility."]
   },
 
-  "trigger-point": {
-    "displayName": "Trigger Point Therapy",
-
-    "aliases": [
-      "trigger point",
-      "muscle knots"
-    ],
-
-    "category": "therapeutic",
-
-    "recommendedFor": [
-      "neck pain",
-      "headaches",
-      "shoulder pain",
-      "muscle knots"
-    ],
-
-    "avoidIf": [],
-
-    "commonGoals": [
-      "pain relief"
-    ],
-
-    "relatedServices": [
-      "deep-tissue"
-    ]
+  "thai": {
+    "displayName": "Thai Massage",
+    "description": "An ancient movement-based bodywork practice performed fully clothed on a floor mat or futon. The therapist uses assisted stretching, traction, compressions, acupressure, and passive yoga-like movements while the client remains relaxed and receives the work passively.",
+    "category": "mobility",
+    "aliases": ["thai massage", "thai yoga massage", "thai yoga", "assisted yoga", "lazy man's yoga", "stretch massage"],
+    "userPhrases": ["i need stretching", "i feel stiff", "can someone stretch me", "tight hips", "i want yoga without doing yoga", "my back feels compressed"],
+    "recommendedFor": ["tight hips", "limited flexibility", "mobility issues", "stiffness", "piriformis syndrome", "sciatica symptoms", "athletic recovery", "desk workers"],
+    "commonSymptoms": ["stiffness", "tight hips", "tight hamstrings", "reduced flexibility", "low back tension", "sciatica-like discomfort"],
+    "commonGoals": ["flexibility", "mobility", "range of motion", "joint decompression", "full-body reset", "relaxation"],
+    "techniques": ["assisted stretching", "passive yoga", "traction", "compressions", "acupressure", "range of motion", "hip opening", "bodyweight pressure"],
+    "pressure": ["medium", "firm", "deep"],
+    "sessionLengths": [60, 90, 120],
+    "equipment": ["floor mat", "futon", "loose clothing", "no oil"],
+    "bodyRegions": ["feet", "hamstrings", "hips", "hip rotators", "low back", "spine", "shoulders", "neck", "head"],
+    "expectedBenefits": ["improved flexibility", "improved mobility", "reduced stiffness", "reduced hip tension", "relaxation", "improved body awareness"],
+    "contraindications": ["acute injury", "severe mobility limitations without clearance"],
+    "avoidIf": ["does not want stretching", "does not want floor-based bodywork", "prefers oil-based table massage"],
+    "worksWellWith": ["sports-massage", "deep-tissue", "stretch-therapy"],
+    "relatedServices": ["sports-massage", "deep-tissue", "ashiatsu"],
+    "searchTerms": ["assisted stretching", "tight hips", "mobility work", "passive yoga", "sciatica", "piriformis"],
+    "aiHints": ["Recommend when users mention stretching, flexibility, mobility, tight hips, or wanting to be stretched.", "Distinguish from Deep Tissue: Thai is movement and stretch focused, not oil-based tissue work."]
   },
 
-  "ashiatsu": {
-    "displayName": "Ashiatsu Massage",
-
-    "aliases": [
-      "ashiatsu",
-      "barefoot massage"
-    ],
-
-    "category": "deep-pressure",
-
-    "recommendedFor": [
-      "deep pressure",
-      "large muscle groups",
-      "chronic tension"
-    ],
-
-    "avoidIf": [
-      "prefers light pressure"
-    ],
-
-    "commonGoals": [
-      "deep pressure",
-      "pain relief"
-    ],
-
-    "relatedServices": [
-      "deep-tissue"
-    ]
+  "lomi-lomi": {
+    "displayName": "Lomi Lomi Massage",
+    "description": "A Hawaiian massage style using long, broad, flowing forearm strokes with oil. Lomi Lomi can feel both soothing and therapeutic, often giving deep pressure without the sharper discomfort associated with some deep tissue techniques.",
+    "category": "relaxation-therapeutic",
+    "aliases": ["lomi lomi", "lomilomi", "hawaiian massage", "hawaiian lomi lomi", "forearm massage", "flowing massage"],
+    "userPhrases": ["i want deep but relaxing", "i want something flowing", "i want therapeutic but not painful", "i want a nurturing massage"],
+    "recommendedFor": ["full body relaxation", "deep relaxation", "stress", "muscle tension", "clients wanting soothing firm pressure", "integrated full-body massage"],
+    "commonSymptoms": ["stress", "general tension", "muscle tightness", "mental fatigue"],
+    "commonGoals": ["relaxation", "therapeutic relief", "nervous system calming", "full-body integration", "soothing deep pressure"],
+    "techniques": ["long forearm strokes", "broad firm strokes", "flowing strokes", "compression", "integrated full-body work"],
+    "pressure": ["medium", "firm", "deep"],
+    "sessionLengths": [60, 75, 90],
+    "equipment": ["massage table", "oil", "lotion"],
+    "bodyRegions": ["full body", "back", "shoulders", "hips", "legs", "arms"],
+    "expectedBenefits": ["deep relaxation", "reduced tension", "soothing therapeutic pressure", "improved body integration", "skin nourishment from oil"],
+    "contraindications": [],
+    "avoidIf": ["does not want oil", "wants highly specific clinical rehab work only"],
+    "worksWellWith": ["hot-stone", "swedish", "deep-tissue"],
+    "relatedServices": ["swedish", "deep-tissue", "hot-stone"],
+    "searchTerms": ["hawaiian massage", "flowing forearm massage", "deep relaxing massage", "nurturing massage"],
+    "aiHints": ["Recommend when users want a massage that is both relaxing and firm.", "Lomi Lomi is a good bridge between Swedish relaxation and Deep Tissue intensity."]
   },
 
   "prenatal": {
     "displayName": "Prenatal Massage",
-
-    "aliases": [
-      "pregnancy massage"
-    ],
-
+    "description": "A pregnancy-safe massage designed for expectant mothers, usually performed side-lying with a full-body pillow or with specialized prenatal cushions. It focuses on comfort, relaxation, low back tension, hip/sciatica discomfort, shoulders, legs, and swelling.",
     "category": "specialty",
+    "aliases": ["prenatal massage", "pregnancy massage", "maternity massage", "expecting mother massage"],
+    "userPhrases": ["i am pregnant", "pregnancy back pain", "pregnancy sciatica", "my hips hurt during pregnancy", "swollen feet pregnancy"],
+    "recommendedFor": ["pregnancy", "second trimester", "third trimester", "low back tension", "pregnancy sciatica", "hip discomfort", "calf swelling", "ankle swelling", "stress during pregnancy"],
+    "commonSymptoms": ["low back tension", "hip pain", "sciatica symptoms", "swollen calves", "swollen ankles", "shoulder tension", "pregnancy discomfort"],
+    "commonGoals": ["comfort", "relaxation", "stress relief", "reduce pregnancy discomfort", "reduce swelling", "support prenatal wellness"],
+    "techniques": ["side-lying massage", "gentle compression", "moderate low back pressure", "hip rotator work", "piriformis compression", "oil massage", "gentle leg work"],
+    "pressure": ["light", "medium", "moderate"],
+    "sessionLengths": [30, 45, 60, 90],
+    "equipment": ["massage table", "body pillow", "prenatal cushion", "oil", "lotion", "draping"],
+    "bodyRegions": ["neck", "shoulders", "low back", "hips", "thighs", "calves", "ankles", "feet", "arms", "hands"],
+    "expectedBenefits": ["reduced pregnancy discomfort", "reduced low back tension", "reduced hip tension", "reduced swelling", "relaxation", "stress relief"],
+    "contraindications": ["first trimester unless cleared", "high risk pregnancy without clearance", "avoid certain pressure points before full term", "avoid certain essential oils", "avoid prolonged prone positioning"],
+    "avoidIf": ["not pregnancy-specific need", "requires deep aggressive pressure"],
+    "worksWellWith": ["swedish"],
+    "relatedServices": ["swedish"],
+    "searchTerms": ["pregnancy massage", "prenatal back pain", "pregnancy sciatica", "swollen feet pregnancy", "maternity massage"],
+    "aiHints": ["Recommend only for pregnant users or pregnancy-related symptoms.", "Prefer 60 minute sessions for comfort.", "Avoid suggesting deep tissue intensity unless the provider specifically offers prenatal-safe therapeutic work."]
+  },
 
-    "recommendedFor": [
-      "pregnancy",
-      "prenatal care",
-      "pregnancy discomfort"
-    ],
+  "ashiatsu": {
+    "displayName": "Ashiatsu Massage",
+    "description": "A western barefoot massage performed on a massage table using oil or lotion. The therapist holds overhead bars and uses their feet to deliver long gliding strokes, deep compressions, and sometimes spinal traction. Ashiatsu can provide very deep pressure while still feeling broad, smooth, and relaxing.",
+    "category": "deep-pressure",
+    "aliases": ["ashiatsu", "ashiatsu massage", "barefoot massage", "foot pressure massage", "ashiatsu oriental bar therapy", "deep barefoot massage"],
+    "userPhrases": ["i want really deep pressure", "deep tissue is not deep enough", "i need heavy pressure", "i want deep but relaxing", "my back needs serious work"],
+    "recommendedFor": ["deep pressure", "large muscle groups", "chronic tension", "lower back pain", "athletes", "thick muscular clients", "deep relaxation", "postural tension"],
+    "commonSymptoms": ["deep muscle tension", "lower back tension", "stiffness", "muscle soreness", "tight glutes", "thick muscle tension"],
+    "commonGoals": ["deep pressure", "pain relief", "muscle lengthening", "structural release", "relaxation", "improved flexibility"],
+    "techniques": ["barefoot gliding strokes", "deep compression", "two-footed techniques", "intervertebral traction", "range of motion", "stretching", "hands-on deep tissue"],
+    "pressure": ["firm", "deep", "very deep"],
+    "sessionLengths": [60, 90],
+    "equipment": ["massage table", "oil", "lotion", "overhead bars", "draping"],
+    "bodyRegions": ["back", "low back", "glutes", "hips", "legs", "hamstrings", "shoulders"],
+    "expectedBenefits": ["deep muscle release", "reduced stiffness", "improved flexibility", "improved circulation", "reduced soreness", "deep relaxation"],
+    "contraindications": ["suspected disc issue without medical clearance", "sequestered disc", "complete herniated disc", "pregnancy", "nursing", "injury or surgery within 12 months", "recent lasik", "recent breast implants", "uncontrolled high blood pressure", "blood thinners", "hemophilia", "severe anemia", "acute liver disorder", "acute kidney disorder", "acute urinary disorder", "compromised immune system", "acute inflammatory disease", "neurological disorder", "advanced diabetes", "osteoporosis", "fractures", "recent steroid injections", "contagious skin disease", "deep vein thrombosis"],
+    "avoidIf": ["prefers light pressure", "uncomfortable with barefoot massage", "wants very conservative draping", "pregnant"],
+    "worksWellWith": ["deep-tissue", "sports-massage"],
+    "relatedServices": ["deep-tissue", "sports-massage", "thai"],
+    "searchTerms": ["deep barefoot massage", "very deep pressure", "ashiatsu bars", "foot pressure massage", "deep back massage"],
+    "aiHints": ["Recommend when the user wants very deep, broad pressure.", "Do not recommend casually when contraindications may apply.", "Ashiatsu is deeper than typical Deep Tissue but can still feel smooth and relaxing."]
+  },
 
-    "avoidIf": [],
-
-    "commonGoals": [
-      "comfort",
-      "stress relief"
-    ],
-
-    "relatedServices": []
+  "trigger-point": {
+    "displayName": "Trigger Point Therapy",
+    "description": "A focused therapeutic technique targeting hyperirritable muscle knots or trigger points that may refer pain to other areas. Often used inside Deep Tissue, Sports Massage, or clinical massage sessions.",
+    "category": "therapeutic",
+    "aliases": ["trigger point", "trigger point therapy", "muscle knots", "knot work", "pressure point massage"],
+    "userPhrases": ["i have knots", "there is one spot that hurts", "my neck has trigger points", "pain shoots from one area", "work this knot out"],
+    "recommendedFor": ["muscle knots", "neck pain", "shoulder pain", "headaches", "localized pain", "referred pain"],
+    "commonSymptoms": ["knots", "localized tenderness", "referred pain", "headaches", "tight bands of muscle"],
+    "commonGoals": ["pain relief", "release knots", "reduce referred pain", "improve mobility"],
+    "techniques": ["sustained pressure", "ischemic compression", "specific point work", "neuromuscular techniques"],
+    "pressure": ["medium", "firm", "deep"],
+    "sessionLengths": [30, 45, 60],
+    "equipment": ["massage table", "oil optional", "lotion optional"],
+    "bodyRegions": ["neck", "shoulders", "back", "hips", "glutes"],
+    "expectedBenefits": ["reduced knot pain", "reduced referred pain", "improved mobility", "reduced headaches"],
+    "contraindications": ["acute inflammation", "open wounds", "unexplained severe pain"],
+    "avoidIf": ["wants only relaxation", "does not want focused pressure"],
+    "worksWellWith": ["deep-tissue", "sports-massage"],
+    "relatedServices": ["deep-tissue", "sports-massage", "myofascial-release"],
+    "searchTerms": ["muscle knots", "trigger points", "neck headache massage", "shoulder knot"],
+    "aiHints": ["Recommend when users mention knots, specific painful spots, or referred pain.", "Often appears as a technique inside other services rather than a standalone menu item."]
   }
 }
