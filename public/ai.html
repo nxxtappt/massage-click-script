@@ -31,7 +31,7 @@
     }
 
     .page-shell {
-      max-width: 1180px;
+      max-width: 980px;
       margin: 0 auto;
       padding: 22px 20px 28px;
     }
@@ -80,7 +80,7 @@
       border-radius: 26px;
       padding: 24px;
       box-shadow: 0 18px 46px rgba(0, 43, 73, 0.20);
-      margin-bottom: 18px;
+      margin-bottom: 22px;
     }
 
     .ai-hero h1 {
@@ -94,7 +94,6 @@
       color: rgba(255,255,255,.86);
       font-size: 16px;
       line-height: 1.45;
-      max-width: 760px;
     }
 
     .starter-prompts {
@@ -115,53 +114,80 @@
       cursor: pointer;
     }
 
-    .results-panel {
-      min-height: 300px;
+    .chat-thread {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-bottom: 8px;
     }
 
-    .assistant-bubble {
-      margin: 0 0 14px;
-      background: white;
+    .chat-message {
+      max-width: 92%;
       border-radius: 20px;
-      padding: 18px 20px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.08);
-      line-height: 1.5;
+      padding: 14px 16px;
+      line-height: 1.45;
+      font-size: 16px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      background: var(--blue);
+      color: white;
+      border-bottom-right-radius: 7px;
+    }
+
+    .chat-message.assistant {
+      align-self: flex-start;
+      background: white;
       color: var(--text);
       border: 1px solid rgba(216,228,238,.72);
+      border-bottom-left-radius: 7px;
     }
 
-    .assistant-bubble.error {
-      color: var(--danger);
-      border-color: rgba(180,35,24,.22);
+    .chat-message.system {
+      align-self: center;
+      max-width: 96%;
+      background: transparent;
+      color: var(--muted);
+      box-shadow: none;
+      font-size: 14px;
+      padding: 2px 0;
     }
 
-    .assistant-bubble.success {
-      color: var(--success);
-      border-color: rgba(6,118,71,.22);
+    .chat-answer-text {
+      white-space: pre-wrap;
+    }
+
+    .inline-results {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
     }
 
     .results-summary {
       margin: 0 0 12px;
       color: var(--muted);
       font-size: 14px;
-      font-weight: 800;
+      font-weight: 900;
     }
 
     .appointments-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
+      gap: 14px;
     }
 
     .business-card {
       background: var(--card);
       border-radius: 22px;
       padding: 18px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.08);
+      box-shadow: 0 10px 26px rgba(0,0,0,.07);
       display: flex;
       gap: 16px;
       align-items: flex-start;
-      border: 1px solid rgba(216,228,238,.7);
+      border: 1px solid rgba(216,228,238,.9);
     }
 
     .logo-circle {
@@ -209,7 +235,7 @@
     .business-title-row h2 {
       margin: 0;
       color: var(--dark-blue);
-      font-size: 21px;
+      font-size: 20px;
       letter-spacing: -0.02em;
     }
 
@@ -289,27 +315,31 @@
       text-decoration: none;
       font-weight: 900;
       font-size: 14px;
-      line-height: 1;
+      line-height: 1.1;
     }
 
     .empty-state,
     .debug-box {
       background: white;
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.08);
-      border: 1px solid rgba(216,228,238,.72);
+      border-radius: 18px;
+      padding: 16px;
+      border: 1px solid rgba(216,228,238,.9);
     }
 
     .empty-state h2 {
       margin: 0 0 8px;
       color: var(--dark-blue);
+      font-size: 18px;
     }
 
-    .empty-state p { margin: 0; color: var(--muted); line-height: 1.5; }
+    .empty-state p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
 
     .debug-box {
-      margin-top: 20px;
+      margin-top: 12px;
       font-size: 13px;
       color: #555;
     }
@@ -320,55 +350,13 @@
       font-size: 12px;
     }
 
-    .chat-thread {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding-bottom: 4px;
-    }
-
-    .chat-message {
-      max-width: 82%;
-      border-radius: 18px;
-      padding: 12px 14px;
-      line-height: 1.45;
-      font-size: 15px;
-      box-shadow: 0 8px 22px rgba(0,0,0,.06);
-    }
-
-    .chat-message.user {
-      align-self: flex-end;
-      background: var(--blue);
-      color: white;
-      border-bottom-right-radius: 6px;
-    }
-
-    .chat-message.assistant {
-      align-self: flex-start;
-      background: white;
-      color: var(--text);
-      border: 1px solid rgba(216,228,238,.72);
-      border-bottom-left-radius: 6px;
-    }
-
-    .chat-message.system {
-      align-self: center;
-      max-width: 92%;
-      background: transparent;
-      color: var(--muted);
-      box-shadow: none;
-      font-size: 13px;
-      padding: 4px 0;
-    }
-
     .composer-shell {
       position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
       z-index: 30;
-      background: linear-gradient(to top, rgba(244,247,251,1), rgba(244,247,251,.92), rgba(244,247,251,0));
+      background: linear-gradient(to top, rgba(244,247,251,1), rgba(244,247,251,.94), rgba(244,247,251,0));
       padding: 22px 14px 14px;
     }
 
@@ -437,15 +425,55 @@
       :root { --composer-height: 154px; }
 
       .page-shell { padding: 16px 14px 22px; }
+
       .top-bar { margin-bottom: 12px; }
-      .ai-hero { padding: 20px; border-radius: 22px; }
+
+      .ai-hero {
+        padding: 20px;
+        border-radius: 22px;
+      }
+
       .ai-hero h1 { font-size: 27px; }
-      .business-card { padding: 15px; border-radius: 18px; gap: 12px; }
-      .logo-circle { width: 54px; height: 54px; }
-      .business-title-row h2 { font-size: 18px; }
-      .chat-message { max-width: 94%; }
-      .composer-row { flex-direction: column; align-items: stretch; }
-      button { width: 100%; height: 46px; }
+
+      .starter-prompts {
+        flex-direction: column;
+      }
+
+      .starter-prompt {
+        width: 100%;
+        height: auto;
+        padding: 12px 14px;
+      }
+
+      .chat-message {
+        max-width: 96%;
+        font-size: 16px;
+      }
+
+      .business-card {
+        padding: 15px;
+        border-radius: 18px;
+        gap: 12px;
+      }
+
+      .logo-circle {
+        width: 54px;
+        height: 54px;
+      }
+
+      .business-title-row h2 {
+        font-size: 18px;
+      }
+
+      .composer-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      button {
+        width: 100%;
+        height: 46px;
+      }
     }
   </style>
 </head>
@@ -458,40 +486,14 @@
         <span>NextAppt AI</span>
       </div>
 
-      <a class="nav-link" href="/austin/massage">Standard search</a>
+      <a class="nav-link" href="/austin/massage">Classic Search</a>
     </div>
 
     <section class="ai-hero">
       <h1>Ask for the appointment you need.</h1>
       <p>
-        Search live appointment availability in plain English. You can start broad,
-        then follow up with things like “tomorrow instead”, “90 minute only”,
-        “south Austin”, or “with infrared sauna.”
+        Find the right appointment for you.
       </p>
-
-      <div class="starter-prompts" aria-label="Example searches">
-        <button class="starter-prompt" type="button" data-prompt="deep tissue massage today">Deep tissue today</button>
-        <button class="starter-prompt" type="button" data-prompt="next available swedish massage">Next Swedish massage</button>
-        <button class="starter-prompt" type="button" data-prompt="are there any businesses with infrared sauna that have massage openings today?">Infrared sauna + massage</button>
-        <button class="starter-prompt" type="button" data-prompt="sports recovery massage today">Sports recovery today</button>
-      </div>
-    </section>
-
-    <section class="results-panel" aria-live="polite">
-      <div id="answer" class="assistant-bubble">
-        Ask a question below. Results will show here first, with the chat continuing underneath.
-      </div>
-
-      <p id="resultsSummary" class="results-summary"></p>
-
-      <section id="appointmentsGrid" class="appointments-grid">
-        <div class="empty-state">
-          <h2>No search yet</h2>
-          <p>Try “massage today”, “deep tissue tomorrow”, or “businesses with infrared sauna”.</p>
-        </div>
-      </section>
-
-      <div id="debug"></div>
     </section>
 
     <section id="chatThread" class="chat-thread" aria-label="AI search conversation"></section>
@@ -506,7 +508,7 @@
           rows="1"
         ></textarea>
 
-        <button id="searchBtn" type="submit">Ask AI</button>
+        <button id="searchBtn" type="submit">Ask NextAppt.ai</button>
       </div>
 
       <div class="composer-hint">

@@ -1,9 +1,5 @@
 const queryInput = document.getElementById("query");
 const searchBtn = document.getElementById("searchBtn");
-const answerBox = document.getElementById("answer");
-const appointmentsGrid = document.getElementById("appointmentsGrid");
-const resultsSummary = document.getElementById("resultsSummary");
-const debugBox = document.getElementById("debug");
 const chatThread = document.getElementById("chatThread");
 const chatForm = document.getElementById("chatForm");
 
@@ -135,19 +131,39 @@ function countBusinesses(appointments = []) {
   return Object.keys(groupAppointmentsByBusiness(appointments)).length;
 }
 
-function renderBusinessCards(appointments = []) {
-  appointmentsGrid.innerHTML = "";
+function renderResultsSummary(container, appointments = []) {
+  const summary = document.createElement("p");
+  summary.className = "results-summary";
+
+  const businessCount = countBusinesses(appointments);
+
+  if (!appointments.length) {
+    summary.textContent = "No matching appointment cards found.";
+  } else {
+    summary.textContent = `${businessCount} business${
+      businessCount === 1 ? "" : "es"
+    } • ${appointments.length} appointment${appointments.length === 1 ? "" : "s"}`;
+  }
+
+  container.appendChild(summary);
+}
+
+function renderBusinessCards(container, appointments = []) {
+  const grid = document.createElement("section");
+  grid.className = "appointments-grid";
 
   const groupedBusinesses = groupAppointmentsByBusiness(appointments);
   const businessGroups = Object.values(groupedBusinesses);
 
   if (!businessGroups.length) {
-    appointmentsGrid.innerHTML = `
+    grid.innerHTML = `
       <div class="empty-state">
         <h2>No appointment cards found</h2>
         <p>Try a broader search like “massage today”, “swedish massage”, or “deep tissue massage”.</p>
       </div>
     `;
+
+    container.appendChild(grid);
     return;
   }
 
@@ -277,46 +293,38 @@ function renderBusinessCards(appointments = []) {
       </div>
     `;
 
-    appointmentsGrid.appendChild(card);
+    grid.appendChild(card);
   });
+
+  container.appendChild(grid);
 }
 
-function renderDebug(data) {
+function renderDebug(container, data) {
   const showDebug =
     new URLSearchParams(window.location.search).get("debug") === "true";
 
-  if (!showDebug || !data?.debug) {
-    debugBox.innerHTML = "";
-    return;
-  }
+  if (!showDebug || !data?.debug) return;
 
-  debugBox.innerHTML = `
-    <details class="debug-box">
-      <summary style="cursor:pointer;font-weight:800;">Debug</summary>
-      <pre>${escapeHtml(JSON.stringify(data.debug, null, 2))}</pre>
-    </details>
+  const debug = document.createElement("details");
+  debug.className = "debug-box";
+  debug.innerHTML = `
+    <summary style="cursor:pointer;font-weight:800;">Debug</summary>
+    <pre>${escapeHtml(JSON.stringify(data.debug, null, 2))}</pre>
   `;
+
+  container.appendChild(debug);
 }
 
-function renderResultsSummary(appointments = []) {
-  const businessCount = countBusinesses(appointments);
-
-  if (!appointments.length) {
-    resultsSummary.textContent = "No matching appointment cards found.";
-    return;
-  }
-
-  resultsSummary.textContent = `${businessCount} business${
-    businessCount === 1 ? "" : "es"
-  } • ${appointments.length} appointment${appointments.length === 1 ? "" : "s"}`;
-}
-
-function addChatMessage(role, message) {
-  if (!chatThread) return;
-
+function addChatMessage(role, message, options = {}) {
   const item = document.createElement("div");
   item.className = `chat-message ${role}`;
-  item.innerHTML = escapeHtml(message);
+
+  if (role === "assistant" && options.allowHtml === true) {
+    item.innerHTML = message;
+  } else {
+    item.textContent = message;
+  }
+
   chatThread.appendChild(item);
 
   conversationState.messages.push({
@@ -325,26 +333,87 @@ function addChatMessage(role, message) {
     createdAt: new Date().toISOString()
   });
 
-  chatThread.scrollIntoView({ behavior: "smooth", block: "end" });
+  requestAnimationFrame(() => {
+    item.scrollIntoView({
+      behavior: "smooth",
+      block: "end"
+    });
+  });
+
+  return item;
 }
 
-function setAnswer(message, type = "") {
-  answerBox.className = `assistant-bubble ${type}`.trim();
-  answerBox.textContent = message;
+function addAssistantResultMessage(answer, appointments = [], data = {}) {
+  const item = document.createElement("div");
+  item.className = "chat-message assistant";
+
+  const answerText = document.createElement("div");
+  answerText.className = "chat-answer-text";
+  answerText.textContent =
+    answer || "Here are live appointment times that match your search.";
+
+  item.appendChild(answerText);
+
+  const resultsWrap = document.createElement("div");
+  resultsWrap.className = "inline-results";
+
+  renderResultsSummary(resultsWrap, appointments);
+  renderBusinessCards(resultsWrap, appointments);
+  renderDebug(resultsWrap, data);
+
+  item.appendChild(resultsWrap);
+  chatThread.appendChild(item);
+
+  conversationState.messages.push({
+    role: "assistant",
+    content: answerText.textContent,
+    createdAt: new Date().toISOString()
+  });
+
+  requestAnimationFrame(() => {
+    item.scrollIntoView({
+      behavior: "smooth",
+      block: "end"
+    });
+  });
+
+  return item;
 }
 
-function setSearchingState(query) {
-  searchBtn.disabled = true;
-  searchBtn.textContent = "Searching...";
-  setAnswer("Checking NextAppt data and live appointments...");
-  resultsSummary.textContent = "Searching live availability...";
-  appointmentsGrid.innerHTML = `
-    <div class="empty-state">
-      <h2>Searching...</h2>
-      <p>Checking cached results and live appointment data for “${escapeHtml(query)}”.</p>
+function addLoadingMessage(query) {
+  const item = document.createElement("div");
+  item.className = "chat-message assistant";
+  item.innerHTML = `
+    <div class="chat-answer-text">Checking NextAppt data and live appointments...</div>
+    <div class="inline-results">
+      <div class="empty-state">
+        <h2>Searching...</h2>
+        <p>Checking cached results and live appointment data for “${escapeHtml(query)}”.</p>
+      </div>
     </div>
   `;
-  debugBox.innerHTML = "";
+
+  chatThread.appendChild(item);
+
+  requestAnimationFrame(() => {
+    item.scrollIntoView({
+      behavior: "smooth",
+      block: "end"
+    });
+  });
+
+  return item;
+}
+
+function removeMessage(item) {
+  if (item && item.parentNode) {
+    item.parentNode.removeChild(item);
+  }
+}
+
+function setSearchingState() {
+  searchBtn.disabled = true;
+  searchBtn.textContent = "Searching...";
 }
 
 function clearSearchingState() {
@@ -362,18 +431,23 @@ function updateConversationState(data, query, appointments) {
   if (data.conversationState && typeof data.conversationState === "object") {
     conversationState.lastQuery =
       data.conversationState.lastQuery || conversationState.lastQuery;
+
     conversationState.lastResolvedQuery =
-      data.conversationState.lastResolvedQuery || conversationState.lastResolvedQuery;
+      data.conversationState.lastResolvedQuery ||
+      conversationState.lastResolvedQuery;
+
     conversationState.lastIntent =
       data.conversationState.lastIntent || conversationState.lastIntent;
+
     conversationState.lastSearchParams =
-      data.conversationState.lastSearchParams || conversationState.lastSearchParams;
+      data.conversationState.lastSearchParams ||
+      conversationState.lastSearchParams;
   }
 }
 
 function getPayloadConversationState() {
   return {
-    messages: conversationState.messages.slice(-10),
+    messages: conversationState.messages.slice(-12),
     lastQuery: conversationState.lastQuery,
     lastResolvedQuery: conversationState.lastResolvedQuery,
     lastIntent: conversationState.lastIntent,
@@ -385,14 +459,17 @@ async function runAiSearch(promptOverride = "") {
   const query = String(promptOverride || queryInput.value || "").trim();
 
   if (!query) {
-    setAnswer("Enter a search first.", "error");
+    addChatMessage("assistant", "Enter a search first.");
     return;
   }
 
   addChatMessage("user", query);
+
   queryInput.value = "";
   autoResizeTextarea();
-  setSearchingState(query);
+  setSearchingState();
+
+  const loadingMessage = addLoadingMessage(query);
 
   try {
     const response = await fetch("/api/ai/search", {
@@ -421,17 +498,11 @@ async function runAiSearch(promptOverride = "") {
       "Here are live appointment times that match your search.";
 
     updateConversationState(data, query, appointments);
-    setAnswer(answer, appointments.length ? "success" : "");
-    addChatMessage("assistant", answer);
-    renderResultsSummary(appointments);
-    renderBusinessCards(appointments);
-    renderDebug(data);
+    removeMessage(loadingMessage);
+    addAssistantResultMessage(answer, appointments, data);
   } catch (error) {
-    setAnswer(error.message, "error");
-    addChatMessage("assistant", error.message);
-    resultsSummary.textContent = "";
-    appointmentsGrid.innerHTML = "";
-    debugBox.innerHTML = "";
+    removeMessage(loadingMessage);
+    addChatMessage("assistant", error.message || "Load failed.");
   } finally {
     clearSearchingState();
   }
@@ -490,5 +561,5 @@ document.addEventListener("click", async (event) => {
 
 addChatMessage(
   "system",
-  "You can ask follow-up questions like “tomorrow instead”, “only 90 minute”, or “south Austin”."
+  "Ask for an appointment, then refine it with follow-ups like “tomorrow after 4”, “only 60 minute”, or “which one is best for athletes?”"
 );
