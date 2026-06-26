@@ -1,0 +1,73 @@
+[
+  {
+    "id": "feedback_3438b037-8af1-42ea-aafe-c092d7c0c0f7",
+    "createdAt": "2026-06-26T17:55:58.482Z",
+    "aiVersion": "v1",
+    "source": "nextappt-chat",
+    "rating": "bad",
+    "feedbackText": "I asked about deep tissue massage and it just gave results for massage appointments.",
+    "prompt": "tell me about deep tissue massages",
+    "normalizedPrompt": "tell me about deep tissue massages",
+    "assistantAnswer": "Here are live appointment times that match your search.",
+    "intent": null,
+    "appointmentsShown": [],
+    "appointmentClicked": null,
+    "page": "/ai",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+  },
+  {
+    "id": "feedback_871dc72b-723f-4c3f-ad6c-f109faa36e69",
+    "createdAt": "2026-06-26T17:51:05.918Z",
+    "aiVersion": "v1",
+    "source": "nextappt-chat",
+    "rating": "bad",
+    "feedbackText": "The results were the same as the previous prompts response.",
+    "prompt": "I only want businesses with available appointments in North Austin",
+    "normalizedPrompt": "i only want businesses with available appointments in north austin",
+    "assistantAnswer": "I updated the appointment results using your follow-up.",
+    "intent": null,
+    "appointmentsShown": [],
+    "appointmentClicked": null,
+    "page": "/ai",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+  },
+  {
+    "id": "feedback_085200be-d93f-4729-800c-484a95675385",
+    "createdAt": "2026-06-26T17:49:53.356Z",
+    "aiVersion": "v1",
+    "source": "nextappt-chat",
+    "rating": "bad",
+    "feedbackText": "Asked to give me the best deep tissue spots in North Austin and it just pulled up available appointments for businesses all over Austin",
+    "prompt": "where are the best deep tissue spots in north austin?",
+    "normalizedPrompt": "where are the best deep tissue spots in north austin?",
+    "assistantAnswer": "Here are live appointment times that match your search.",
+    "intent": null,
+    "appointmentsShown": [],
+    "appointmentClicked": null,
+    "page": "/ai",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+  },
+  {
+    "id": "feedback_69236654-8384-41bc-9e6f-b081f8eb6640",
+    "createdAt": "2026-06-26T17:21:16.774Z",
+    "aiVersion": "v1",
+    "source": "nextappt-chat",
+    "rating": "bad",
+    "feedbackText": "Wrong recommendation",
+    "prompt": "My neck hurts",
+    "normalizedPrompt": "my neck hurts",
+    "assistantAnswer": "Try Deep Tissue Massage.",
+    "intent": {
+      "goal": "pain relief",
+      "bodyRegion": "neck"
+    },
+    "appointmentsShown": [
+      {
+        "businessName": "Test Business"
+      }
+    ],
+    "appointmentClicked": null,
+    "page": "/austin/massage",
+    "userAgent": ""
+  }
+]
