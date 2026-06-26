@@ -37,6 +37,9 @@ const {
 const {
   upsertBusinessResult
 } = require("./resultStore");
+const {
+  createFeedbackEntry
+} = require("./chatbotFeedbackManager");
 const app = express();
 const PORT = 3000;
 const APPOINTMENT_TIME_ZONE = "America/Chicago";
@@ -2182,6 +2185,46 @@ app.get("/api/search", async (req, res) => {
     });
   } catch (error) {
     console.error("API ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.post("/api/chatbot-feedback", (req, res) => {
+  try {
+    const entry = createFeedbackEntry({
+  aiVersion: req.body.aiVersion || "v1",
+
+  rating: req.body.rating,
+  feedbackText: req.body.feedbackText,
+
+  prompt: req.body.prompt,
+  normalizedPrompt: req.body.normalizedPrompt,
+
+  assistantAnswer: req.body.assistantAnswer,
+
+  intent: req.body.intent || req.body.inferredIntent,
+  inferredIntent: req.body.inferredIntent,
+
+  appointmentsShown: req.body.appointmentsShown,
+  searchResultsSnapshot: req.body.searchResultsSnapshot,
+
+  appointmentClicked: req.body.appointmentClicked,
+
+  page: req.body.page,
+  userAgent: req.headers["user-agent"] || ""
+});
+
+    res.json({
+      success: true,
+      feedbackId: entry.id
+    });
+
+  } catch (error) {
+    console.error("[CHATBOT FEEDBACK]", error);
 
     res.status(500).json({
       success: false,

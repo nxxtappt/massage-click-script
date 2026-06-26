@@ -362,6 +362,31 @@ function addAssistantResultMessage(answer, appointments = [], data = {}) {
   renderDebug(resultsWrap, data);
 
   item.appendChild(resultsWrap);
+
+  const feedbackBox = document.createElement("div");
+  feedbackBox.className = "chat-feedback-box";
+  feedbackBox.innerHTML = `
+    <button type="button" class="chat-feedback-btn" data-chat-rating="good">
+      👍 Good result
+    </button>
+
+    <button type="button" class="chat-feedback-btn" data-chat-rating="bad">
+      👎 Bad result
+    </button>
+
+    <div class="chat-feedback-form" style="display:none;">
+      <textarea
+        class="chat-feedback-text"
+        placeholder="Tell us what was helpful or wrong..."
+      ></textarea>
+
+      <button type="button" class="chat-feedback-submit">
+        Submit feedback
+      </button>
+    </div>
+  `;
+
+  item.appendChild(feedbackBox);
   chatThread.appendChild(item);
 
   conversationState.messages.push({
@@ -536,6 +561,75 @@ document.querySelectorAll("[data-prompt]").forEach((button) => {
   button.addEventListener("click", () => {
     runAiSearch(button.dataset.prompt || "");
   });
+});
+
+document.addEventListener("click", async (event) => {
+  const ratingButton = event.target.closest("[data-chat-rating]");
+
+  if (ratingButton) {
+    const feedbackBox = ratingButton.closest(".chat-feedback-box");
+    const form = feedbackBox?.querySelector(".chat-feedback-form");
+
+    if (form) {
+      form.style.display = "block";
+      form.dataset.selectedRating = ratingButton.dataset.chatRating || "";
+    }
+
+    return;
+  }
+
+  const submitButton = event.target.closest(".chat-feedback-submit");
+
+  if (!submitButton) return;
+
+  const feedbackBox = submitButton.closest(".chat-feedback-box");
+  const form = feedbackBox?.querySelector(".chat-feedback-form");
+  const feedbackTextInput = feedbackBox?.querySelector(".chat-feedback-text");
+
+  const rating = form?.dataset.selectedRating || "";
+  const feedbackText = feedbackTextInput?.value || "";
+
+  const lastUserMessage = [...conversationState.messages]
+    .reverse()
+    .find((msg) => msg.role === "user");
+
+  const lastAssistantMessage = [...conversationState.messages]
+    .reverse()
+    .find((msg) => msg.role === "assistant");
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Saving...";
+
+  try {
+    const response = await fetch("/api/chatbot-feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        aiVersion: "v1",
+        rating,
+        feedbackText,
+        prompt: lastUserMessage?.content || "",
+        normalizedPrompt: String(lastUserMessage?.content || "").toLowerCase(),
+        assistantAnswer: lastAssistantMessage?.content || "",
+        page: window.location.pathname
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Feedback failed");
+    }
+
+    submitButton.textContent = "Saved";
+    if (feedbackTextInput) feedbackTextInput.disabled = true;
+  } catch (error) {
+    console.error("Feedback save failed:", error);
+    submitButton.disabled = false;
+    submitButton.textContent = "Try again";
+  }
 });
 
 document.addEventListener("click", async (event) => {
