@@ -1,0 +1,1841 @@
+{
+  "version": "1.0.0-draft",
+  "createdFor": "NextAppt.ai",
+  "contentType": "massage_therapy_faq",
+  "disclaimer": "This FAQ is educational and search-assistance content only. It is not medical advice, diagnosis, or treatment. Users with medical conditions, pregnancy complications, recent injuries, surgery, blood clots, cancer treatment, severe pain, neurological symptoms, fever, infection, or other health concerns should consult a qualified healthcare professional before booking massage therapy.",
+  "sources": {
+    "nccih_massage_overview": "NCCIH: Massage Therapy: What You Need To Know",
+    "nccih_science_safety": "NCCIH: Massage Therapy for Health: What the Science Says",
+    "mayo_massage": "Mayo Clinic: Massage therapy",
+    "mayo_medical_precautions": "Mayo Clinic: Medical-Based Massage Therapy precautions",
+    "cleveland_massage": "Cleveland Clinic: Massage Therapy benefits and what to expect",
+    "mayo_pressure": "Mayo Clinic Health System: Benefits of massage therapy / pressure communication",
+    "acog_pregnancy": "ACOG: Can I get a massage while pregnant?",
+    "american_pregnancy_prenatal": "American Pregnancy Association: Prenatal massage",
+    "pregnancy_review_2021": "Mueller et al. 2021 systematic review of randomized controlled trials on massage during pregnancy",
+    "amta_medical_treatments": "AMTA: Massage and Medical Treatments",
+    "amta_medication": "AMTA Massage Therapy Journal: Massage and Medication",
+    "s4om_oncology": "Society for Oncology Massage: Oncology Massage Therapy Guidelines",
+    "mdanderson_oncology": "MD Anderson: Massage for cancer patients",
+    "jama_pain_2024": "JAMA Network Open 2024: Use of Massage Therapy for Pain",
+    "user_taxonomy": "NextAppt proprietary service taxonomy draft from Dimensions modality descriptions"
+  },
+  "faqs": [
+    {
+      "id": "massage-basics-001",
+      "category": "massage-basics",
+      "question": "What is massage therapy?",
+      "answer": "Massage therapy is hands-on soft tissue work that may include pressure, kneading, gliding strokes, stretching, compressions, and movement. People use it for relaxation, stress relief, pain reduction, recovery, mobility, and general wellness. It should be viewed as supportive care, not a replacement for medical diagnosis or emergency treatment.",
+      "tags": [
+        "definition",
+        "beginner"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_massage_overview",
+        "cleveland_massage"
+      ]
+    },
+    {
+      "id": "massage-basics-002",
+      "category": "massage-basics",
+      "question": "What happens during a massage?",
+      "answer": "A therapist usually starts with a short intake about your goals, health history, pressure preferences, and areas to avoid. Depending on the service, you may be on a table, mat, or specialized cushion. The therapist works one area at a time, checks in about pressure, and adjusts the session based on your comfort and goals.",
+      "tags": [
+        "first visit",
+        "expectations"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage",
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "massage-basics-003",
+      "category": "massage-basics",
+      "question": "What should I expect at my first massage?",
+      "answer": "Expect paperwork or intake questions, a conversation about goals and safety, privacy to get ready, proper draping, and ongoing permission to speak up. A first massage is often best as Swedish, therapeutic, or a customized session rather than the most intense deep work possible.",
+      "tags": [
+        "first massage",
+        "intake"
+      ],
+      "relatedServices": [
+        "swedish"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage",
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "massage-basics-004",
+      "category": "massage-basics",
+      "question": "How often should I get a massage?",
+      "answer": "For general relaxation, once a month may be enough. For chronic pain, recovery, or mobility goals, weekly or biweekly sessions may help build momentum. Maintenance frequency depends on your budget, symptoms, activity level, and how long results last between sessions.",
+      "tags": [
+        "frequency",
+        "maintenance"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "jama_pain_2024"
+      ]
+    },
+    {
+      "id": "massage-basics-005",
+      "category": "massage-basics",
+      "question": "How long should a massage session be?",
+      "answer": "Thirty minutes works for one focused area. Sixty minutes is the most versatile choice for a full-body or focused therapeutic session. Ninety minutes allows more detailed work or a slower full-body session. Prenatal clients often do best with 60 minutes for comfort.",
+      "tags": [
+        "duration",
+        "booking"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "massage-basics-006",
+      "category": "massage-basics",
+      "question": "What should I wear to a massage?",
+      "answer": "For Swedish, Deep Tissue, Lomi Lomi, and Ashiatsu, clients usually undress to their comfort level and are professionally draped. For Thai massage, wear loose comfortable clothing because it is performed fully clothed on a mat. For prenatal massage, wear what is comfortable and easy to adjust for side-lying positioning.",
+      "tags": [
+        "clothing",
+        "draping"
+      ],
+      "relatedServices": [
+        "swedish",
+        "deep-tissue",
+        "thai",
+        "ashiatsu",
+        "lomi-lomi",
+        "prenatal"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "massage-basics-007",
+      "category": "massage-basics",
+      "question": "Do I have to undress for a massage?",
+      "answer": "No. You should only undress to your comfort level. Many table massages work best directly on skin with oil or lotion, but proper draping keeps you covered except for the area being worked. Thai massage and some sports or stretch sessions can be done fully clothed.",
+      "tags": [
+        "comfort",
+        "draping"
+      ],
+      "relatedServices": [
+        "thai",
+        "sports-massage",
+        "swedish"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "massage-basics-008",
+      "category": "massage-basics",
+      "question": "Is it okay to talk during a massage?",
+      "answer": "Yes. You can talk, stay quiet, ask questions, request pressure changes, or ask the therapist to stop. Communication is especially important if pressure feels painful, if positioning is uncomfortable, or if you have a medical concern.",
+      "tags": [
+        "communication",
+        "comfort"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "massage-basics-009",
+      "category": "massage-basics",
+      "question": "Should I eat before a massage?",
+      "answer": "A heavy meal right before massage can feel uncomfortable, especially when lying face down. A light meal or snack is usually fine. If you have blood sugar issues, pregnancy nausea, or a medical condition, follow your normal medical guidance and tell the therapist if you feel lightheaded.",
+      "tags": [
+        "preparation",
+        "food"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_massage"
+      ]
+    },
+    {
+      "id": "massage-basics-010",
+      "category": "massage-basics",
+      "question": "Can I request more or less pressure?",
+      "answer": "Yes. Pressure should be adjusted to your body and goals. Discomfort can happen during focused therapeutic work, but sharp pain, numbness, tingling, or a feeling that you are bracing against the work is a sign to ask for less pressure. Most serious massage problems are associated with too much force.",
+      "tags": [
+        "pressure",
+        "communication"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure",
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "choosing-011",
+      "category": "choosing-the-right-massage",
+      "question": "Which massage is best for relaxation?",
+      "answer": "Swedish Massage is usually the best first choice for relaxation. Lomi Lomi is also excellent when someone wants a flowing, nurturing, firm-but-soothing full-body massage. Thai can be relaxing too, but it is more stretch and mobility based.",
+      "tags": [
+        "relaxation"
+      ],
+      "relatedServices": [
+        "swedish",
+        "lomi-lomi",
+        "thai"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "choosing-012",
+      "category": "choosing-the-right-massage",
+      "question": "Which massage is best for neck pain?",
+      "answer": "For general neck tension, Swedish or therapeutic massage may help. For chronic neck pain, muscle knots, or headaches related to tight neck and shoulder muscles, Deep Tissue or Trigger Point Therapy may be a better match. Seek medical care for severe, new, traumatic, neurological, or unexplained neck pain.",
+      "tags": [
+        "neck pain"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "trigger-point",
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "mayo_medical_precautions",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "choosing-013",
+      "category": "choosing-the-right-massage",
+      "question": "Which massage is best for lower back pain?",
+      "answer": "Deep Tissue, therapeutic massage, Ashiatsu, Thai, or Sports Massage may help lower back tension depending on the cause. Deep Tissue is better for clinical pain patterns; Thai is better when stiffness and mobility are the main issue; Ashiatsu may suit clients who safely want broad deep pressure. Medical clearance is important for suspected disc problems, trauma, neurological symptoms, or severe pain.",
+      "tags": [
+        "back pain"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "ashiatsu",
+        "thai",
+        "sports-massage"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "jama_pain_2024",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "choosing-014",
+      "category": "choosing-the-right-massage",
+      "question": "Which massage is best for headaches?",
+      "answer": "Massage may help some tension-type headaches by reducing neck, shoulder, jaw, and scalp tension. Trigger Point, Deep Tissue, or Swedish may be appropriate depending on whether the goal is focused pain relief or relaxation. Sudden severe headache, neurological symptoms, head injury, fever, or new unusual headache requires medical evaluation.",
+      "tags": [
+        "headaches"
+      ],
+      "relatedServices": [
+        "trigger-point",
+        "deep-tissue",
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "choosing-015",
+      "category": "choosing-the-right-massage",
+      "question": "Which massage is best for athletes?",
+      "answer": "Sports Massage is the most direct match for athletes because it focuses on performance, soreness, recovery, and mobility. Deep Tissue helps with chronic or specific tissue restrictions. Thai can support flexibility and mobility. Ashiatsu can provide deep broad pressure for large muscle groups if there are no contraindications.",
+      "tags": [
+        "athletes",
+        "recovery"
+      ],
+      "relatedServices": [
+        "sports-massage",
+        "deep-tissue",
+        "thai",
+        "ashiatsu"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "choosing-016",
+      "category": "choosing-the-right-massage",
+      "question": "What is the difference between Swedish and Deep Tissue?",
+      "answer": "Swedish is usually full-body and relaxation-focused, using classic western massage techniques to calm the nervous system, improve circulation, and loosen tight muscles. Deep Tissue is more therapeutic and targeted, often focused on chronic pain, fascia, adhesions, injury recovery, or mobility problems. The difference is not simply light versus deep pressure; it is the goal and style of work.",
+      "tags": [
+        "swedish vs deep tissue"
+      ],
+      "relatedServices": [
+        "swedish",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "choosing-017",
+      "category": "choosing-the-right-massage",
+      "question": "What is the difference between Sports Massage and Deep Tissue?",
+      "answer": "Sports Massage is organized around athletic performance, event preparation, recovery, and mobility. Deep Tissue is broader therapeutic work for chronic pain, fascia, soft tissue restrictions, and rehabilitation. A Sports Massage may use Deep Tissue techniques, but the intent is athlete-focused recovery or performance.",
+      "tags": [
+        "sports vs deep tissue"
+      ],
+      "relatedServices": [
+        "sports-massage",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "choosing-018",
+      "category": "choosing-the-right-massage",
+      "question": "What is the difference between Thai Massage and Stretch Therapy?",
+      "answer": "Thai Massage is a traditional full-body system performed clothed on a floor mat using assisted stretches, compressions, traction, and acupressure. Stretch Therapy is usually a modern service focused specifically on flexibility and range of motion. Many client goals overlap, but Thai has a broader bodywork tradition and full-body flow.",
+      "tags": [
+        "thai",
+        "stretching"
+      ],
+      "relatedServices": [
+        "thai",
+        "sports-massage"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "choosing-019",
+      "category": "choosing-the-right-massage",
+      "question": "Is Ashiatsu deeper than Deep Tissue?",
+      "answer": "Often, yes. Ashiatsu uses the therapist\u2019s feet, body weight, gravity, and overhead bars to create broad, deep pressure that can feel deeper than standard table massage. It may be powerful and relaxing, but it has more contraindications than a basic Swedish massage, so health history matters.",
+      "tags": [
+        "ashiatsu",
+        "deep pressure"
+      ],
+      "relatedServices": [
+        "ashiatsu",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "user_taxonomy",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "choosing-020",
+      "category": "choosing-the-right-massage",
+      "question": "Which massage is best for me?",
+      "answer": "Choose based on your goal: Swedish for relaxation, Deep Tissue for chronic pain or focused therapeutic work, Sports Massage for athletic recovery, Thai for stretching and mobility, Lomi Lomi for flowing deep relaxation, Prenatal for pregnancy, Ashiatsu for very deep broad pressure, and Trigger Point for specific knots or referred pain.",
+      "tags": [
+        "recommendation"
+      ],
+      "relatedServices": [
+        "swedish",
+        "deep-tissue",
+        "sports-massage",
+        "thai",
+        "lomi-lomi",
+        "prenatal",
+        "ashiatsu",
+        "trigger-point"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pain-021",
+      "category": "pain-and-injuries",
+      "question": "Can massage help chronic pain?",
+      "answer": "Massage may help some people manage chronic pain, especially when used as part of a broader plan that may include exercise, physical therapy, medical care, sleep, and stress management. Effects may be short-term and vary by condition, but research generally supports potential benefit for pain.",
+      "tags": [
+        "chronic pain"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "trigger-point",
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "jama_pain_2024"
+      ]
+    },
+    {
+      "id": "pain-022",
+      "category": "pain-and-injuries",
+      "question": "Can massage help sciatica?",
+      "answer": "Massage may help sciatica-like symptoms when muscle tension, hip rotators, piriformis irritation, or low back tension contribute to discomfort. It does not fix every nerve or disc problem. Numbness, weakness, bowel or bladder changes, or severe radiating pain should be evaluated medically.",
+      "tags": [
+        "sciatica"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "thai",
+        "prenatal",
+        "trigger-point"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pain-023",
+      "category": "pain-and-injuries",
+      "question": "Can massage help herniated discs?",
+      "answer": "Massage may reduce surrounding muscle guarding and pain, but it cannot push a herniated disc back into place. Deep pressure, traction, and Ashiatsu may be inappropriate for certain disc conditions. Get medical clearance if you suspect a disc issue or have neurological symptoms.",
+      "tags": [
+        "disc",
+        "herniation"
+      ],
+      "relatedServices": [
+        "swedish",
+        "deep-tissue",
+        "ashiatsu"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pain-024",
+      "category": "pain-and-injuries",
+      "question": "Can massage help pinched nerves?",
+      "answer": "Massage may help if surrounding muscle tension is contributing to nerve irritation, but a true compressed nerve needs proper diagnosis. Tingling, numbness, weakness, or symptoms spreading down an arm or leg should be discussed with a healthcare provider.",
+      "tags": [
+        "pinched nerve"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "trigger-point",
+        "thai"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "pain-025",
+      "category": "pain-and-injuries",
+      "question": "Can massage help arthritis?",
+      "answer": "Massage may help reduce pain, stiffness, stress, and muscle tension around arthritic joints for some people. Pressure should be modified around inflamed joints, severe osteoporosis, or fragile tissue. It is supportive care, not a cure for arthritis.",
+      "tags": [
+        "arthritis"
+      ],
+      "relatedServices": [
+        "swedish",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "pain-026",
+      "category": "pain-and-injuries",
+      "question": "Can massage help TMJ?",
+      "answer": "Massage may help jaw tension, neck tension, and related headaches in some TMJ cases. A therapist may work the jaw, neck, shoulders, scalp, and facial muscles. Dental, bite, joint, or nerve causes should be evaluated by an appropriate clinician.",
+      "tags": [
+        "TMJ",
+        "jaw"
+      ],
+      "relatedServices": [
+        "trigger-point",
+        "deep-tissue",
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "pain-027",
+      "category": "pain-and-injuries",
+      "question": "Can massage help frozen shoulder?",
+      "answer": "Massage may help surrounding muscle tension and comfort, but frozen shoulder is a joint capsule condition that often needs medical or physical therapy guidance. Gentle mobility work may be useful, while aggressive stretching can aggravate symptoms.",
+      "tags": [
+        "shoulder",
+        "frozen shoulder"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "thai",
+        "trigger-point"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "pain-028",
+      "category": "pain-and-injuries",
+      "question": "Can massage help plantar fasciitis?",
+      "answer": "Massage may help reduce calf, foot, and arch tension associated with plantar fasciitis. It is usually best combined with stretching, footwear changes, load management, and medical or physical therapy guidance if symptoms persist.",
+      "tags": [
+        "plantar fasciitis",
+        "feet"
+      ],
+      "relatedServices": [
+        "sports-massage",
+        "deep-tissue",
+        "trigger-point"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "pain-029",
+      "category": "pain-and-injuries",
+      "question": "Can massage help tennis elbow?",
+      "answer": "Massage may help forearm tension and soft tissue irritation associated with tennis elbow, especially when combined with activity modification and strengthening. Avoid aggressive work directly over highly inflamed or acutely painful tissue.",
+      "tags": [
+        "tennis elbow"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "sports-massage",
+        "trigger-point"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "pain-030",
+      "category": "pain-and-injuries",
+      "question": "Can massage help carpal tunnel syndrome?",
+      "answer": "Massage may help forearm, hand, shoulder, and neck tension that contributes to symptoms, but true carpal tunnel involves nerve compression at the wrist. Numbness, weakness, or worsening symptoms should be medically evaluated.",
+      "tags": [
+        "carpal tunnel"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "trigger-point",
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "pain-031",
+      "category": "pain-and-injuries",
+      "question": "Can massage help piriformis syndrome?",
+      "answer": "Massage may help piriformis-related hip and sciatic discomfort through glute, hip rotator, low back, and leg work. Thai, Deep Tissue, Sports Massage, and prenatal-safe hip work may all be relevant depending on the client.",
+      "tags": [
+        "piriformis",
+        "hips"
+      ],
+      "relatedServices": [
+        "thai",
+        "deep-tissue",
+        "sports-massage",
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pain-032",
+      "category": "pain-and-injuries",
+      "question": "Can massage help fibromyalgia?",
+      "answer": "Massage may help some people with fibromyalgia by reducing stress, anxiety, pain sensitivity, and muscle tension. Pressure should usually be gentle to moderate and adjusted carefully, because overly intense work may trigger flares.",
+      "tags": [
+        "fibromyalgia"
+      ],
+      "relatedServices": [
+        "swedish",
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "mayo_massage"
+      ]
+    },
+    {
+      "id": "pain-033",
+      "category": "pain-and-injuries",
+      "question": "Can massage help whiplash?",
+      "answer": "Massage may help soft tissue tension after whiplash once serious injury has been ruled out. Avoid massage immediately after trauma without medical clearance, especially with severe pain, dizziness, neurological symptoms, or suspected fracture.",
+      "tags": [
+        "whiplash",
+        "trauma"
+      ],
+      "relatedServices": [
+        "swedish",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "pain-034",
+      "category": "pain-and-injuries",
+      "question": "Can massage help muscle knots?",
+      "answer": "Yes, massage can often help muscle knots or trigger points through sustained pressure, kneading, heat-generating friction, stretching, and improved local circulation. Trigger Point Therapy, Deep Tissue, and Sports Massage are common choices.",
+      "tags": [
+        "knots",
+        "trigger points"
+      ],
+      "relatedServices": [
+        "trigger-point",
+        "deep-tissue",
+        "sports-massage"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "user_taxonomy",
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "pain-035",
+      "category": "pain-and-injuries",
+      "question": "Can massage help scoliosis?",
+      "answer": "Massage does not straighten scoliosis, but it may help reduce muscle tension, pain, and compensatory tightness around the spine, ribs, hips, and shoulders. Work should be adapted to the person\u2019s curve, comfort, and medical history.",
+      "tags": [
+        "scoliosis"
+      ],
+      "relatedServices": [
+        "swedish",
+        "deep-tissue",
+        "thai"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "recovery-036",
+      "category": "recovery-and-performance",
+      "question": "Should I get a massage before a workout?",
+      "answer": "A light, short massage before activity may help you feel warm, loose, and ready, but intense deep tissue immediately before performance can leave you sore or sluggish. Pre-event sports massage is usually brief and stimulating rather than exhaustive.",
+      "tags": [
+        "pre-workout"
+      ],
+      "relatedServices": [
+        "sports-massage"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-037",
+      "category": "recovery-and-performance",
+      "question": "Should I get a massage after a workout?",
+      "answer": "Post-workout massage can support relaxation, reduce perceived soreness, and help recovery routines. The best pressure depends on how hard you trained, how sore you are, and whether there is any acute injury or inflammation.",
+      "tags": [
+        "post-workout",
+        "recovery"
+      ],
+      "relatedServices": [
+        "sports-massage",
+        "swedish",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-038",
+      "category": "recovery-and-performance",
+      "question": "How soon after a marathon should I get a massage?",
+      "answer": "Immediately after a race, massage should usually be light and recovery-focused. Deep work may be better after the body has calmed down, often a day or more later depending on soreness, hydration, and any injuries. Avoid massage over acute swelling, sharp pain, or suspected injury.",
+      "tags": [
+        "marathon",
+        "race"
+      ],
+      "relatedServices": [
+        "sports-massage"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-039",
+      "category": "recovery-and-performance",
+      "question": "Does massage improve athletic performance?",
+      "answer": "Massage may indirectly support performance by helping recovery, mobility, soreness, stress, and body awareness. It should not replace training, sleep, nutrition, or medical care, but it can be part of an athlete\u2019s recovery plan.",
+      "tags": [
+        "performance"
+      ],
+      "relatedServices": [
+        "sports-massage",
+        "thai"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-040",
+      "category": "recovery-and-performance",
+      "question": "Can massage help muscle recovery?",
+      "answer": "Massage may help recovery by reducing soreness, improving relaxation, and addressing muscle tension. Sports Massage, Swedish, Thai, and Deep Tissue can all be useful depending on whether the goal is circulation, stretching, or targeted tissue work.",
+      "tags": [
+        "muscle recovery"
+      ],
+      "relatedServices": [
+        "sports-massage",
+        "swedish",
+        "thai",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-041",
+      "category": "recovery-and-performance",
+      "question": "Can massage reduce soreness?",
+      "answer": "Massage may reduce muscle soreness for some people, especially when pressure is appropriate. Too much pressure too soon after intense exercise can increase soreness, so recovery massage should be matched to the client\u2019s tolerance.",
+      "tags": [
+        "soreness"
+      ],
+      "relatedServices": [
+        "sports-massage",
+        "swedish"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-042",
+      "category": "recovery-and-performance",
+      "question": "Does massage improve flexibility?",
+      "answer": "Massage may temporarily improve flexibility by reducing muscle tension and increasing comfort with movement. Thai Massage, Sports Massage, and assisted stretching are better choices when flexibility is the main goal.",
+      "tags": [
+        "flexibility"
+      ],
+      "relatedServices": [
+        "thai",
+        "sports-massage"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-043",
+      "category": "recovery-and-performance",
+      "question": "Can massage improve mobility?",
+      "answer": "Massage may improve mobility by reducing soft tissue tension, calming pain, and supporting range of motion. Thai Massage, Sports Massage, Deep Tissue, and Trigger Point Therapy may all be appropriate depending on the restriction.",
+      "tags": [
+        "mobility"
+      ],
+      "relatedServices": [
+        "thai",
+        "sports-massage",
+        "deep-tissue",
+        "trigger-point"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-044",
+      "category": "recovery-and-performance",
+      "question": "Is stretching or massage better?",
+      "answer": "Neither is always better. Stretching is active self-care for range of motion and tissue tolerance. Massage can reduce tension, pain, or guarding that makes movement easier. For many people, the best plan combines massage, mobility work, strengthening, and home care.",
+      "tags": [
+        "stretching"
+      ],
+      "relatedServices": [
+        "thai",
+        "sports-massage"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "recovery-045",
+      "category": "recovery-and-performance",
+      "question": "How often should athletes get massages?",
+      "answer": "Athletes may benefit from weekly, biweekly, or monthly massage depending on training volume, competition schedule, soreness, and budget. During heavy training or events, sessions may be more frequent but should be planned around performance so deep work does not create unwanted soreness.",
+      "tags": [
+        "athletes",
+        "frequency"
+      ],
+      "relatedServices": [
+        "sports-massage"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "wellness-046",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage reduce stress?",
+      "answer": "Yes. Stress reduction is one of the most common reasons people seek massage. Massage may help activate a relaxation response, reduce muscle tension, and improve a sense of wellbeing.",
+      "tags": [
+        "stress"
+      ],
+      "relatedServices": [
+        "swedish",
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage",
+        "mayo_massage"
+      ]
+    },
+    {
+      "id": "wellness-047",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage help anxiety?",
+      "answer": "Massage may help reduce anxiety for some people, especially when the environment feels safe and pressure is comfortable. It is supportive wellness care and should not replace mental health treatment when treatment is needed.",
+      "tags": [
+        "anxiety"
+      ],
+      "relatedServices": [
+        "swedish",
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_massage_overview",
+        "mayo_massage"
+      ]
+    },
+    {
+      "id": "wellness-048",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage improve sleep?",
+      "answer": "Massage may improve sleep indirectly by reducing stress, pain, and muscle tension. Relaxation-focused sessions like Swedish or Lomi Lomi are often good choices when sleep is the goal.",
+      "tags": [
+        "sleep"
+      ],
+      "relatedServices": [
+        "swedish",
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage"
+      ]
+    },
+    {
+      "id": "wellness-049",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage lower blood pressure?",
+      "answer": "Some research and clinical sources suggest massage may temporarily lower heart rate or blood pressure through relaxation. People with uncontrolled high blood pressure should get medical guidance before strong massage.",
+      "tags": [
+        "blood pressure"
+      ],
+      "relatedServices": [
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "cleveland_massage",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "wellness-050",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage boost the immune system?",
+      "answer": "Massage is sometimes associated with improved wellbeing and possible immune-related effects, but it should not be relied on to prevent or treat infections. If you are sick, feverish, or contagious, postpone your appointment.",
+      "tags": [
+        "immune system"
+      ],
+      "relatedServices": [
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_massage_overview",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "wellness-051",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage improve circulation?",
+      "answer": "Massage may support blood and lymph movement, especially through gliding strokes, compression, and relaxation. However, circulation-related medical conditions like DVT, uncontrolled heart disease, or severe vascular issues require caution or medical clearance.",
+      "tags": [
+        "circulation"
+      ],
+      "relatedServices": [
+        "swedish",
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "cleveland_massage",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "wellness-052",
+      "category": "relaxation-and-wellness",
+      "question": "Does massage help depression?",
+      "answer": "Massage may help improve mood and reduce stress for some people, including some people with anxiety or depression. It should be considered supportive care, not a substitute for mental health treatment.",
+      "tags": [
+        "depression"
+      ],
+      "relatedServices": [
+        "swedish",
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_massage_overview",
+        "mayo_massage"
+      ]
+    },
+    {
+      "id": "wellness-053",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage reduce headaches?",
+      "answer": "Massage may help headaches related to muscle tension in the neck, shoulders, jaw, or scalp. It is not appropriate as the only response to sudden severe headaches, neurological symptoms, fever, or head injury.",
+      "tags": [
+        "headache"
+      ],
+      "relatedServices": [
+        "trigger-point",
+        "swedish",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "wellness-054",
+      "category": "relaxation-and-wellness",
+      "question": "Can massage increase energy?",
+      "answer": "Some people feel more alert or energized after massage, while others feel sleepy. Swedish, Sports Massage, and shorter focused sessions may feel more energizing than a long deeply relaxing session.",
+      "tags": [
+        "energy"
+      ],
+      "relatedServices": [
+        "swedish",
+        "sports-massage"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "cleveland_massage"
+      ]
+    },
+    {
+      "id": "wellness-055",
+      "category": "relaxation-and-wellness",
+      "question": "Does massage release toxins?",
+      "answer": "Massage does not literally flush undefined toxins out of the body. It can help relaxation, soreness, circulation, lymph movement, and wellbeing, but detox claims should be treated cautiously. Hydration is still helpful because it supports normal body function and comfort.",
+      "tags": [
+        "myths",
+        "toxins"
+      ],
+      "relatedServices": [
+        "swedish"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_massage_overview"
+      ]
+    },
+    {
+      "id": "pregnancy-056",
+      "category": "pregnancy",
+      "question": "Is massage safe during pregnancy?",
+      "answer": "For many pregnant people, prenatal massage is considered safe and can help relaxation, circulation, pain, and swelling. ACOG says side-lying is generally the best massage position during pregnancy. High-risk pregnancy, unusual symptoms, preeclampsia, placental issues, DVT concerns, or medical complications should be discussed with a healthcare provider first.",
+      "tags": [
+        "pregnancy",
+        "safety"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "acog_pregnancy",
+        "american_pregnancy_prenatal"
+      ]
+    },
+    {
+      "id": "pregnancy-057",
+      "category": "pregnancy",
+      "question": "When can I get a prenatal massage?",
+      "answer": "Many sources say prenatal massage can be received during pregnancy, but many spas and therapists choose not to work in the first trimester because miscarriage risk is naturally higher in those early weeks. Always follow the policy of the therapist and your healthcare provider\u2019s advice.",
+      "tags": [
+        "first trimester"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "acog_pregnancy",
+        "american_pregnancy_prenatal"
+      ]
+    },
+    {
+      "id": "pregnancy-058",
+      "category": "pregnancy",
+      "question": "Can massage induce labor?",
+      "answer": "Standard prenatal massage is not intended to induce labor. Some therapists avoid certain pressure points and essential oils before full term. At or near 40 weeks, some clients seek labor-supportive bodywork, but this should only be done with informed consent and appropriate prenatal training.",
+      "tags": [
+        "labor"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "american_pregnancy_prenatal",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pregnancy-059",
+      "category": "pregnancy",
+      "question": "Is side-lying massage better than face-down prenatal massage?",
+      "answer": "Side-lying is widely recommended because it avoids pressure on the abdomen and can be comfortable later in pregnancy. Some therapists use specialized prenatal cushions for face-down positioning, but long prone sessions may become uncomfortable and should be adapted to the client.",
+      "tags": [
+        "positioning"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "acog_pregnancy",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pregnancy-060",
+      "category": "pregnancy",
+      "question": "Can massage help pregnancy sciatica?",
+      "answer": "Prenatal massage may help hip, glute, piriformis, and low back tension that contributes to sciatica-like symptoms during pregnancy. Pressure and positioning should be pregnancy-safe, and new numbness, weakness, or severe symptoms should be discussed with a healthcare provider.",
+      "tags": [
+        "sciatica",
+        "pregnancy"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "pregnancy_review_2021",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pregnancy-061",
+      "category": "pregnancy",
+      "question": "Can massage reduce swelling during pregnancy?",
+      "answer": "Gentle prenatal massage may help comfort and fluid movement in the legs, ankles, and feet. Sudden, severe, or one-sided swelling can be a warning sign and should be medically evaluated rather than treated as routine swelling.",
+      "tags": [
+        "swelling"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "american_pregnancy_prenatal",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "pregnancy-062",
+      "category": "pregnancy",
+      "question": "Are essential oils safe during pregnancy?",
+      "answer": "Essential oils require caution during pregnancy. Some concentrated oils may be avoided because of possible uterine stimulation or sensitivity. Many prenatal therapists use unscented oil or lotion unless the client and provider agree that a specific product is safe.",
+      "tags": [
+        "essential oils"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "pregnancy_review_2021",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pregnancy-063",
+      "category": "pregnancy",
+      "question": "Can I get a massage during my first trimester?",
+      "answer": "Some providers allow first-trimester prenatal massage, while many clinics decline until the second trimester. This is often a policy choice related to early pregnancy risk and caution, not proof that all first-trimester massage is dangerous. Ask your healthcare provider and choose a trained prenatal therapist.",
+      "tags": [
+        "first trimester"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "american_pregnancy_prenatal",
+        "acog_pregnancy"
+      ]
+    },
+    {
+      "id": "pregnancy-064",
+      "category": "pregnancy",
+      "question": "How long should a prenatal massage be?",
+      "answer": "Sixty minutes is usually a practical prenatal massage length. Longer sessions can be uncomfortable because the client may stay in one position too long, especially in prone cushion setups. Comfort and positioning matter more than maximizing session time.",
+      "tags": [
+        "duration"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "pregnancy-065",
+      "category": "pregnancy",
+      "question": "What pressure is safe during pregnancy?",
+      "answer": "Prenatal massage usually uses light to moderate pressure, with careful positioning and avoidance of areas or techniques that may be inappropriate. Deep aggressive pressure on legs, abdomen, or certain points should be avoided unless the therapist is trained and the situation is appropriate.",
+      "tags": [
+        "pressure"
+      ],
+      "relatedServices": [
+        "prenatal"
+      ],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "acog_pregnancy",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "deep-tissue-066",
+      "category": "deep-tissue",
+      "question": "Does Deep Tissue Massage hurt?",
+      "answer": "Deep Tissue can involve discomfort, but it should not feel unsafe, sharp, or unbearable. Productive pressure usually allows you to breathe and relax. If pain causes you to brace, hold your breath, or tense up, ask for less pressure.",
+      "tags": [
+        "pain",
+        "pressure"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "deep-tissue-067",
+      "category": "deep-tissue",
+      "question": "Why am I sore after a massage?",
+      "answer": "Mild soreness can happen after focused or deep work because tissues were compressed, stretched, or challenged. It should usually feel like workout soreness and improve within a day or two. Severe pain, bruising, swelling, numbness, or worsening symptoms are not normal and should be addressed.",
+      "tags": [
+        "soreness"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure",
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "deep-tissue-068",
+      "category": "deep-tissue",
+      "question": "How long should soreness last after massage?",
+      "answer": "Mild post-massage soreness often improves within 24 to 48 hours. If soreness is severe, lasts several days, includes bruising, or feels like injury rather than tenderness, contact the therapist and consider medical advice.",
+      "tags": [
+        "soreness"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "deep-tissue-069",
+      "category": "deep-tissue",
+      "question": "Is pain during massage normal?",
+      "answer": "Some therapeutic work can be intense, but pain is not the goal. Pain can cause protective muscle guarding, which works against the purpose of massage. The best pressure is usually strong enough to be effective but comfortable enough that you can breathe and relax.",
+      "tags": [
+        "pain"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "trigger-point"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "deep-tissue-070",
+      "category": "deep-tissue",
+      "question": "What is the difference between good pain and bad pain in massage?",
+      "answer": "Good discomfort usually feels broad, tolerable, and relieving, and you can breathe through it. Bad pain feels sharp, burning, electric, nauseating, numbing, or makes you tense up. Bad pain should be stopped or modified immediately.",
+      "tags": [
+        "pressure",
+        "communication"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "deep-tissue-071",
+      "category": "deep-tissue",
+      "question": "Can Deep Tissue Massage cause bruising?",
+      "answer": "Deep pressure can sometimes cause bruising, especially in people who bruise easily, take blood thinners, have fragile skin, or receive overly forceful work. Bruising is not a sign that the massage was better. Pressure should be adapted to the client.",
+      "tags": [
+        "bruising"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "amta_medication"
+      ]
+    },
+    {
+      "id": "deep-tissue-072",
+      "category": "deep-tissue",
+      "question": "Why do massage therapists use elbows?",
+      "answer": "Elbows allow the therapist to apply broad, sustained pressure without overusing their hands. In Deep Tissue, elbows may be used on larger muscles like glutes, hips, back, or thighs. The pressure should still be controlled and adjusted to your feedback.",
+      "tags": [
+        "techniques"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "deep-tissue-073",
+      "category": "deep-tissue",
+      "question": "Why do massage therapists use forearms?",
+      "answer": "Forearms provide broad pressure and smooth contact, which can be useful for warming tissue, working larger muscle groups, and delivering firm pressure without sharpness. Lomi Lomi and Deep Tissue often use forearm-based work.",
+      "tags": [
+        "techniques"
+      ],
+      "relatedServices": [
+        "deep-tissue",
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "deep-tissue-074",
+      "category": "deep-tissue",
+      "question": "Why can't one massage fix chronic pain?",
+      "answer": "Chronic pain often involves long-term tissue changes, nervous system sensitivity, posture, stress, movement habits, sleep, and activity load. One massage may help temporarily, but lasting change often requires repeated sessions plus home care, movement, strengthening, or medical support.",
+      "tags": [
+        "chronic pain"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "deep-tissue-075",
+      "category": "deep-tissue",
+      "question": "How many Deep Tissue sessions do I need?",
+      "answer": "For a simple tight area, one session may help. For chronic pain, recurring tension, or injury history, several sessions over weeks may be more realistic. A therapist may suggest a treatment plan based on response, goals, and how long relief lasts.",
+      "tags": [
+        "treatment plan"
+      ],
+      "relatedServices": [
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-076",
+      "category": "massage-etiquette",
+      "question": "Should I tip my massage therapist?",
+      "answer": "In spas and private wellness settings, tipping is common but not usually required. In clinical, medical, or some owner-operated settings, tipping norms vary. If you are unsure, ask the front desk or check the booking policy.",
+      "tags": [
+        "tipping"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-077",
+      "category": "massage-etiquette",
+      "question": "How much should I tip for a massage?",
+      "answer": "A common spa tip is 15% to 20% of the service price, but tipping depends on setting, local custom, and your budget. Some businesses include gratuity or do not accept tips, so check the policy.",
+      "tags": [
+        "tipping"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-078",
+      "category": "massage-etiquette",
+      "question": "Should I shave before a massage?",
+      "answer": "You do not need to shave before a massage. Therapists work with all normal body hair. Shaving immediately before massage can sometimes irritate skin, especially if oil, lotion, or friction is applied.",
+      "tags": [
+        "preparation"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-079",
+      "category": "massage-etiquette",
+      "question": "Is it okay to fall asleep during a massage?",
+      "answer": "Yes. Falling asleep is common and usually a sign that you feel relaxed. Therapists are used to it.",
+      "tags": [
+        "comfort"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-080",
+      "category": "massage-etiquette",
+      "question": "What if I snore during a massage?",
+      "answer": "Snoring happens. It is not embarrassing to a professional therapist. If you fall asleep and snore, the therapist will simply continue the session unless they need you to turn over or respond.",
+      "tags": [
+        "comfort"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-081",
+      "category": "massage-etiquette",
+      "question": "What if I drool during a massage?",
+      "answer": "Drooling can happen when you are face down and relaxed. It is normal and not a problem for the therapist.",
+      "tags": [
+        "comfort"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-082",
+      "category": "massage-etiquette",
+      "question": "Can I ask for music changes during a massage?",
+      "answer": "Yes. You can ask for different music, lower volume, no music, warmer temperature, different lighting, or other comfort adjustments when available.",
+      "tags": [
+        "comfort"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-083",
+      "category": "massage-etiquette",
+      "question": "Can I request a male or female massage therapist?",
+      "answer": "Yes. Many clients have preferences for comfort, privacy, culture, trauma history, or personal reasons. Businesses may accommodate based on availability and staffing.",
+      "tags": [
+        "therapist preference"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "etiquette-084",
+      "category": "massage-etiquette",
+      "question": "Can I stop a massage early?",
+      "answer": "Yes. You can stop a massage at any time for any reason. You can also ask to change pressure, skip an area, adjust draping, or end the session if you feel uncomfortable.",
+      "tags": [
+        "consent"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "etiquette-085",
+      "category": "massage-etiquette",
+      "question": "What if I feel uncomfortable during a massage?",
+      "answer": "Speak up immediately. A professional therapist should respect your boundaries, adjust the session, or stop. You never need to tolerate pressure, touch, positioning, conversation, or draping that feels wrong.",
+      "tags": [
+        "consent",
+        "safety"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mayo_pressure"
+      ]
+    },
+    {
+      "id": "safety-086",
+      "category": "safety",
+      "question": "Who should avoid massage?",
+      "answer": "People with certain conditions may need to avoid or modify massage, including active blood clots, uncontrolled high blood pressure, blood-clotting disorders, recent fractures, open wounds, infectious disease, fever, recent heart attack, severe osteoporosis, or unstable medical conditions. Medical clearance is wise when in doubt.",
+      "tags": [
+        "contraindications"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions",
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "safety-087",
+      "category": "safety",
+      "question": "Can I get a massage if I'm sick?",
+      "answer": "If you have a contagious illness, fever, flu-like symptoms, or feel acutely unwell, postpone your massage. Massage can be uncomfortable when you are sick and may expose the therapist and other clients.",
+      "tags": [
+        "sick",
+        "fever"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "safety-088",
+      "category": "safety",
+      "question": "Can I get a massage with a fever?",
+      "answer": "No. A fever is a sign that your body is fighting something. Postpone massage until you are well and fever-free, especially for therapeutic or deep work.",
+      "tags": [
+        "fever"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "safety-089",
+      "category": "safety",
+      "question": "Can massage spread cancer?",
+      "answer": "The idea that gentle massage spreads cancer is not supported as a general rule, but cancer care requires specialized modifications. People with cancer or cancer treatment history should work with an oncology-trained massage therapist and coordinate with their care team.",
+      "tags": [
+        "cancer"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "s4om_oncology",
+        "mdanderson_oncology"
+      ]
+    },
+    {
+      "id": "safety-090",
+      "category": "safety",
+      "question": "Is massage safe after surgery?",
+      "answer": "Massage after surgery depends on healing stage, incision status, clot risk, medication, swelling, and the surgeon\u2019s instructions. Do not massage directly over fresh incisions, active wounds, or areas not cleared by the medical team.",
+      "tags": [
+        "surgery"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions",
+        "mdanderson_oncology"
+      ]
+    },
+    {
+      "id": "safety-091",
+      "category": "safety",
+      "question": "Can massage help scar tissue?",
+      "answer": "Massage may help mature scar tissue mobility after wounds are fully closed and cleared. Fresh incisions, open wounds, infection, or fragile healing tissue should not be massaged without medical approval.",
+      "tags": [
+        "scar tissue"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_massage",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "safety-092",
+      "category": "safety",
+      "question": "Is massage safe while taking blood thinners?",
+      "answer": "Massage may need to be modified for people taking blood thinners because bruising or bleeding risk can be higher. Deep Tissue, Ashiatsu, strong sports massage, and cupping may be inappropriate unless cleared. Gentle work may be possible with medical guidance.",
+      "tags": [
+        "blood thinners"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions",
+        "amta_medication"
+      ]
+    },
+    {
+      "id": "safety-093",
+      "category": "safety",
+      "question": "Can massage cause blood clots?",
+      "answer": "Massage is not usually considered a cause of blood clots, but vigorous massage over an existing clot could be dangerous. Suspected DVT, unexplained calf pain, one-sided swelling, warmth, redness, or shortness of breath requires urgent medical care, not massage.",
+      "tags": [
+        "blood clots",
+        "DVT"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions",
+        "nccih_science_safety"
+      ]
+    },
+    {
+      "id": "safety-094",
+      "category": "safety",
+      "question": "When should I talk to my doctor before getting a massage?",
+      "answer": "Talk to your doctor before massage if you have active cancer treatment, recent surgery, blood clots, blood thinners, uncontrolled blood pressure, heart disease, severe osteoporosis, pregnancy complications, recent injury, unexplained pain, infection, or a condition you are unsure about.",
+      "tags": [
+        "medical clearance"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "mayo_medical_precautions",
+        "nccih_science_safety",
+        "acog_pregnancy"
+      ]
+    },
+    {
+      "id": "safety-095",
+      "category": "safety",
+      "question": "Are there risks to massage therapy?",
+      "answer": "Massage is generally low risk when performed appropriately, but rare serious events have been reported, including nerve injury, blood clot complications, or fractures, especially with vigorous massage or high-risk clients. The safest session is matched to health history, tissue tolerance, and current symptoms.",
+      "tags": [
+        "risks"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "moderate",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "nccih_science_safety",
+        "mayo_medical_precautions"
+      ]
+    },
+    {
+      "id": "advanced-096",
+      "category": "advanced-and-specialty",
+      "question": "What is Ashiatsu Massage?",
+      "answer": "Ashiatsu is barefoot massage done on a table with oil or lotion while the therapist uses overhead bars for balance. The therapist uses their feet to create broad, deep gliding pressure and compressions. It is often deeper than standard Deep Tissue and is best for clients who safely want very deep, smooth pressure.",
+      "tags": [
+        "ashiatsu"
+      ],
+      "relatedServices": [
+        "ashiatsu"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": true,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "advanced-097",
+      "category": "advanced-and-specialty",
+      "question": "What is Lomi Lomi Massage?",
+      "answer": "Lomi Lomi is a Hawaiian massage style using long, broad, flowing forearm strokes with oil. It is often soothing, full-body, rhythmic, and therapeutic without the sharper discomfort that some people associate with Deep Tissue.",
+      "tags": [
+        "lomi lomi"
+      ],
+      "relatedServices": [
+        "lomi-lomi"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "advanced-098",
+      "category": "advanced-and-specialty",
+      "question": "What is Thai Massage?",
+      "answer": "Thai Massage, or Thai Yoga Massage, is performed fully clothed on a floor mat. The therapist uses assisted stretching, traction, compressions, and acupressure while the client relaxes and receives the movements passively. It is often a strong match for mobility, flexibility, and tight hips.",
+      "tags": [
+        "thai massage"
+      ],
+      "relatedServices": [
+        "thai"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "advanced-099",
+      "category": "advanced-and-specialty",
+      "question": "What is Trigger Point Therapy?",
+      "answer": "Trigger Point Therapy focuses on tight, tender knots that may cause local or referred pain. The therapist may use sustained pressure or specific techniques to calm the trigger point and improve comfort or range of motion. It is often included inside Deep Tissue or Sports Massage.",
+      "tags": [
+        "trigger point"
+      ],
+      "relatedServices": [
+        "trigger-point",
+        "deep-tissue"
+      ],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "user_taxonomy"
+      ]
+    },
+    {
+      "id": "advanced-100",
+      "category": "advanced-and-specialty",
+      "question": "How do I know which massage therapist is right for me?",
+      "answer": "Choose a therapist based on your goal, not just the service name. Look for experience with your issue, clear communication, appropriate licensing, comfort with pressure adjustments, and relevant specialty training such as prenatal, sports, oncology, Ashiatsu, Thai, or clinical massage.",
+      "tags": [
+        "choosing therapist"
+      ],
+      "relatedServices": [],
+      "evidenceLevel": "general",
+      "requiresMedicalClearance": false,
+      "sourceRefs": [
+        "mdanderson_oncology",
+        "mayo_massage",
+        "user_taxonomy"
+      ]
+    }
+  ]
+}
