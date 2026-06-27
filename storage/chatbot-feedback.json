@@ -1,5 +1,37 @@
 [
   {
+    "id": "feedback_ac0d0e7d-01fd-4b8f-a222-21a0e03f4c82",
+    "createdAt": "2026-06-27T16:48:33.944Z",
+    "aiVersion": "v2-ai-route-relevance-fix",
+    "source": "nextappt-chat",
+    "rating": "bad",
+    "feedbackText": "Did not give me results for the appointment date requested.",
+    "prompt": "are there any massage appointments available for October 30th?",
+    "normalizedPrompt": "are there any massage appointments available for october 30th?",
+    "assistantAnswer": "Here are live appointment cards that match your search.",
+    "intent": null,
+    "appointmentsShown": [],
+    "appointmentClicked": null,
+    "page": "/ai",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+  },
+  {
+    "id": "feedback_5a2f4486-2294-4647-82b0-8c9c1295a3c7",
+    "createdAt": "2026-06-27T16:46:34.100Z",
+    "aiVersion": "v2-ai-route-relevance-fix",
+    "source": "nextappt-chat",
+    "rating": "good",
+    "feedbackText": "This response was adequate",
+    "prompt": "where is Dimensions Massage Therapy?",
+    "normalizedPrompt": "where is dimensions massage therapy?",
+    "assistantAnswer": "I can answer questions about massage styles, Austin wellness businesses, reviews, amenities, and NextAppt. When you want live appointment cards, ask something like ‘deep tissue massage near me today’ or ‘60 minute massage tomorrow after 4.’",
+    "intent": null,
+    "appointmentsShown": [],
+    "appointmentClicked": null,
+    "page": "/ai",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+  },
+  {
     "id": "feedback_3438b037-8af1-42ea-aafe-c092d7c0c0f7",
     "createdAt": "2026-06-26T17:55:58.482Z",
     "aiVersion": "v1",

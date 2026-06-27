@@ -59,6 +59,27 @@ function setAssistantMessage(message, type = "") {
     <div class="assistant-bubble ${type}">
       ${escapeHtml(message)}
     </div>
+
+    <div class="chat-feedback-box">
+      <button type="button" class="chat-feedback-btn" data-chat-rating="good">
+        👍 Good result
+      </button>
+
+      <button type="button" class="chat-feedback-btn" data-chat-rating="bad">
+        👎 Bad result
+      </button>
+
+      <div class="chat-feedback-form" style="display:none;">
+        <textarea
+          class="chat-feedback-text"
+          placeholder="Tell us what was helpful or wrong..."
+        ></textarea>
+
+        <button type="button" class="chat-feedback-submit">
+          Submit feedback
+        </button>
+      </div>
+    </div>
   `;
 }
 
@@ -1115,4 +1136,71 @@ function showSearchEmailPopup() {
 if (window.location.pathname === "/austin/massage") {
   setTimeout(showSearchEmailPopup, 10000);
 }
+document.addEventListener("click", async (event) => {
+  const ratingButton = event.target.closest("[data-chat-rating]");
+
+  if (ratingButton) {
+    const feedbackBox = ratingButton.closest(".chat-feedback-box");
+    const form = feedbackBox?.querySelector(".chat-feedback-form");
+
+    if (form) {
+      form.style.display = "block";
+      form.dataset.selectedRating = ratingButton.dataset.chatRating || "";
+    }
+
+    return;
+  }
+
+  const submitButton = event.target.closest(".chat-feedback-submit");
+
+  if (!submitButton) {
+    return;
+  }
+
+  const feedbackBox = submitButton.closest(".chat-feedback-box");
+  const feedbackTextInput = feedbackBox?.querySelector(".chat-feedback-text");
+
+  const rating = feedbackBox?.querySelector(".chat-feedback-form")?.dataset.selectedRating || "";
+  const feedbackText = feedbackTextInput?.value || "";
+  const prompt = searchInput?.value?.trim() || "";
+  const assistantAnswer = assistantResponse?.innerText || "";
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Saving...";
+
+  try {
+    const response = await fetch("/api/chatbot-feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        aiVersion: "v1",
+        rating,
+        feedbackText,
+        prompt,
+        normalizedPrompt: prompt.toLowerCase(),
+        assistantAnswer,
+        intent: currentSearchResults?.[0]?.ranking || null,
+        appointmentsShown: currentSearchResults || [],
+        page: window.location.pathname
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Feedback failed");
+    }
+
+    submitButton.textContent = "Saved";
+    if (feedbackTextInput) {
+      feedbackTextInput.disabled = true;
+    }
+  } catch (error) {
+    console.error("Feedback save failed:", error);
+    submitButton.disabled = false;
+    submitButton.textContent = "Try again";
+  }
+});
 initializeApp();

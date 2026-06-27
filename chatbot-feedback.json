@@ -1,0 +1,38 @@
+[
+  {
+    "id": "feedback_761a5593-3d38-4ecf-8f7e-516b784abbab",
+    "createdAt": "2026-06-26T17:25:16.109Z",
+    "rating": "bad",
+    "feedbackText": "Wrong recommendation",
+    "prompt": "My neck hurts",
+    "assistantAnswer": "Try Deep Tissue Massage.",
+    "inferredIntent": null,
+    "searchResultsSnapshot": [],
+    "page": "/austin/massage",
+    "userAgent": "curl/8.5.0"
+  },
+  {
+    "id": "feedback_9fbeab05-1d39-45d2-91e9-2f47389d6a57",
+    "createdAt": "2026-06-26T17:02:09.228Z",
+    "rating": "good",
+    "feedbackText": "Worked perfectly",
+    "prompt": "Need a massage for neck pain",
+    "assistantAnswer": "I recommend Deep Tissue Massage.",
+    "inferredIntent": null,
+    "searchResultsSnapshot": [],
+    "page": "",
+    "userAgent": "curl/8.5.0"
+  },
+  {
+    "id": "feedback_31f9f706-9ae4-46bb-bde8-77b47adde0bf",
+    "createdAt": "2026-06-26T16:50:58.477Z",
+    "rating": "test",
+    "feedbackText": "",
+    "prompt": "test prompt",
+    "assistantAnswer": "",
+    "inferredIntent": null,
+    "searchResultsSnapshot": [],
+    "page": "",
+    "userAgent": ""
+  }
+]

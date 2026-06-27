@@ -1,0 +1,912 @@
+diff --git a/api/aiSearchRoutes.js b/api/aiSearchRoutes.js
+index 36bd4f4..8aaf3e2 100644
+--- a/api/aiSearchRoutes.js
++++ b/api/aiSearchRoutes.js
+@@ -611,6 +611,338 @@ function appointmentMatchesRelevantBusiness(appointment, relevantBusinesses = []
+   return relevantNames.some((name) => apptName === name || apptName.includes(name));
+ }
+ 
++function queryExplicitlyRequestsAppointments(query = "", body = {}) {
++  if (body.shouldShowAppointments === true) return true;
++
++  const text = normalize(query);
++
++  const explicitAppointmentSignals = [
++    "appointment",
++    "appointments",
++    "available",
++    "availability",
++    "opening",
++    "openings",
++    "book",
++    "booking",
++    "schedule",
++    "next available",
++    "soonest",
++    "asap",
++    "right now",
++    "near me",
++    "today",
++    "tomorrow",
++    "tonight",
++    "this weekend",
++    "what times",
++    "when is",
++    "when can i"
++  ];
++
++  if (explicitAppointmentSignals.some((signal) => text.includes(signal))) {
++    return true;
++  }
++
++  const serviceWords = [
++    "massage",
++    "deep tissue",
++    "swedish",
++    "sports massage",
++    "thai",
++    "ashiatsu",
++    "prenatal",
++    "trigger point",
++    "lomi"
++  ];
++
++  const shoppingWords = [
++    "i need",
++    "i want",
++    "looking for",
++    "find me",
++    "show me",
++    "get me",
++    "need a",
++    "want a"
++  ];
++
++  return (
++    serviceWords.some((word) => text.includes(word)) &&
++    shoppingWords.some((word) => text.includes(word))
++  );
++}
++
++function queryLooksInfoOnly(query = "", body = {}) {
++  if (body.shouldShowAppointments === false) return true;
++
++  const text = normalize(query);
++
++  const infoSignals = [
++    "tell me about",
++    "what is",
++    "what are",
++    "explain",
++    "describe",
++    "difference between",
++    "compare",
++    "which is better",
++    "how does",
++    "why does",
++    "reviews",
++    "review",
++    "about this business",
++    "about the business"
++  ];
++
++  return infoSignals.some((signal) => text.includes(signal));
++}
++
++function classifyAiPrompt(query = "", conversationState = {}, body = {}) {
++  if (queryExplicitlyRequestsAppointments(query, body)) {
++    return "appointment_search";
++  }
++
++  const text = normalize(query);
++  const businessInfoSignals = [
++    "tell me about",
++    "describe",
++    "reviews",
++    "review",
++    "about this business",
++    "about the business"
++  ];
++
++  if (
++    queryLooksInfoOnly(query, body) &&
++    businessInfoSignals.some((signal) => text.includes(signal))
++  ) {
++    return "business_info";
++  }
++
++  if (queryLooksInfoOnly(query, body)) {
++    return "general_info";
++  }
++
++  return "appointment_search";
++}
++
++function getBusinessSearchText(business = {}) {
++  return normalize(
++    [
++      business.businessName,
++      business.name,
++      business.businessType,
++      business.address,
++      business.positioning?.shortDescription,
++      ...(business.positioning?.bestFor || []),
++      ...(business.positioning?.styleTags || []),
++      ...(business.specialties || []),
++      ...(business.amenities || []),
++      ...(business.clientTypes || [])
++    ]
++      .filter(Boolean)
++      .join(" ")
++  );
++}
++
++function findBusinessInfoMatch(query = "", businessKnowledge = []) {
++  const text = normalize(query);
++
++  if (!Array.isArray(businessKnowledge)) return null;
++
++  const sortedBusinesses = [...businessKnowledge].sort((a, b) => {
++    const aName = String(a.businessName || a.name || "");
++    const bName = String(b.businessName || b.name || "");
++    return bName.length - aName.length;
++  });
++
++  for (const business of sortedBusinesses) {
++    const name = normalize(business.businessName || business.name || "");
++
++    if (name && text.includes(name)) {
++      return business;
++    }
++
++    const compactName = name.replace(/\s+/g, "");
++    const compactText = text.replace(/\s+/g, "");
++
++    if (compactName && compactText.includes(compactName)) {
++      return business;
++    }
++  }
++
++  const meaningfulWords = text
++    .replace(/\b(tell|me|about|the|business|reviews|review|describe|what|is)\b/g, " ")
++    .split(" ")
++    .map((word) => word.trim())
++    .filter((word) => word.length > 3);
++
++  if (!meaningfulWords.length) return null;
++
++  return (
++    sortedBusinesses.find((business) => {
++      const haystack = getBusinessSearchText(business);
++      return meaningfulWords.every((word) => haystack.includes(word));
++    }) || null
++  );
++}
++
++function formatList(values = [], maxItems = 4) {
++  if (!Array.isArray(values)) return "";
++
++  return values
++    .filter(Boolean)
++    .slice(0, maxItems)
++    .join(", ");
++}
++
++function buildBusinessInfoAnswer(query = "", businessKnowledge = [], relevantBusinesses = []) {
++  const business =
++    findBusinessInfoMatch(query, businessKnowledge) ||
++    (Array.isArray(relevantBusinesses) && relevantBusinesses.length === 1
++      ? relevantBusinesses[0]
++      : null);
++
++  if (!business) {
++    return "I can help with business details, but I do not have enough profile information loaded for that specific business yet. Try asking for live appointments, or include the exact business name.";
++  }
++
++  const businessName = business.businessName || business.name || "This business";
++  const shortDescription =
++    business.positioning?.shortDescription ||
++    business.shortDescription ||
++    business.description ||
++    "";
++
++  const bestFor = formatList(business.positioning?.bestFor || business.bestFor || []);
++  const specialties = formatList(business.specialties || []);
++  const amenities = formatList(business.amenities || []);
++  const address = business.address || "";
++
++  const parts = [];
++
++  if (shortDescription) {
++    parts.push(`${businessName} is ${shortDescription}`);
++  } else {
++    parts.push(`${businessName} is a massage/wellness business listed on NextAppt.`);
++  }
++
++  if (specialties) {
++    parts.push(`Known services or specialties include ${specialties}.`);
++  }
++
++  if (bestFor) {
++    parts.push(`It may be a good fit for ${bestFor}.`);
++  }
++
++  if (amenities) {
++    parts.push(`Amenities or related offerings include ${amenities}.`);
++  }
++
++  if (address) {
++    parts.push(`Address: ${address}.`);
++  }
++
++  parts.push("Ask for live appointment times if you want current availability for this business.");
++
++  return parts.join(" ");
++}
++
++function loadServiceTaxonomy() {
++  const candidates = [
++    "ai-data/ai-service-taxonomy.json",
++    "ai-service-taxonomy.json",
++    "data/ai-service-taxonomy.json"
++  ];
++
++  for (const relativePath of candidates) {
++    const value = readJson(relativePath, null);
++
++    if (value && typeof value === "object") {
++      return value;
++    }
++  }
++
++  return {};
++}
++
++function findServiceTaxonomyMatch(query = "", taxonomy = {}) {
++  const text = normalize(query);
++
++  for (const [serviceKey, service] of Object.entries(taxonomy || {})) {
++    const name = normalize(service.displayName || serviceKey);
++    const aliases = Array.isArray(service.aliases) ? service.aliases : [];
++
++    if (name && text.includes(name)) {
++      return { serviceKey, ...service };
++    }
++
++    if (text.includes(normalize(serviceKey))) {
++      return { serviceKey, ...service };
++    }
++
++    for (const alias of aliases) {
++      if (alias && text.includes(normalize(alias))) {
++        return { serviceKey, ...service };
++      }
++    }
++  }
++
++  return null;
++}
++
++function buildGeneralInfoAnswer(query = "", matchedIntent = null) {
++  const taxonomy = loadServiceTaxonomy();
++  const matchedService = findServiceTaxonomyMatch(query, taxonomy);
++
++  if (matchedService) {
++    const displayName = matchedService.displayName || "This service";
++    const description = matchedService.description || "";
++    const recommendedFor = formatList(matchedService.recommendedFor || [], 5);
++    const commonGoals = formatList(matchedService.commonGoals || [], 5);
++
++    const parts = [];
++
++    if (description) {
++      parts.push(`${displayName}: ${description}`);
++    } else {
++      parts.push(`${displayName} is one of the massage services NextAppt can help you understand or search for.`);
++    }
++
++    if (recommendedFor) {
++      parts.push(`Commonly recommended for: ${recommendedFor}.`);
++    }
++
++    if (commonGoals) {
++      parts.push(`Common goals include ${commonGoals}.`);
++    }
++
++    parts.push("If you want, ask for live appointment times and I can search current availability.");
++
++    return parts.join(" ");
++  }
++
++  if (matchedIntent?.answer) {
++    return String(matchedIntent.answer);
++  }
++
++  if (matchedIntent?.summary) {
++    return String(matchedIntent.summary);
++  }
++
++  if (matchedIntent?.intentKey || matchedIntent?.displayName) {
++    const label = matchedIntent.displayName || matchedIntent.intentKey;
++    const services = formatList(matchedIntent.recommendedServices || [], 4);
++
++    if (services) {
++      return `${label}: people often look for ${services} for this kind of need. If you want live availability, ask for appointment times and I can search current openings.`;
++    }
++  }
++
++  return "I can help explain massage services, business details, and live appointment availability. For this question, I do not have enough knowledge loaded yet to give a detailed answer.";
++}
++
+ async function fetchSearchUrl(url) {
+   const response = await fetch(url);
+   return response.json();
+@@ -844,11 +1176,42 @@ router.post("/search", async (req, res) => {
+       });
+     }
+ 
+-    const resolvedQuery = mergeQueryWithConversation(
++    const promptMode = classifyAiPrompt(
+       query,
+-      incomingConversationState
++      incomingConversationState,
++      req.body || {}
+     );
+ 
++const directService = inferDirectServiceFromQuery(query);
++const normalizedQuery = normalize(query);
++
++const isStandaloneAppointmentSearch =
++  promptMode === "appointment_search" &&
++  (
++    Boolean(directService) ||
++    normalizedQuery.includes("massage")
++  ) &&
++  (
++    normalizedQuery.includes("appointment") ||
++    normalizedQuery.includes("available") ||
++    normalizedQuery.includes("availability") ||
++    normalizedQuery.includes("next") ||
++    normalizedQuery.includes("near me") ||
++    normalizedQuery.includes("when is") ||
++    normalizedQuery.includes("book") ||
++    normalizedQuery.includes("schedule") ||
++    normalizedQuery.includes("today") ||
++    normalizedQuery.includes("tomorrow") ||
++    normalizedQuery.includes("tonight")
++  );
++
++const resolvedQuery =
++  promptMode === "appointment_search"
++    ? isStandaloneAppointmentSearch
++      ? query
++      : mergeQueryWithConversation(query, incomingConversationState)
++    : query;
++
+     const previousParams = incomingConversationState.lastSearchParams || {};
+ 
+     const intentMap = readJson("ai-data/ai-intent-mapping.json", {});
+@@ -857,7 +1220,9 @@ router.post("/search", async (req, res) => {
+ 
+     const matchedIntent =
+       findMatchingIntent(resolvedQuery, intentMap) ||
+-      incomingConversationState.lastIntent ||
++      (promptMode === "appointment_search"
++        ? incomingConversationState.lastIntent
++        : null) ||
+       null;
+ 
+     const relevantBusinesses = getRelevantBusinesses(
+@@ -866,6 +1231,51 @@ router.post("/search", async (req, res) => {
+       Array.isArray(businessKnowledge) ? businessKnowledge : []
+     );
+ 
++    if (promptMode !== "appointment_search") {
++      const answer =
++        promptMode === "business_info"
++          ? buildBusinessInfoAnswer(
++              resolvedQuery,
++              Array.isArray(businessKnowledge) ? businessKnowledge : [],
++              relevantBusinesses
++            )
++          : buildGeneralInfoAnswer(resolvedQuery, matchedIntent);
++
++      return res.json({
++        success: true,
++        query,
++        resolvedQuery,
++        promptMode,
++        matchedIntent,
++        searchUrlUsed: "",
++        searchParamsUsed: {},
++        answer,
++        appointments: [],
++        relevantBusinesses,
++        conversationState: {
++          lastQuery: query,
++          lastResolvedQuery:
++            incomingConversationState.lastResolvedQuery || resolvedQuery,
++          lastIntent: incomingConversationState.lastIntent || matchedIntent,
++          lastSearchParams: previousParams
++        },
++        debug: {
++          originalQuery: query,
++          resolvedQuery,
++          promptMode,
++          skippedAppointmentSearch: true,
++          reason: "Prompt classified as informational instead of appointment search.",
++          returnedAppointmentCount: 0,
++          amenityDetected: inferAmenityFromQuery(resolvedQuery),
++          needsMedicalDisclaimer: queryNeedsMedicalDisclaimer(
++            resolvedQuery,
++            matchedIntent
++          ),
++          followUpDetected: false
++        }
++      });
++    }
++
+     const liveAppointments = await fetchLiveAppointments(
+       req,
+       resolvedQuery,
+@@ -895,6 +1305,7 @@ router.post("/search", async (req, res) => {
+       success: true,
+       query,
+       resolvedQuery,
++      promptMode,
+       matchedIntent,
+       searchUrlUsed: liveAppointments.url,
+       searchParamsUsed: liveAppointments.searchParams,
+@@ -915,6 +1326,7 @@ router.post("/search", async (req, res) => {
+         fallbackUrls: liveAppointments.fallbackUrls,
+         fallbackResults: liveAppointments.fallbackResults,
+         primaryTotalAppointments: liveAppointments.data?.totalAppointments || 0,
++        promptMode,
+         returnedAppointmentCount: appointments.length,
+         dateTimeFilters: liveAppointments.dateTimeFilters,
+         amenityDetected: inferAmenityFromQuery(resolvedQuery),
+diff --git a/public/ai.js b/public/ai.js
+index 6a0583a..b09ba66 100644
+--- a/public/ai.js
++++ b/public/ai.js
+@@ -12,6 +12,125 @@ const conversationState = {
+   lastAppointments: []
+ };
+ 
++function normalizeText(value = "") {
++  return String(value || "")
++    .toLowerCase()
++    .replace(/\s+/g, " ")
++    .trim();
++}
++
++function shouldShowAppointmentsForPrompt(prompt = "") {
++  const text = normalizeText(prompt);
++
++  const infoOnlyWords = [
++    "tell me about",
++    "what is",
++    "what are",
++    "explain",
++    "describe",
++    "who is",
++    "where is",
++    "reviews",
++    "review",
++    "about this business",
++    "about the business",
++    "difference between",
++    "compare",
++    "why",
++    "how does"
++  ];
++
++  const appointmentWords = [
++    "appointment",
++    "appointments",
++    "available",
++    "availability",
++    "book",
++    "booking",
++    "schedule",
++    "openings",
++    "times",
++    "today",
++    "tomorrow",
++    "tonight",
++    "this weekend",
++    "near me",
++    "next available",
++    "soonest",
++    "asap",
++    "right now",
++    "when is",
++    "when can i",
++    "find me",
++    "show me"
++  ];
++
++  const serviceShoppingWords = [
++    "i need",
++    "i want",
++    "looking for",
++    "find me",
++    "show me",
++    "book",
++    "schedule"
++  ];
++
++  const serviceWords = [
++    "massage",
++    "deep tissue",
++    "swedish",
++    "sports massage",
++    "thai",
++    "ashiatsu",
++    "prenatal",
++    "trigger point",
++    "lomi"
++  ];
++
++  const asksInfoOnly = infoOnlyWords.some((phrase) => text.includes(phrase));
++  const explicitlyAsksAppointments = appointmentWords.some((word) =>
++    text.includes(word)
++  );
++
++  const shoppingForService =
++    serviceWords.some((word) => text.includes(word)) &&
++    serviceShoppingWords.some((word) => text.includes(word));
++
++  if (
++    asksInfoOnly &&
++    !text.includes("appointment") &&
++    !text.includes("appointments") &&
++    !text.includes("available") &&
++    !text.includes("availability") &&
++    !text.includes("book") &&
++    !text.includes("schedule")
++  ) {
++    return false;
++  }
++
++  return explicitlyAsksAppointments || shoppingForService;
++}
++
++function getRequestedResultLimit(prompt = "") {
++  const text = normalizeText(prompt);
++
++  if (
++    text.includes("ten") ||
++    text.includes("10") ||
++    text.includes("many options") ||
++    text.includes("more options") ||
++    text.includes("show more")
++  ) {
++    return 10;
++  }
++
++  if (text.includes("five") || text.includes("5")) {
++    return 5;
++  }
++
++  return 3;
++}
++
+ function escapeHtml(value) {
+   return String(value || "")
+     .replaceAll("&", "&amp;")
+@@ -60,6 +179,13 @@ function groupAppointmentsByBusiness(appointments = []) {
+   return groups;
+ }
+ 
++function limitAppointmentsToTopBusinesses(appointments = [], maxBusinesses = 3) {
++  const groupedBusinesses = groupAppointmentsByBusiness(appointments);
++  const groups = Object.values(groupedBusinesses).slice(0, maxBusinesses);
++
++  return groups.flatMap((group) => group.appointments);
++}
++
+ function getServiceSummary(appointments = []) {
+   const services = [
+     ...new Set(
+@@ -193,7 +319,7 @@ function renderBusinessCards(container, appointments = []) {
+     const nextAppointments = group.appointments.slice(0, 4);
+ 
+     const card = document.createElement("article");
+-    card.className = "business-card";
++    card.className = "business-card ai-compact-business-card";
+     card.id = makeBusinessCardId(businessName);
+ 
+     card.innerHTML = `
+@@ -315,6 +441,44 @@ function renderDebug(container, data) {
+   container.appendChild(debug);
+ }
+ 
++function getLastUserPrompt() {
++  return (
++    [...conversationState.messages]
++      .reverse()
++      .find((msg) => msg.role === "user")?.content || ""
++  );
++}
++
++function buildFeedbackBox(prompt = "", answer = "") {
++  const feedbackBox = document.createElement("div");
++  feedbackBox.className = "chat-feedback-box";
++  feedbackBox.dataset.prompt = prompt || "";
++  feedbackBox.dataset.answer = answer || "";
++
++  feedbackBox.innerHTML = `
++    <button type="button" class="chat-feedback-btn" data-chat-rating="good">
++      👍 Good result
++    </button>
++
++    <button type="button" class="chat-feedback-btn" data-chat-rating="bad">
++      👎 Bad result
++    </button>
++
++    <div class="chat-feedback-form" style="display:none;">
++      <textarea
++        class="chat-feedback-text"
++        placeholder="Tell us what was helpful or wrong..."
++      ></textarea>
++
++      <button type="button" class="chat-feedback-submit">
++        Submit feedback
++      </button>
++    </div>
++  `;
++
++  return feedbackBox;
++}
++
+ function addChatMessage(role, message, options = {}) {
+   const item = document.createElement("div");
+   item.className = `chat-message ${role}`;
+@@ -357,36 +521,57 @@ function addAssistantResultMessage(answer, appointments = [], data = {}) {
+   const resultsWrap = document.createElement("div");
+   resultsWrap.className = "inline-results";
+ 
+-  renderResultsSummary(resultsWrap, appointments);
+-  renderBusinessCards(resultsWrap, appointments);
++  const requestedLimit = getRequestedResultLimit(getLastUserPrompt());
++  const limitedAppointments = limitAppointmentsToTopBusinesses(
++    appointments,
++    requestedLimit
++  );
++
++  renderResultsSummary(resultsWrap, limitedAppointments);
++  renderBusinessCards(resultsWrap, limitedAppointments);
+   renderDebug(resultsWrap, data);
+ 
+   item.appendChild(resultsWrap);
++  item.appendChild(buildFeedbackBox(getLastUserPrompt(), answerText.textContent));
+ 
+-  const feedbackBox = document.createElement("div");
+-  feedbackBox.className = "chat-feedback-box";
+-  feedbackBox.innerHTML = `
+-    <button type="button" class="chat-feedback-btn" data-chat-rating="good">
+-      👍 Good result
+-    </button>
++  chatThread.appendChild(item);
+ 
+-    <button type="button" class="chat-feedback-btn" data-chat-rating="bad">
+-      👎 Bad result
+-    </button>
++  conversationState.messages.push({
++    role: "assistant",
++    content: answerText.textContent,
++    createdAt: new Date().toISOString()
++  });
+ 
+-    <div class="chat-feedback-form" style="display:none;">
+-      <textarea
+-        class="chat-feedback-text"
+-        placeholder="Tell us what was helpful or wrong..."
+-      ></textarea>
++  requestAnimationFrame(() => {
++    item.scrollIntoView({
++      behavior: "smooth",
++      block: "end"
++    });
++  });
+ 
+-      <button type="button" class="chat-feedback-submit">
+-        Submit feedback
+-      </button>
+-    </div>
+-  `;
++  return item;
++}
++
++function addAssistantTextMessage(answer = "", data = {}) {
++  const item = document.createElement("div");
++  item.className = "chat-message assistant";
++
++  const answerText = document.createElement("div");
++  answerText.className = "chat-answer-text";
++  answerText.textContent = answer || "I can help with that.";
++
++  item.appendChild(answerText);
++
++  const debugWrap = document.createElement("div");
++  debugWrap.className = "inline-results";
++  renderDebug(debugWrap, data);
++
++  if (debugWrap.childNodes.length > 0) {
++    item.appendChild(debugWrap);
++  }
++
++  item.appendChild(buildFeedbackBox(getLastUserPrompt(), answerText.textContent));
+ 
+-  item.appendChild(feedbackBox);
+   chatThread.appendChild(item);
+ 
+   conversationState.messages.push({
+@@ -405,18 +590,25 @@ function addAssistantResultMessage(answer, appointments = [], data = {}) {
+   return item;
+ }
+ 
+-function addLoadingMessage(query) {
++function addLoadingMessage(query, showAppointmentLanguage = true) {
+   const item = document.createElement("div");
+   item.className = "chat-message assistant";
+-  item.innerHTML = `
+-    <div class="chat-answer-text">Checking NextAppt data and live appointments...</div>
+-    <div class="inline-results">
+-      <div class="empty-state">
+-        <h2>Searching...</h2>
+-        <p>Checking cached results and live appointment data for “${escapeHtml(query)}”.</p>
++
++  if (showAppointmentLanguage) {
++    item.innerHTML = `
++      <div class="chat-answer-text">Checking NextAppt data and live appointments...</div>
++      <div class="inline-results">
++        <div class="empty-state">
++          <h2>Searching...</h2>
++          <p>Checking cached results and live appointment data for “${escapeHtml(query)}”.</p>
++        </div>
+       </div>
+-    </div>
+-  `;
++    `;
++  } else {
++    item.innerHTML = `
++      <div class="chat-answer-text">Thinking...</div>
++    `;
++  }
+ 
+   chatThread.appendChild(item);
+ 
+@@ -476,7 +668,8 @@ function getPayloadConversationState() {
+     lastQuery: conversationState.lastQuery,
+     lastResolvedQuery: conversationState.lastResolvedQuery,
+     lastIntent: conversationState.lastIntent,
+-    lastSearchParams: conversationState.lastSearchParams
++    lastSearchParams: conversationState.lastSearchParams,
++    lastAppointments: conversationState.lastAppointments
+   };
+ }
+ 
+@@ -484,17 +677,22 @@ async function runAiSearch(promptOverride = "") {
+   const query = String(promptOverride || queryInput.value || "").trim();
+ 
+   if (!query) {
+-    addChatMessage("assistant", "Enter a search first.");
++    addAssistantTextMessage("Enter a search first.");
+     return;
+   }
+ 
++  const frontendShouldShowAppointments = shouldShowAppointmentsForPrompt(query);
++
+   addChatMessage("user", query);
+ 
+   queryInput.value = "";
+   autoResizeTextarea();
+   setSearchingState();
+ 
+-  const loadingMessage = addLoadingMessage(query);
++  const loadingMessage = addLoadingMessage(
++    query,
++    frontendShouldShowAppointments
++  );
+ 
+   try {
+     const response = await fetch("/api/ai/search", {
+@@ -504,7 +702,8 @@ async function runAiSearch(promptOverride = "") {
+       },
+       body: JSON.stringify({
+         query,
+-        conversationState: getPayloadConversationState()
++        conversationState: getPayloadConversationState(),
++        shouldShowAppointments: frontendShouldShowAppointments
+       })
+     });
+ 
+@@ -518,16 +717,41 @@ async function runAiSearch(promptOverride = "") {
+       ? data.appointments
+       : [];
+ 
+-    const answer =
+-      data.answer ||
+-      "Here are live appointment times that match your search.";
++    let answer = data.answer || "";
++
++    const backendPromptMode = data.promptMode || "";
++    const backendSaysAppointmentSearch =
++      backendPromptMode === "appointment_search";
++
++    const shouldRenderAppointmentCards =
++      backendSaysAppointmentSearch &&
++      frontendShouldShowAppointments &&
++      appointments.length > 0;
++
++    if (!answer && shouldRenderAppointmentCards) {
++      answer = "Here are live appointment times that match your search.";
++    }
++
++    if (!answer && backendSaysAppointmentSearch && appointments.length === 0) {
++      answer = "I didn’t find live appointment cards that match your search yet. Try a broader search.";
++    }
++
++    if (!answer && !shouldRenderAppointmentCards) {
++      answer =
++        "I can help with that, but I do not have enough information loaded yet to give a detailed answer.";
++    }
+ 
+     updateConversationState(data, query, appointments);
+     removeMessage(loadingMessage);
+-    addAssistantResultMessage(answer, appointments, data);
++
++    if (shouldRenderAppointmentCards) {
++      addAssistantResultMessage(answer, appointments, data);
++    } else {
++      addAssistantTextMessage(answer, data);
++    }
+   } catch (error) {
+     removeMessage(loadingMessage);
+-    addChatMessage("assistant", error.message || "Load failed.");
++    addAssistantTextMessage(error.message || "Load failed.");
+   } finally {
+     clearSearchingState();
+   }
+@@ -589,13 +813,18 @@ document.addEventListener("click", async (event) => {
+   const rating = form?.dataset.selectedRating || "";
+   const feedbackText = feedbackTextInput?.value || "";
+ 
+-  const lastUserMessage = [...conversationState.messages]
+-    .reverse()
+-    .find((msg) => msg.role === "user");
++  const prompt =
++    feedbackBox?.dataset.prompt ||
++    [...conversationState.messages].reverse().find((msg) => msg.role === "user")
++      ?.content ||
++    "";
+ 
+-  const lastAssistantMessage = [...conversationState.messages]
+-    .reverse()
+-    .find((msg) => msg.role === "assistant");
++  const assistantAnswer =
++    feedbackBox?.dataset.answer ||
++    [...conversationState.messages]
++      .reverse()
++      .find((msg) => msg.role === "assistant")?.content ||
++    "";
+ 
+   submitButton.disabled = true;
+   submitButton.textContent = "Saving...";
+@@ -610,9 +839,11 @@ document.addEventListener("click", async (event) => {
+         aiVersion: "v1",
+         rating,
+         feedbackText,
+-        prompt: lastUserMessage?.content || "",
+-        normalizedPrompt: String(lastUserMessage?.content || "").toLowerCase(),
+-        assistantAnswer: lastAssistantMessage?.content || "",
++        prompt,
++        normalizedPrompt: String(prompt || "").toLowerCase(),
++        assistantAnswer,
++        appointmentsShown: conversationState.lastAppointments || [],
++        intent: conversationState.lastIntent || null,
+         page: window.location.pathname
+       })
+     });
