@@ -8,14 +8,59 @@
     "integrationType": "api",
     "apiProvider": "mindbody",
     "credentialId": "dimensions-mindbody-main",
-    "categoryText": "Swedish",
-    "serviceName": "Swedish (60 Minute)",
-    "serviceButtonId": "asrv_114zVp1amd9AdEgfdM",
+    "categoryText": "Deep Tissue",
+    "serviceName": "Deep Tissue (90 Minute)",
+    "serviceButtonId": "asrv_114zVp1amd9AdEgfYG",
+    "sessionTypeId": 31,
+    "platformServiceId": 31,
+    "serviceId": 31,
+    "durationMinutes": 90,
+    "serviceType": "deep_tissue",
     "providerText": "First Available",
     "address": "4477 S Lamar Blvd #410, Austin, TX 78745",
     "latitude": 30.2303605,
     "longitude": -97.7988116,
     "services": [
+      {
+        "serviceName": "Swedish (30 Minute)",
+        "serviceType": "swedish",
+        "durationMinutes": 30,
+        "price": 70,
+        "sessionTypeId": 35,
+        "platformServiceId": 35,
+        "serviceId": 35,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfWE",
+        "enabled": true,
+        "priority": "medium",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": true
+        }
+      },
+      {
+        "serviceName": "Swedish (45 Minute)",
+        "serviceType": "swedish",
+        "durationMinutes": 45,
+        "price": 90,
+        "sessionTypeId": 2069,
+        "platformServiceId": 2069,
+        "serviceId": 2069,
+        "serviceButtonId": "asrv_114zVp1amd9AdEhGai",
+        "enabled": true,
+        "priority": "medium",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": true
+        }
+      },
       {
         "serviceName": "Swedish (60 Minute)",
         "serviceType": "swedish",
@@ -25,177 +70,350 @@
         "platformServiceId": 36,
         "serviceId": 36,
         "serviceButtonId": "asrv_114zVp1amd9AdEgfdM",
+        "enabled": true,
         "priority": "high",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": true
+        }
       },
       {
-        "serviceType": "deep_tissue",
-        "durationMinutes": 30,
+        "serviceName": "Swedish (90 Minute)",
+        "serviceType": "swedish",
+        "durationMinutes": 90,
+        "price": 170,
+        "sessionTypeId": 37,
+        "platformServiceId": 37,
+        "serviceId": 37,
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": true
+        }
+      },
+      {
         "serviceName": "Deep Tissue (30 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEgfWE",
-        "enabled": false,
-        "priority": "medium",
-        "discoveryStatus": "approved"
-      },
-      {
         "serviceType": "deep_tissue",
-        "durationMinutes": 45,
-        "serviceName": "Deep Tissue (45 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEhGai",
-        "enabled": false,
-        "priority": "medium",
-        "discoveryStatus": "approved"
-      },
-      {
-        "serviceType": "deep_tissue",
-        "durationMinutes": 60,
-        "serviceName": "Deep Tissue (60 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEgfXF",
-        "enabled": false,
-        "priority": "medium",
-        "discoveryStatus": "approved"
-      },
-      {
-        "serviceType": "deep_tissue",
-        "durationMinutes": 90,
-        "serviceName": "Deep Tissue (90 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEgfYG",
-        "enabled": false,
-        "priority": "medium",
-        "discoveryStatus": "approved"
-      },
-      {
-        "serviceType": "massage",
         "durationMinutes": 30,
-        "serviceName": "Prenatal (30 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEgfoX",
-        "enabled": false,
+        "price": 70,
+        "sessionTypeId": 29,
+        "platformServiceId": 29,
+        "serviceId": 29,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfWE",
+        "enabled": true,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": true
+        }
       },
       {
-        "serviceType": "massage",
+        "serviceName": "Deep Tissue (45 Minute)",
+        "serviceType": "deep_tissue",
         "durationMinutes": 45,
-        "serviceName": "Prenatal (45 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEhGck",
-        "enabled": false,
+        "price": 90,
+        "sessionTypeId": 2063,
+        "platformServiceId": 2063,
+        "serviceId": 2063,
+        "serviceButtonId": "asrv_114zVp1amd9AdEhGai",
+        "enabled": true,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": true
+        }
       },
       {
-        "serviceType": "massage",
+        "serviceName": "Deep Tissue (60 Minute)",
+        "serviceType": "deep_tissue",
         "durationMinutes": 60,
-        "serviceName": "Prenatal (60 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEgfpY",
-        "enabled": false,
-        "priority": "medium",
-        "discoveryStatus": "approved"
+        "price": 120,
+        "sessionTypeId": 30,
+        "platformServiceId": 30,
+        "serviceId": 30,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfXF",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": true
+        }
       },
       {
-        "serviceType": "massage",
+        "serviceName": "Deep Tissue (90 Minute)",
+        "serviceType": "deep_tissue",
         "durationMinutes": 90,
-        "serviceName": "Prenatal (90 Minute)",
-        "platformServiceId": "",
-        "serviceButtonId": "asrv_114zVp1amd9AdEgfqZ",
-        "enabled": false,
-        "priority": "medium",
-        "discoveryStatus": "approved"
+        "price": 170,
+        "sessionTypeId": 31,
+        "platformServiceId": 31,
+        "serviceId": 31,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfYG",
+        "enabled": true,
+        "priority": "critical",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": true,
+          "inferShorterDurations": true,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "swedish"
+          ],
+          "canBeInferred": false
+        }
       },
       {
-        "serviceType": "massage",
-        "durationMinutes": 60,
         "serviceName": "Lomi Lomi (60 Minute)",
-        "platformServiceId": "",
+        "serviceType": "lomi_lomi",
+        "durationMinutes": 60,
+        "sessionTypeId": 50,
+        "platformServiceId": 50,
+        "serviceId": 50,
         "serviceButtonId": "asrv_114zVp1amd9AdEgfsb",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       },
       {
-        "serviceType": "massage",
-        "durationMinutes": 90,
         "serviceName": "Lomi Lomi (90 Minute)",
-        "platformServiceId": "",
+        "serviceType": "lomi_lomi",
+        "durationMinutes": 90,
+        "sessionTypeId": 51,
+        "platformServiceId": 51,
+        "serviceId": 51,
         "serviceButtonId": "asrv_114zVp1amd9AdEgftc",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       },
       {
-        "serviceType": "massage",
-        "durationMinutes": 60,
         "serviceName": "Ashiatsu (60 Minute)",
-        "platformServiceId": "",
+        "serviceType": "ashiatsu",
+        "durationMinutes": 60,
+        "sessionTypeId": 33,
+        "platformServiceId": 33,
+        "serviceId": 33,
         "serviceButtonId": "asrv_114zVp1amd9AdEgfaJ",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       },
       {
-        "serviceType": "massage",
-        "durationMinutes": 90,
         "serviceName": "Ashiatsu (90 Minute)",
-        "platformServiceId": "",
+        "serviceType": "ashiatsu",
+        "durationMinutes": 90,
+        "sessionTypeId": 34,
+        "platformServiceId": 34,
+        "serviceId": 34,
         "serviceButtonId": "asrv_114zVp1amd9AdEgfbK",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       },
       {
+        "serviceName": "Prenatal (30 Minute)",
+        "serviceType": "prenatal",
+        "durationMinutes": 30,
+        "sessionTypeId": 46,
+        "platformServiceId": 46,
+        "serviceId": 46,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfoX",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
+      },
+      {
+        "serviceName": "Prenatal (45 Minute)",
+        "serviceType": "prenatal",
+        "durationMinutes": 45,
+        "sessionTypeId": 2065,
+        "platformServiceId": 2065,
+        "serviceId": 2065,
+        "serviceButtonId": "asrv_114zVp1amd9AdEhGck",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
+      },
+      {
+        "serviceName": "Prenatal (60 Minute)",
+        "serviceType": "prenatal",
+        "durationMinutes": 60,
+        "sessionTypeId": 47,
+        "platformServiceId": 47,
+        "serviceId": 47,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfpY",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
+      },
+      {
+        "serviceName": "Prenatal (90 Minute)",
+        "serviceType": "prenatal",
+        "durationMinutes": 90,
+        "sessionTypeId": 48,
+        "platformServiceId": 48,
+        "serviceId": 48,
+        "serviceButtonId": "asrv_114zVp1amd9AdEgfqZ",
+        "enabled": false,
+        "priority": "medium",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
+      },
+      {
+        "serviceName": "Sports Massage (30 Minute)",
         "serviceType": "sports",
         "durationMinutes": 30,
-        "serviceName": "Sports Massage (30 Minute)",
-        "platformServiceId": "",
+        "sessionTypeId": 43,
+        "platformServiceId": 43,
+        "serviceId": 43,
         "serviceButtonId": "asrv_114zVp1amd9AdEgfkU",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       },
       {
+        "serviceName": "Sports Massage (45 Minute)",
         "serviceType": "sports",
         "durationMinutes": 45,
-        "serviceName": "Sports Massage (45 Minute)",
-        "platformServiceId": "",
+        "sessionTypeId": 2067,
+        "platformServiceId": 2067,
+        "serviceId": 2067,
         "serviceButtonId": "asrv_114zVp1amd9AdEhGen",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       },
       {
+        "serviceName": "Sports Massage (60 Minute)",
         "serviceType": "sports",
         "durationMinutes": 60,
-        "serviceName": "Sports Massage (60 Minute)",
-        "platformServiceId": "",
+        "sessionTypeId": 44,
+        "platformServiceId": 44,
+        "serviceId": 44,
         "serviceButtonId": "asrv_114zVp1amd9AdEgfmV",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       },
       {
+        "serviceName": "Sports Massage (90 Minute)",
         "serviceType": "sports",
         "durationMinutes": 90,
-        "serviceName": "Sports Massage (90 Minute)",
-        "platformServiceId": "",
+        "sessionTypeId": 45,
+        "platformServiceId": 45,
+        "serviceId": 45,
         "serviceButtonId": "asrv_114zVp1amd9AdEgfnW",
         "enabled": false,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "canBeInferred": false
+        }
       }
     ],
-    "claimStatus": "claimed_verified",
-    "verificationStatus": "verified",
-    "updatedAt": "2026-06-09T23:52:15.150Z",
-    "apiConnectionStatus": "not_connected",
-    "pendingCredentialId": "",
-    "logoUrl": "/uploads/business-logos/dimensions-massage-therapy-1781049128409.png",
-    "logoAlt": "Dimensions Massage Therapy logo"
+    "businessSlug": "dimensions-massage-therapy",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -209,8 +427,8 @@
     "bookingUrl": "https://mantrawellness.co/pages/booking-customized-massage",
     "platform": "mindbody",
     "categoryText": "Massage",
-    "serviceName": "Customized Massage - 60min",
-    "serviceButtonId": "asrv_11kR39GyvHqkZsePeq",
+    "serviceName": "Customized Massage - 120min",
+    "serviceButtonId": "asrv_11kR39GyvHqkZsePjv",
     "providerText": "First Available",
     "address": "8127 Mesa Dr., Suite C304, Austin, TX 78759",
     "latitude": 30.3730985,
@@ -224,7 +442,15 @@
         "serviceButtonId": "asrv_11kR39GyvHqkZsePeq",
         "enabled": true,
         "priority": "high",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "inferenceRole": "inferred"
+        }
       },
       {
         "serviceType": "massage",
@@ -232,9 +458,17 @@
         "serviceName": "Customized Massage - 90min 120 min",
         "platformServiceId": "",
         "serviceButtonId": "asrv_11kR39GyvHqkZsePfr",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "inferenceRole": "inferred"
+        }
       },
       {
         "serviceType": "massage",
@@ -242,9 +476,19 @@
         "serviceName": "Customized Massage - 120min 150 min",
         "platformServiceId": "",
         "serviceButtonId": "asrv_11kR39GyvHqkZsePjv",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": true,
+          "canBeInferred": false,
+          "inferShorterDurations": true,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "anchor"
+        }
       },
       {
         "serviceType": "massage",
@@ -252,11 +496,21 @@
         "serviceName": "Customized Massage - 30min 60 min",
         "platformServiceId": "",
         "serviceButtonId": "asrv_11kR39GyvHqkZsePgs",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [],
+          "inferenceRole": "inferred"
+        }
       }
-    ]
+    ],
+    "businessSlug": "mantra-wellness",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -283,7 +537,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "serasana-southwest-austin",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -310,7 +566,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "serasana-dripping-springs",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -337,7 +595,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "serasana-bee-cave",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -364,7 +624,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "lizard-yoga",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -373,8 +635,8 @@
     "bookingUrl": "https://www.generatorathletelab.com/book-treatment-session",
     "platform": "mindbody",
     "categoryText": "Massage",
-    "serviceName": "Massage Therapy - 60 minutes",
-    "serviceButtonId": "asrv_1153kMBP4YwuFQCxVN",
+    "serviceName": "Massage Therapy - 90 minutes",
+    "serviceButtonId": "asrv_1153kMBP4YwuFQCxib",
     "providerText": "First Available",
     "address": "800 W Cesar Chavez St PP120, Austin, TX 78701",
     "latitude": 30.2666246,
@@ -394,7 +656,7 @@
         "platformServiceId": "asrv_1153kMBP4YwuFQCxib",
         "durationMinutes": 90,
         "serviceType": "massage",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium"
       },
       {
@@ -402,7 +664,7 @@
         "platformServiceId": "asrv_1153kMBP4YwuFQCxzs",
         "durationMinutes": 120,
         "serviceType": "massage",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium"
       },
       {
@@ -410,7 +672,7 @@
         "platformServiceId": "asrv_1153kMBP4YwuFQCxxq",
         "durationMinutes": 30,
         "serviceType": "massage",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium"
       },
       {
@@ -418,7 +680,7 @@
         "platformServiceId": "asrv_1153kMBP4YwuFQCz5w",
         "durationMinutes": 30,
         "serviceType": "sports",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium"
       },
       {
@@ -426,10 +688,12 @@
         "platformServiceId": "asrv_1153kMBP4YwuFQCz6x",
         "durationMinutes": 60,
         "serviceType": "sports",
-        "enabled": false,
+        "enabled": true,
         "priority": "medium"
       }
-    ]
+    ],
+    "businessSlug": "generator-athlete-lab",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -456,7 +720,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "austin-community-wellness",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -491,7 +757,9 @@
         "providerText": "No Preference"
       }
     ],
-    "notes": "Oak Haven custom booking backend. Confirmed direct POST to /backend/endPoints.php with function=checkTherapistFromDB returns appointment inventory for S 1st location."
+    "notes": "Oak Haven custom booking backend. Confirmed direct POST to /backend/endPoints.php with function=checkTherapistFromDB returns appointment inventory for S 1st location.",
+    "businessSlug": "oak-haven-massage-s-1st",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -526,7 +794,9 @@
         "providerText": "No Preference"
       }
     ],
-    "notes": "Oak Haven custom booking backend. Confirmed LocationIds=1 for Austin Pecan Park / 620."
+    "notes": "Oak Haven custom booking backend. Confirmed LocationIds=1 for Austin Pecan Park / 620.",
+    "businessSlug": "oak-haven-massage-pecan-park-620",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -561,33 +831,9 @@
         "providerText": "No Preference"
       }
     ],
-    "notes": "Oak Haven custom booking backend. Confirmed LocationIds=3 for Austin MoPac / 2222."
-  },
-  {
-    "enabled": true,
-    "adminNotes": "",
-    "businessName": "Mantis Massage Airport Boulevard",
-    "platform": "schedulista",
-    "bookingUrl": "https://mantismassage.schedulista.com/",
-    "serviceName": "60 Minute Massage",
-    "serviceId": "1073958786",
-    "chooseTimeUrl": "https://www.schedulista.com/schedule/mantismassage/choose_time?service_id=1073958786",
-    "providerPreference": "no_preference",
-    "address": "3823 Airport Blvd #A, Austin, TX 78722",
-    "latitude": 30.288233,
-    "longitude": -97.707187,
-    "services": [
-      {
-        "serviceType": "massage",
-        "durationMinutes": 60,
-        "serviceName": "60 Minute Massage",
-        "platformServiceId": "1073958786",
-        "serviceButtonId": "",
-        "enabled": true,
-        "priority": "high",
-        "discoveryStatus": "approved"
-      }
-    ]
+    "notes": "Oak Haven custom booking backend. Confirmed LocationIds=3 for Austin MoPac / 2222.",
+    "businessSlug": "oak-haven-massage-mopac-2222",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -595,8 +841,8 @@
     "businessName": "Mantis Massage South Congress",
     "platform": "schedulista",
     "bookingUrl": "https://mantismassage1.schedulista.com/",
-    "serviceName": "60 Minute Massage",
-    "serviceId": "1074317466",
+    "serviceName": "90 Minute Massage",
+    "serviceId": "1074317467",
     "chooseTimeUrl": "https://www.schedulista.com/schedule/mantismassage1/choose_time?service_id=1074317466",
     "providerPreference": "no_preference",
     "address": "2700 S Congress Ave Suite B, Austin, TX 78704",
@@ -605,17 +851,206 @@
     "services": [
       {
         "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "90 Minute Massage",
+        "platformServiceId": "1074317467",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": true,
+          "canBeInferred": false,
+          "inferShorterDurations": true,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "anchor"
+        }
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 75,
+        "serviceName": "75 Minute Massage",
+        "platformServiceId": "1074447813",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "inferred"
+        }
+      },
+      {
+        "serviceType": "massage",
         "durationMinutes": 60,
         "serviceName": "60 Minute Massage",
         "platformServiceId": "1074317466",
         "serviceButtonId": "",
         "enabled": true,
         "priority": "high",
-        "discoveryStatus": "approved"
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "inferred"
+        }
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 45,
+        "serviceName": "45 Minute Massage",
+        "platformServiceId": "1074376591",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "inferred"
+        }
       }
-    ]
+    ],
+    "businessSlug": "mantis-massage-south-congress",
+    "publicPageEnabled": true
   },
-
+  {
+    "enabled": true,
+    "adminNotes": "",
+    "businessName": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "bookingUrl": "https://mantismassage.schedulista.com/",
+    "serviceName": "120 Minute Massage",
+    "serviceId": "1074447812",
+    "chooseTimeUrl": "https://www.schedulista.com/schedule/mantismassage/choose_time?service_id=1073958786",
+    "providerPreference": "no_preference",
+    "address": "3823 Airport Blvd #A, Austin, TX 78722",
+    "latitude": 30.288233,
+    "longitude": -97.707187,
+    "services": [
+      {
+        "serviceType": "massage",
+        "durationMinutes": 120,
+        "serviceName": "120 Minute Massage",
+        "platformServiceId": "1074447812",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": true,
+          "canBeInferred": false,
+          "inferShorterDurations": true,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "anchor"
+        }
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 90,
+        "serviceName": "90 Minute Massage",
+        "platformServiceId": "1073958787",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "inferred"
+        }
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 75,
+        "serviceName": "75 Minute Massage",
+        "platformServiceId": "1074447811",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "inferred"
+        }
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceName": "60 Minute Massage",
+        "platformServiceId": "1073958786",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "inferred"
+        }
+      },
+      {
+        "serviceType": "massage",
+        "durationMinutes": 45,
+        "serviceName": "45 Minute Massage",
+        "platformServiceId": "1074376594",
+        "serviceButtonId": "",
+        "enabled": true,
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "searchInference": {
+          "isInferenceAnchor": false,
+          "canBeInferred": true,
+          "inferShorterDurations": false,
+          "inferStartIntervalMinutes": 15,
+          "inferServiceTypes": [
+            "massage"
+          ],
+          "inferenceRole": "inferred"
+        }
+      }
+    ],
+    "businessSlug": "mantis-massage-airport-boulevard",
+    "publicPageEnabled": true
+  },
   {
     "enabled": true,
     "adminNotes": "",
@@ -640,9 +1075,10 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "indigo-moon",
+    "publicPageEnabled": true
   },
-
   {
     "enabled": true,
     "adminNotes": "",
@@ -666,7 +1102,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "neuro-release-massage",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -742,7 +1180,9 @@
         "priority": "normal",
         "discoveryStatus": "manual"
       }
-    ]
+    ],
+    "businessSlug": "deep-relief",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -765,7 +1205,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "austindeep-lake-austin-blvd",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -788,7 +1230,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "austindeep-4th-congress",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -811,7 +1255,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "austindeep-barton-creek",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -836,7 +1282,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "ace-of-cups-massage-and-wellness",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -859,7 +1307,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "zen-blend",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -884,7 +1334,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "myo-massage",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -919,7 +1371,9 @@
         "priority": "medium",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-heights-mueller",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -954,7 +1408,9 @@
         "priority": "medium",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-heights-southpark-meadows",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -989,7 +1445,9 @@
         "priority": "medium",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-heights-dripping-springs",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1024,7 +1482,9 @@
         "priority": "medium",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-heights-cedar-park",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1197,7 +1657,9 @@
         "priority": "medium",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "spa-sway-westlake",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1370,7 +1832,9 @@
         "priority": "medium",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "spa-sway-the-domain",
+    "publicPageEnabled": true
   },
   {
     "enabled": false,
@@ -1400,7 +1864,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "milk-and-honey-2nd-street-district-austin",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1431,7 +1897,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-circle-c",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1462,7 +1930,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-westlake",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1493,7 +1963,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-southpark-meadows",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1524,7 +1996,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-central-austin",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1555,7 +2029,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-arbor-walk",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1586,7 +2062,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-north-round-rock",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1617,7 +2095,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-cedar-park",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1648,7 +2128,9 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-lakeline",
+    "publicPageEnabled": true
   },
   {
     "enabled": true,
@@ -1679,287 +2161,283 @@
         "priority": "high",
         "discoveryStatus": "approved"
       }
-    ]
+    ],
+    "businessSlug": "massage-envy-kyle",
+    "publicPageEnabled": true
   },
-
   {
-  "businessName": "Form+Function Massage",
-  "platform": "mangomint",
-  "bookingUrl": "https://booking.mangomint.com/formfunctionmassage1",
-  "companyId": "977962",
-  "locationId": "1",
-  "address": "900 E 6th St #103, Austin, TX 78702",
-  "latitude": 30.265407,
-  "longitude": -97.732993,
-  "services": [
-    {
-      "serviceName": "60 Minute Customized Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": 8,
-      "priority": "high",
-      "discoveryStatus": "manual"
-    }
-  ]
-},
-{
-  "businessName": "Cherry Blossoms Massage - Bastrop",
-  "platform": "mangomint",
-  "enabled": true,
-
-  "bookingUrl": "https://booking.mangomint.com/cherryblossomspa",
-
-  "companyId": "548076",
-  "locationId": "1",
-
-  "address": "1011 Chestnut St, Bastrop, TX 78602",
-  "latitude": 30.110359,
-  "longitude": -97.315251,
-
-  "services": [
-    {
-      "serviceName": "Restorative Massage 60 minutes",
-      "serviceType": "Massages",
-      "durationMinutes": 60,
-
-      "serviceId": 193,
-
-      "priority": "high",
-      "discoveryStatus": "manual"
-    }
-  ]
-},
-
-{
-  "businessName": "Cherry Blossoms Massage - Lockhart",
-  "platform": "mangomint",
-  "enabled": true,
-
-  "bookingUrl": "https://booking.mangomint.com/cherryblossomspa",
-
-  "companyId": "548076",
-  "locationId": "2",
-
-  "address": "704 State Park Rd, Lockhart, TX 78644",
-  "latitude": 29.867032,
-  "longitude": -97.67928,
-
-  "services": [
-    {
-      "serviceName": "Restorative Massage 60 minutes",
-      "serviceType": "Massages",
-      "durationMinutes": 60,
-
-      "serviceId": 193,
-
-      "priority": "high",
-      "discoveryStatus": "manual"
-    }
-  ]
-},
-
-{
-  "businessName": "The Massage Studio",
-  "platform": "mangomint",
-  "enabled": true,
-
-  "bookingUrl": "https://booking.mangomint.com/365818",
-
-  "companyId": "365818",
-  "locationId": "1",
-
-  "address": "645 Ranch to Market Rd 967 Ste 109, Buda, TX",
-  "latitude": 30.0890378,
-  "longitude": -97.8495902,
-
-  "services": [
-    {
-      "serviceName": "60 Minute Signature Massage",
-      "serviceType": "Massages",
-      "durationMinutes": 60,
-
-      "serviceId": 76,
-
-      "priority": "high",
-      "discoveryStatus": "manual"
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Austin South",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/austin-south/booking/?center_id=730cad3d-f8a4-4f87-b22a-fd224f1d97ee&step=category",
-  "address": "4301 W William Cannon Dr Bldg. E , Ste 230, Austin, TX 78749",
-  "latitude": 30.220432,
-  "longitude": -97.8930827,
-  "centerId": "730cad3d-f8a4-4f87-b22a-fd224f1d97ee",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Great Hills",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/austin-great-hills/booking/?center_id=b6646905-dc8f-4e0c-8030-e8eefc5e0d7f&step=category",
-  "address": "10740 Research Boulevard #120, Austin, TX 78759",
-  "latitude": 30.391417,
-  "longitude": -97.7500412,
-  "centerId": "b6646905-dc8f-4e0c-8030-e8eefc5e0d7f",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Bee Caves",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/bee-cave/booking/?center_id=31c33694-46c7-4392-8c1e-4846d96615c5&category=ec93e9f1-7885-43b6-9d75-07134a0a0fa4&step=service",
-  "address": "13500 Galleria Cir Ste U-105, Bee Cave, TX 78738",
-  "latitude": 30.3093377,
-  "longitude": -97.938797,
-  "centerId": "31c33694-46c7-4392-8c1e-4846d96615c5",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Avery Ranch",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/austin-avery-ranch/booking/?center_id=d9ad76bf-57f3-45ef-9ae2-cd5253909fc1&step=category",
-  "address": "10526 W Parmer Ln #413, Austin, TX 78717",
-  "latitude": 30.4979419,
-  "longitude": -97.7738018,
-  "centerId": "d9ad76bf-57f3-45ef-9ae2-cd5253909fc1",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Leander",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/leander/booking/?center_id=f140fd5a-93d8-4eda-9cdd-e05617888fd6&step=category",
-  "address": "651 N US Hwy 183 Ste 135, Leander, TX 78641",
-  "latitude": 30.5846814,
-  "longitude": -97.8569479,
-  "centerId": "f140fd5a-93d8-4eda-9cdd-e05617888fd6",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Hutto-Pflugerville",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/hutto-pflugerville/booking/?center_id=68480b2f-88a7-412e-8b10-0c2c6391beb0&step=category",
-  "address": "5004 Gattis School Rd Suite 3, Hutto, TX 78634",
-  "latitude": 30.5039264,
-  "longitude": -97.5820181,
-  "centerId": "68480b2f-88a7-412e-8b10-0c2c6391beb0",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Round Rock",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/round-rock/booking/?center_id=5a972e47-d9ea-46eb-ba28-f426bed08798&step=category",
-  "address": "200 University Blvd #415, Round Rock, TX 78665",
-  "latitude": 30.5614103,
-  "longitude": -97.6896932,
-  "centerId": "5a972e47-d9ea-46eb-ba28-f426bed08798",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-},
-
-{
-  "businessName": "Hand & Stone Massage and Facial Spa - Georgetown",
-  "platform": "hand-stone",
-  "enabled": true,
-  "bookingUrl": "https://handandstone.com/locations/georgetown/booking/?center_id=78a3798a-e77d-4e31-97d5-b3f632e1a77f&step=category",
-  "address": "1225 S I-35 Frontage Rd #115, Georgetown, TX 78626",
-  "latitude": 30.745419,
-  "longitude": -97.636215,
-  "centerId": "78a3798a-e77d-4e31-97d5-b3f632e1a77f",
-  "services": [
-    {
-      "serviceName": "Classic Massage",
-      "serviceType": "massage",
-      "durationMinutes": 60,
-      "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
-      "priority": "high",
-      "discoveryStatus": "approved",
-      "daysForward": 2
-    }
-  ]
-}
-
+    "businessName": "Form+Function Massage",
+    "platform": "mangomint",
+    "bookingUrl": "https://booking.mangomint.com/formfunctionmassage1",
+    "companyId": "977962",
+    "locationId": "1",
+    "address": "900 E 6th St #103, Austin, TX 78702",
+    "latitude": 30.265407,
+    "longitude": -97.732993,
+    "services": [
+      {
+        "serviceName": "60 Minute Customized Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": 8,
+        "priority": "high",
+        "discoveryStatus": "manual"
+      }
+    ],
+    "businessSlug": "form-function-massage",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Cherry Blossoms Massage - Bastrop",
+    "platform": "mangomint",
+    "enabled": true,
+    "bookingUrl": "https://booking.mangomint.com/cherryblossomspa",
+    "companyId": "548076",
+    "locationId": "1",
+    "address": "1011 Chestnut St, Bastrop, TX 78602",
+    "latitude": 30.110359,
+    "longitude": -97.315251,
+    "services": [
+      {
+        "serviceName": "Restorative Massage 60 minutes",
+        "serviceType": "Massages",
+        "durationMinutes": 60,
+        "serviceId": 193,
+        "priority": "high",
+        "discoveryStatus": "manual"
+      }
+    ],
+    "businessSlug": "cherry-blossoms-massage-bastrop",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Cherry Blossoms Massage - Lockhart",
+    "platform": "mangomint",
+    "enabled": true,
+    "bookingUrl": "https://booking.mangomint.com/cherryblossomspa",
+    "companyId": "548076",
+    "locationId": "2",
+    "address": "704 State Park Rd, Lockhart, TX 78644",
+    "latitude": 29.867032,
+    "longitude": -97.67928,
+    "services": [
+      {
+        "serviceName": "Restorative Massage 60 minutes",
+        "serviceType": "Massages",
+        "durationMinutes": 60,
+        "serviceId": 193,
+        "priority": "high",
+        "discoveryStatus": "manual"
+      }
+    ],
+    "businessSlug": "cherry-blossoms-massage-lockhart",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "The Massage Studio",
+    "platform": "mangomint",
+    "enabled": true,
+    "bookingUrl": "https://booking.mangomint.com/365818",
+    "companyId": "365818",
+    "locationId": "1",
+    "address": "645 Ranch to Market Rd 967 Ste 109, Buda, TX",
+    "latitude": 30.0890378,
+    "longitude": -97.8495902,
+    "services": [
+      {
+        "serviceName": "60 Minute Signature Massage",
+        "serviceType": "Massages",
+        "durationMinutes": 60,
+        "serviceId": 76,
+        "priority": "high",
+        "discoveryStatus": "manual"
+      }
+    ],
+    "businessSlug": "the-massage-studio",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Austin South",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/austin-south/booking/?center_id=730cad3d-f8a4-4f87-b22a-fd224f1d97ee&step=category",
+    "address": "4301 W William Cannon Dr Bldg. E , Ste 230, Austin, TX 78749",
+    "latitude": 30.220432,
+    "longitude": -97.8930827,
+    "centerId": "730cad3d-f8a4-4f87-b22a-fd224f1d97ee",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-austin-south",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Great Hills",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/austin-great-hills/booking/?center_id=b6646905-dc8f-4e0c-8030-e8eefc5e0d7f&step=category",
+    "address": "10740 Research Boulevard #120, Austin, TX 78759",
+    "latitude": 30.391417,
+    "longitude": -97.7500412,
+    "centerId": "b6646905-dc8f-4e0c-8030-e8eefc5e0d7f",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-great-hills",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Bee Caves",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/bee-cave/booking/?center_id=31c33694-46c7-4392-8c1e-4846d96615c5&category=ec93e9f1-7885-43b6-9d75-07134a0a0fa4&step=service",
+    "address": "13500 Galleria Cir Ste U-105, Bee Cave, TX 78738",
+    "latitude": 30.3093377,
+    "longitude": -97.938797,
+    "centerId": "31c33694-46c7-4392-8c1e-4846d96615c5",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-bee-caves",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Avery Ranch",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/austin-avery-ranch/booking/?center_id=d9ad76bf-57f3-45ef-9ae2-cd5253909fc1&step=category",
+    "address": "10526 W Parmer Ln #413, Austin, TX 78717",
+    "latitude": 30.4979419,
+    "longitude": -97.7738018,
+    "centerId": "d9ad76bf-57f3-45ef-9ae2-cd5253909fc1",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-avery-ranch",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Leander",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/leander/booking/?center_id=f140fd5a-93d8-4eda-9cdd-e05617888fd6&step=category",
+    "address": "651 N US Hwy 183 Ste 135, Leander, TX 78641",
+    "latitude": 30.5846814,
+    "longitude": -97.8569479,
+    "centerId": "f140fd5a-93d8-4eda-9cdd-e05617888fd6",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-leander",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Hutto-Pflugerville",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/hutto-pflugerville/booking/?center_id=68480b2f-88a7-412e-8b10-0c2c6391beb0&step=category",
+    "address": "5004 Gattis School Rd Suite 3, Hutto, TX 78634",
+    "latitude": 30.5039264,
+    "longitude": -97.5820181,
+    "centerId": "68480b2f-88a7-412e-8b10-0c2c6391beb0",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-hutto-pflugerville",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Round Rock",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/round-rock/booking/?center_id=5a972e47-d9ea-46eb-ba28-f426bed08798&step=category",
+    "address": "200 University Blvd #415, Round Rock, TX 78665",
+    "latitude": 30.5614103,
+    "longitude": -97.6896932,
+    "centerId": "5a972e47-d9ea-46eb-ba28-f426bed08798",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-round-rock",
+    "publicPageEnabled": true
+  },
+  {
+    "businessName": "Hand & Stone Massage and Facial Spa - Georgetown",
+    "platform": "hand-stone",
+    "enabled": true,
+    "bookingUrl": "https://handandstone.com/locations/georgetown/booking/?center_id=78a3798a-e77d-4e31-97d5-b3f632e1a77f&step=category",
+    "address": "1225 S I-35 Frontage Rd #115, Georgetown, TX 78626",
+    "latitude": 30.745419,
+    "longitude": -97.636215,
+    "centerId": "78a3798a-e77d-4e31-97d5-b3f632e1a77f",
+    "services": [
+      {
+        "serviceName": "Classic Massage",
+        "serviceType": "massage",
+        "durationMinutes": 60,
+        "serviceId": "c203c5b8-9080-45e1-afeb-498c72c946fa",
+        "priority": "high",
+        "discoveryStatus": "approved",
+        "daysForward": 2
+      }
+    ],
+    "businessSlug": "hand-and-stone-massage-and-facial-spa-georgetown",
+    "publicPageEnabled": true
+  }
 ]
