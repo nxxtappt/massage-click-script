@@ -354,10 +354,40 @@ function getEnabledServicesForBusiness(business) {
           lookaheadHours:
             service.lookaheadHours ||
             business.lookaheadHours ||
-            null
-        };
-      });
-  }
+            null,
+
+          searchInference:
+            service.searchInference ||
+            null,
+
+          inferenceRole:
+  service.inferenceRole ||
+  service.searchInference?.inferenceRole ||
+  service.inference?.role ||
+  "",
+
+canInfer:
+  service.canInfer === true ||
+  service.searchInference?.isInferenceAnchor === true ||
+  service.searchInference?.inferenceRole === "anchor",
+
+inferShorterDurations:
+  service.inferShorterDurations === true ||
+  service.searchInference?.inferShorterDurations === true ||
+  service.inference?.inferShorterDurations === true,
+
+inferredFromAnchor:
+  service.inferredFromAnchor === true ||
+  service.searchInference?.canBeInferred === true ||
+  service.searchInference?.inferenceRole === "inferred",
+
+inference:
+  service.searchInference ||
+  service.inference ||
+  null
+          };
+          });
+    }
 
   const serviceType = getCanonicalServiceTypeForService(business, business);
 
@@ -394,7 +424,29 @@ function getEnabledServicesForBusiness(business) {
       priority: business.priority || "medium",
       discoveryStatus: business.discoveryStatus || "manual",
       daysForward: business.daysForward || null,
-      lookaheadHours: business.lookaheadHours || null
+      lookaheadHours: business.lookaheadHours || null,
+      searchInference: business.searchInference || null,
+      inferenceRole:
+        business.inferenceRole ||
+        business.searchInference?.inferenceRole ||
+        business.inference?.role ||
+        "",
+      canInfer:
+        business.canInfer === true ||
+        business.searchInference?.isInferenceAnchor === true ||
+        business.searchInference?.inferenceRole === "anchor",
+      inferShorterDurations:
+        business.inferShorterDurations === true ||
+        business.searchInference?.inferShorterDurations === true ||
+        business.inference?.inferShorterDurations === true,
+      inferredFromAnchor:
+        business.inferredFromAnchor === true ||
+        business.searchInference?.canBeInferred === true ||
+        business.searchInference?.inferenceRole === "inferred",
+      inference:
+        business.searchInference ||
+        business.inference ||
+        null
     }
   ];
 }
@@ -612,12 +664,6 @@ function serviceMatchesFilters(service, business, filters = {}) {
     return false;
   }
 
-  if (filters.business) {
-    if (!businessMatchesSearch(business, filters.business)) {
-      return false;
-    }
-  }
-
   const serviceType = normalizeServiceType(service.serviceType);
   const serviceName = normalize(service.serviceName);
   const serviceText = normalize(
@@ -643,22 +689,16 @@ function serviceMatchesFilters(service, business, filters = {}) {
     }
   }
 
-  if (filters.service) {
-    const targetServiceRaw = normalize(filters.service);
-    const targetServiceType = normalizeServiceType(filters.service);
+if (filters.service) {
+  const targetServiceRaw = normalize(filters.service);
 
-    if (targetServiceType === "massage") {
-      if (!genericMassageAllowsService(serviceType)) {
-        return false;
-      }
-    } else if (targetServiceType && targetServiceType !== targetServiceRaw) {
-      if (serviceType !== targetServiceType) {
-        return false;
-      }
-    } else if (!serviceName.includes(targetServiceRaw) && !serviceText.includes(targetServiceRaw)) {
-      return false;
-    }
+  if (
+    !serviceName.includes(targetServiceRaw) &&
+    !serviceText.includes(targetServiceRaw)
+  ) {
+    return false;
   }
+}
 
   if (filters.durationMinutes) {
     if (Number(service.durationMinutes) !== Number(filters.durationMinutes)) {
@@ -745,15 +785,117 @@ function limitServicesPerBusiness(jobs, filters = {}, adminSettings = null) {
 
   return limited;
 }
+function hasExplicitServiceTarget(filters = {}) {
+  return Boolean(
+    filters.service ||
+      filters.serviceName ||
+      filters.serviceId ||
+      filters.platformServiceId ||
+      filters.serviceButtonId ||
+      filters.duration ||
+      filters.durationMinutes
+  );
+}
+
+function serviceIsInferenceAnchor(service = {}) {
+  const searchInference = service.searchInference || service.inference || {};
+
+  return Boolean(
+    service.canInfer === true ||
+      service.inferenceRole === "anchor" ||
+      searchInference.role === "anchor" ||
+      searchInference.inferenceRole === "anchor" ||
+      searchInference.isInferenceAnchor === true
+  );
+}
+
+function businessHasInferenceAnchors(services = []) {
+  return services.some(serviceIsInferenceAnchor);
+}
+
+function filterServicesForInferenceAnchors(services = [], filters = {}) {
+  const anchorOnly =
+    filters.anchorOnly === true ||
+    filters.anchorOnly === "true" ||
+    filters.inferenceOnly === true ||
+    filters.inferenceOnly === "true";
+
+  if (!anchorOnly) {
+    return services;
+  }
+
+  if (hasExplicitServiceTarget(filters)) {
+    return services;
+  }
+
+  if (!businessHasInferenceAnchors(services)) {
+    return services;
+  }
+
+  return services.filter(serviceIsInferenceAnchor);
+}
+function businessMatchesExactNameOrAlias(business = {}, businessSearch = "") {
+  const target = normalize(businessSearch);
+
+  if (!target) {
+    return false;
+  }
+
+  const names = [
+    business.businessName,
+    business.name,
+    business.displayName,
+    business.publicName,
+    business.shortName,
+    business.brandName,
+    ...(Array.isArray(business.searchAliases) ? business.searchAliases : [])
+  ]
+    .map(normalize)
+    .filter(Boolean);
+
+  return names.includes(target);
+}
+
+function getBusinessFilterMode(businesses = [], filters = {}) {
+  if (!filters.business) {
+    return "none";
+  }
+
+  const hasExactMatch = businesses.some((business) =>
+    businessMatchesExactNameOrAlias(business, filters.business)
+  );
+
+  return hasExactMatch ? "exact" : "loose";
+}
+
+function businessPassesBusinessFilter(business = {}, filters = {}, businessFilterMode = "none") {
+  if (!filters.business) {
+    return true;
+  }
+
+  if (businessFilterMode === "exact") {
+    return businessMatchesExactNameOrAlias(business, filters.business);
+  }
+
+  return businessMatchesSearch(business, filters.business);
+}
 
 function buildScrapeJobs(businesses, filters = {}) {
   const adminSettings = loadAdminSettings();
   const jobs = [];
+  const businessFilterMode = getBusinessFilterMode(businesses, filters);
 
   for (const business of businesses) {
     if (business.enabled === false) continue;
 
-    const services = getEnabledServicesForBusiness(business);
+    if (!businessPassesBusinessFilter(business, filters, businessFilterMode)) {
+      continue;
+    }
+
+    const services = filterServicesForInferenceAnchors(
+      getEnabledServicesForBusiness(business),
+      filters
+    );
 
     for (const service of services) {
       if (!servicePassesServiceRules(service, business, filters, adminSettings)) {
@@ -808,6 +950,10 @@ function buildScrapeJobs(businesses, filters = {}) {
         servicePriority: service.priority,
         priority: service.priority,
         discoveryStatus: service.discoveryStatus,
+        searchInference: service.searchInference || service.inference || null,
+        inferenceRole: service.inferenceRole || service.searchInference?.inferenceRole || "",
+        canInfer: service.canInfer === true,
+        inferredFromAnchor: service.inferredFromAnchor === true,
 
         scrapeStartDate: scrapeWindow.scrapeStartDate,
         scrapeEndDate: scrapeWindow.scrapeEndDate,
@@ -833,6 +979,10 @@ module.exports = {
   servicePassesServiceRules,
   serviceMatchesFilters,
   businessMatchesSearch,
+  businessMatchesExactNameOrAlias,
+  businessPassesBusinessFilter,
+  serviceIsInferenceAnchor,
+  filterServicesForInferenceAnchors,
   getScrapeMode,
   getResolvedDaysForward,
   getResolvedScrapeWindow

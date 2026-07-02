@@ -22,7 +22,13 @@ async function runMigration() {
 }
 
 runMigration().catch(async (error) => {
-  console.error("Migration failed:", error.message);
+  console.error("Migration failed.");
+  console.error(error);
+  console.error("Message:", error.message);
+  console.error("Code:", error.code);
+  console.error("Detail:", error.detail);
+  console.error("Stack:", error.stack);
+
   await db.pool.end();
   process.exit(1);
 });

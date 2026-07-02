@@ -40,6 +40,12 @@ const {
 const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
+const {
+  getBusinessPageData
+} = require("./businessManager");
+const {
+  mergeConfirmedAndInferredAppointments
+} = require("./availabilityInferenceEngine");
 const app = express();
 const PORT = 3000;
 const APPOINTMENT_TIME_ZONE = "America/Chicago";
@@ -174,6 +180,35 @@ app.use("/api/analytics", analyticsRoutes);
 
 app.get("/business", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "business.html"));
+});
+
+app.get("/api/business-pages/:slug", (req, res) => {
+  try {
+    const businessPage = getBusinessPageData(req.params.slug);
+
+    if (!businessPage) {
+      return res.status(404).json({
+        success: false,
+        error: "Business page not found."
+      });
+    }
+
+    res.json({
+      success: true,
+      businessPage
+    });
+  } catch (error) {
+    console.error("[BUSINESS PAGE API ERROR]", error);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.get("/business/:slug", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "business-page.html"));
 });
 
 app.get("/admin", requireAdminAuth, (req, res) => {
@@ -417,6 +452,69 @@ function loadCacheBusinesses() {
 
   return businesses;
 }
+function getBusinessConfigByName(businessName) {
+  const businesses = readJsonFile("businesses.json", []);
+
+  if (!Array.isArray(businesses)) {
+    return null;
+  }
+
+  const target = normalizeBusinessKey(businessName);
+
+  return (
+    businesses.find((business) => {
+      return normalizeBusinessKey(
+        business.businessName || business.name
+      ) === target;
+    }) || null
+  );
+}
+
+function applyInferenceToAppointments(appointments = [], options = {}) {
+  if (options.includeInferred !== true) {
+    return appointments;
+  }
+
+  if (!Array.isArray(appointments) || appointments.length === 0) {
+    return appointments;
+  }
+
+  const grouped = new Map();
+
+  appointments.forEach((appointment) => {
+    const businessName = appointment.businessName || "";
+
+    if (!businessName) {
+      return;
+    }
+
+    if (!grouped.has(businessName)) {
+      grouped.set(businessName, []);
+    }
+
+    grouped.get(businessName).push(appointment);
+  });
+
+  const expanded = [];
+
+  grouped.forEach((businessAppointments, businessName) => {
+    const businessConfig = getBusinessConfigByName(businessName);
+
+    if (!businessConfig) {
+      expanded.push(...businessAppointments);
+      return;
+    }
+
+    expanded.push(
+      ...mergeConfirmedAndInferredAppointments(
+        businessAppointments,
+        businessConfig
+      )
+    );
+  });
+
+  return dedupeAppointments(expanded);
+}
 
 function mergeBusinessesForNormalization(primaryBusinesses, cacheBusinesses) {
   const combined = [];
@@ -599,28 +697,37 @@ function buildBusinessMetadataMap() {
 
     if (!key) return;
 
-        map[key] = {
-      address: business.address || "",
-      latitude:
-        business.latitude !== undefined &&
-        business.latitude !== null &&
-        business.latitude !== ""
-          ? Number(business.latitude)
-          : null,
-      longitude:
-        business.longitude !== undefined &&
-        business.longitude !== null &&
-        business.longitude !== ""
-          ? Number(business.longitude)
-          : null,
-      logoUrl: business.logoUrl || "",
-      logoAlt: business.logoAlt || "",
-      claimed: business.claimed === true,
-      verificationStatus: business.verificationStatus || "unclaimed",
-      claimedByEmail: business.claimedByEmail || "",
-      claimId: business.claimId || "",
-      businessCategory: business.businessCategory || "wellness"
-    };
+     map[key] = {
+  address: business.address || "",
+  latitude:
+    business.latitude !== undefined &&
+    business.latitude !== null &&
+    business.latitude !== ""
+      ? Number(business.latitude)
+      : null,
+  longitude:
+    business.longitude !== undefined &&
+    business.longitude !== null &&
+    business.longitude !== ""
+      ? Number(business.longitude)
+      : null,
+  logoUrl: business.logoUrl || "",
+  logoAlt: business.logoAlt || "",
+  claimed: business.claimed === true,
+  verificationStatus: business.verificationStatus || "unclaimed",
+  claimedByEmail: business.claimedByEmail || "",
+  claimId: business.claimId || "",
+  businessCategory: business.businessCategory || "wellness",
+
+  businessSlug: business.businessSlug || business.slug || "",
+  businessUrl:
+    business.businessSlug || business.slug
+      ? `/business/${business.businessSlug || business.slug}`
+      : "",
+  reviewSummary: business.reviewSummary || null,
+  activeDeal: business.activeDeal || null,
+  publicProfile: business.publicProfile || null
+};
   });
 
   return map;
@@ -857,8 +964,92 @@ function mergeBusinessMetadata(business, metadataMap) {
       business.claimedByEmail || metadata.claimedByEmail || "",
     claimId:
       business.claimId || metadata.claimId || "",
+businessCategory:
+  business.businessCategory || metadata.businessCategory || "wellness",
+
+businessSlug:
+  business.businessSlug || metadata.businessSlug || "",
+
+businessUrl:
+  business.businessUrl || metadata.businessUrl || "",
+
+reviewSummary:
+  business.reviewSummary || metadata.reviewSummary || null,
+
+activeDeal:
+  business.activeDeal || metadata.activeDeal || null,
+
+publicProfile:
+  business.publicProfile || metadata.publicProfile || null
+  };
+}
+
+function normalizeExistingAppointment(business, appointment = {}) {
+  return {
+    ...appointment,
+
+    businessName:
+      appointment.businessName ||
+      business.businessName ||
+      business.name ||
+      "Unknown Business",
+
     businessCategory:
-      business.businessCategory || metadata.businessCategory || "wellness"
+      appointment.businessCategory ||
+      business.businessCategory ||
+      "wellness",
+
+    platform:
+      appointment.platform ||
+      business.platform ||
+      "unknown",
+
+    bookingUrl:
+      appointment.bookingUrl ||
+      business.bookingUrl ||
+      "",
+
+    address:
+      appointment.address ||
+      business.address ||
+      "",
+
+    latitude:
+      appointment.latitude ?? business.latitude ?? null,
+
+    longitude:
+      appointment.longitude ?? business.longitude ?? null,
+
+    logoUrl:
+      appointment.logoUrl ||
+      business.logoUrl ||
+      "",
+
+    logoAlt:
+      appointment.logoAlt ||
+      business.logoAlt ||
+      appointment.businessName ||
+      business.businessName ||
+      business.name ||
+      "",
+
+    claimed:
+      appointment.claimed === true || business.claimed === true,
+
+    verificationStatus:
+      appointment.verificationStatus ||
+      business.verificationStatus ||
+      "unclaimed",
+
+    claimedByEmail:
+      appointment.claimedByEmail ||
+      business.claimedByEmail ||
+      "",
+
+    claimId:
+      appointment.claimId ||
+      business.claimId ||
+      ""
   };
 }
 
@@ -978,11 +1169,20 @@ function normalizeTimesResult(business, time) {
 function getAppointmentsFromBusiness(business) {
   if (!business || typeof business !== "object") return [];
 
-  if (Array.isArray(business.openings) && business.openings.length > 0) {
-    return business.openings.map((opening) =>
-      normalizeOpeningResult(business, opening)
-    );
-  }
+  if (Array.isArray(business.appointments) && business.appointments.length > 0) {
+  return business.appointments.map((appointment) => {
+    if (
+      appointment.localDateKey ||
+      appointment.localTimeKey ||
+      appointment.startTime ||
+      appointment.sourceType
+    ) {
+      return normalizeExistingAppointment(business, appointment);
+    }
+
+    return normalizeOpeningResult(business, appointment);
+  });
+}
 
   if (Array.isArray(business.appointments) && business.appointments.length > 0) {
     return business.appointments.map((opening) =>
@@ -1582,20 +1782,32 @@ function loadNormalizedAppointments(query, options = {}) {
         ? parsed.businesses
         : [];
 
-let businesses = dedupeBusinesses(
-  mergeBusinessesForNormalization(
-    businessesFromResults,
-    cacheBusinesses
-  )
+let businesses = mergeBusinessesForNormalization(
+  businessesFromResults,
+  cacheBusinesses
 );
 
-  businesses = businesses.map((business) =>
-    mergeBusinessMetadata(business, businessMetadataMap)
-  );
+businesses = businesses.map((business) =>
+  mergeBusinessMetadata(business, businessMetadataMap)
+);
 
  let appointments = businesses.flatMap((business) =>
   getAppointmentsFromBusiness(business)
 );
+
+console.log("[NORMALIZED APPOINTMENT DEBUG]", appointments.slice(0, 10).map((a) => ({
+  businessName: a.businessName,
+  serviceName: a.serviceName,
+  sourceType: a.sourceType,
+  date: a.date,
+  time: a.time,
+  startTime: a.startTime,
+  localDateKey: a.localDateKey,
+  localTimeKey: a.localTimeKey,
+  localSortable: a.localSortable,
+  rawDate: a.rawDate,
+  rawTime: a.rawTime
+})));
 
   const totalAppointmentsBeforeTimingEvaluation = appointments.length;
 
@@ -2143,46 +2355,59 @@ app.get("/api/search", async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      appointmentTimeZone: APPOINTMENT_TIME_ZONE,
-      totalBusinessesInResults: businesses.length,
-      totalAppointmentsBeforeTimingEvaluation,
-      currentLocalSortable: getCurrentLocalSortable(),
-      timingBreakdown,
-      totalAppointments: appointments.length,
-      filtersApplied: {
-        search: req.query.search || "",
-        business: req.query.business || "",
-        platform: req.query.platform || "",
-        service: req.query.service || "",
-        serviceCategory: req.query.serviceCategory || "",
-        duration: req.query.duration || "",
-        hours: req.query.hours || "",
-        limitPerBusiness: req.query.limitPerBusiness || 999,
-        showInvalidDates: req.query.showInvalidDates === "true",
-        showPast: req.query.showPast === "true"
-      },
-      businessesFound: businesses.map((business) => {
-      const businessAppointments =
-  normalizeBusinessResultToAppointments(
-    business
-  );
+const includeInferred = req.query.includeInferred === "true";
 
-        return {
-          businessName:
-            business.businessName || business.name || "Unknown Business",
-          platform: business.platform || "unknown",
-          status: business.status || "unknown",
-          address: business.address || "",
-          latitude: business.latitude ?? null,
-          longitude: business.longitude ?? null,
-          logoUrl: business.logoUrl || "",
-          appointmentsReturnedBeforeFilters: businessAppointments.length
-        };
-      }),
-      appointments
-    });
+const responseAppointments = applyInferenceToAppointments(appointments, {
+  includeInferred
+});
+
+const inferredAppointmentCount = responseAppointments.filter((appointment) => {
+  return appointment.sourceType === "inferred";
+}).length;
+
+res.json({
+  success: true,
+  appointmentTimeZone: APPOINTMENT_TIME_ZONE,
+  totalBusinessesInResults: businesses.length,
+  totalAppointmentsBeforeTimingEvaluation,
+  currentLocalSortable: getCurrentLocalSortable(),
+  timingBreakdown,
+  totalAppointments: responseAppointments.length,
+  confirmedAppointments: appointments.length,
+  inferredAppointments: inferredAppointmentCount,
+  filtersApplied: {
+    search: req.query.search || "",
+    business: req.query.business || "",
+    platform: req.query.platform || "",
+    service: req.query.service || "",
+    serviceCategory: req.query.serviceCategory || "",
+    duration: req.query.duration || "",
+    hours: req.query.hours || "",
+    limitPerBusiness: req.query.limitPerBusiness || 999,
+    showInvalidDates: req.query.showInvalidDates === "true",
+    showPast: req.query.showPast === "true",
+    includeInferred
+  },
+  businessesFound: businesses.map((business) => {
+    const businessAppointments =
+      normalizeBusinessResultToAppointments(
+        business
+      );
+
+    return {
+      businessName:
+        business.businessName || business.name || "Unknown Business",
+      platform: business.platform || "unknown",
+      status: business.status || "unknown",
+      address: business.address || "",
+      latitude: business.latitude ?? null,
+      longitude: business.longitude ?? null,
+      logoUrl: business.logoUrl || "",
+      appointmentsReturnedBeforeFilters: businessAppointments.length
+    };
+  }),
+  appointments: responseAppointments
+});
   } catch (error) {
     console.error("API ERROR:", error);
 

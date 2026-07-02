@@ -1,0 +1,4497 @@
+[
+  {
+    "recordedAt": "2026-06-27T21:30:11.950Z",
+    "runNumber": 3,
+    "business": "Massage Heights",
+    "platform": "zenoti",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 226160,
+    "durationSeconds": 226.16,
+    "sampleCount": 427,
+    "peakTotalRssMb": 1142.09,
+    "peakProcessCount": 12,
+    "peakProcesses": [
+      {
+        "pid": 121054,
+        "rssMb": 124.93,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 121086,
+        "rssMb": 85.42,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 127877,
+        "rssMb": 107.46,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 121088,
+        "rssMb": 39.1,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 121089,
+        "rssMb": 39.14,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 121112,
+        "rssMb": 61.96,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 121105,
+        "rssMb": 54.36,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 127883,
+        "rssMb": 39.17,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 127886,
+        "rssMb": 39.32,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 127926,
+        "rssMb": 86.45,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 127914,
+        "rssMb": 80.11,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 127943,
+        "rssMb": 384.67,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:26:26.329Z",
+      "rootPid": 121054,
+      "processCount": 1,
+      "totalRssMb": 97.43,
+      "processes": [
+        {
+          "pid": 121054,
+          "rssMb": 97.43,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:30:11.865Z",
+      "rootPid": 121054,
+      "processCount": 12,
+      "totalRssMb": 743.39,
+      "processes": [
+        {
+          "pid": 121054,
+          "rssMb": 126.98,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 121086,
+          "rssMb": 85.48,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 138029,
+          "rssMb": 105.45,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 121088,
+          "rssMb": 39.1,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 121089,
+          "rssMb": 39.14,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 121112,
+          "rssMb": 61.91,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 121105,
+          "rssMb": 55.11,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 138038,
+          "rssMb": 39.37,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 138041,
+          "rssMb": 38.99,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 138088,
+          "rssMb": 85.95,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 138084,
+          "rssMb": 65.91,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 138098,
+          "rssMb": 0,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:26:25.788Z",
+    "runNumber": 2,
+    "business": "Massage Heights",
+    "platform": "zenoti",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 224706,
+    "durationSeconds": 224.71,
+    "sampleCount": 428,
+    "peakTotalRssMb": 1157.55,
+    "peakProcessCount": 12,
+    "peakProcesses": [
+      {
+        "pid": 97164,
+        "rssMb": 123.81,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 97196,
+        "rssMb": 86.31,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 114256,
+        "rssMb": 106.57,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 97204,
+        "rssMb": 39.03,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 97205,
+        "rssMb": 39.54,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 97222,
+        "rssMb": 61.92,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 97220,
+        "rssMb": 54.86,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 114260,
+        "rssMb": 39.37,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 114261,
+        "rssMb": 39.38,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 114286,
+        "rssMb": 87.57,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 114276,
+        "rssMb": 91.88,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 114296,
+        "rssMb": 387.31,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:22:41.726Z",
+      "rootPid": 97164,
+      "processCount": 2,
+      "totalRssMb": 136.29,
+      "processes": [
+        {
+          "pid": 97164,
+          "rssMb": 97.76,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 97196,
+          "rssMb": 38.53,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:26:25.753Z",
+      "rootPid": 97164,
+      "processCount": 7,
+      "totalRssMb": 511.79,
+      "processes": [
+        {
+          "pid": 97164,
+          "rssMb": 123.81,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 97196,
+          "rssMb": 86.31,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 114256,
+          "rssMb": 106.32,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 97204,
+          "rssMb": 39.03,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 97205,
+          "rssMb": 39.54,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 97222,
+          "rssMb": 61.92,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 97220,
+          "rssMb": 54.86,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:22:41.078Z",
+    "runNumber": 1,
+    "business": "Massage Heights",
+    "platform": "zenoti",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 222248,
+    "durationSeconds": 222.25,
+    "sampleCount": 427,
+    "peakTotalRssMb": 1194.1,
+    "peakProcessCount": 12,
+    "peakProcesses": [
+      {
+        "pid": 73311,
+        "rssMb": 115.16,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 73324,
+        "rssMb": 86.89,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73399,
+        "rssMb": 105.92,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73326,
+        "rssMb": 39.66,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73327,
+        "rssMb": 39.13,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73347,
+        "rssMb": 61.74,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73342,
+        "rssMb": 53.6,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73404,
+        "rssMb": 39.45,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73405,
+        "rssMb": 39.61,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73431,
+        "rssMb": 88.89,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73429,
+        "rssMb": 84.99,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 73448,
+        "rssMb": 439.06,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:18:59.666Z",
+      "rootPid": 73311,
+      "processCount": 6,
+      "totalRssMb": 379.94,
+      "processes": [
+        {
+          "pid": 73311,
+          "rssMb": 99.17,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 73324,
+          "rssMb": 86.88,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73326,
+          "rssMb": 39.66,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73327,
+          "rssMb": 39.13,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73347,
+          "rssMb": 61.5,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73342,
+          "rssMb": 53.6,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:22:40.987Z",
+      "rootPid": 73311,
+      "processCount": 9,
+      "totalRssMb": 584.48,
+      "processes": [
+        {
+          "pid": 73311,
+          "rssMb": 119.76,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 73324,
+          "rssMb": 86.63,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 90295,
+          "rssMb": 104.11,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73326,
+          "rssMb": 39.66,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73327,
+          "rssMb": 39.13,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73347,
+          "rssMb": 61.6,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 73342,
+          "rssMb": 54.44,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 90297,
+          "rssMb": 39.52,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 90298,
+          "rssMb": 39.63,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:17:26.240Z",
+    "runNumber": 3,
+    "business": "Myo Massage",
+    "platform": "mindbody-old",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 28880,
+    "durationSeconds": 28.88,
+    "sampleCount": 57,
+    "peakTotalRssMb": 701.87,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 70562,
+        "rssMb": 100.37,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 70574,
+        "rssMb": 107.96,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70576,
+        "rssMb": 37.47,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70577,
+        "rssMb": 37.96,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70602,
+        "rssMb": 80.86,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70595,
+        "rssMb": 74.61,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70662,
+        "rssMb": 262.64,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:16:58.241Z",
+      "rootPid": 70562,
+      "processCount": 6,
+      "totalRssMb": 379.22,
+      "processes": [
+        {
+          "pid": 70562,
+          "rssMb": 99.05,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 70574,
+          "rssMb": 85.3,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70576,
+          "rssMb": 37.47,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70577,
+          "rssMb": 37.84,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70602,
+          "rssMb": 61.33,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70595,
+          "rssMb": 58.23,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:17:26.081Z",
+      "rootPid": 70562,
+      "processCount": 7,
+      "totalRssMb": 687.38,
+      "processes": [
+        {
+          "pid": 70562,
+          "rssMb": 100.68,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 70574,
+          "rssMb": 108.05,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70576,
+          "rssMb": 37.47,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70577,
+          "rssMb": 37.96,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70602,
+          "rssMb": 80.86,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70595,
+          "rssMb": 66.83,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 70662,
+          "rssMb": 255.53,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:16:57.359Z",
+    "runNumber": 2,
+    "business": "Myo Massage",
+    "platform": "mindbody-old",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 29030,
+    "durationSeconds": 29.03,
+    "sampleCount": 57,
+    "peakTotalRssMb": 716.84,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 68503,
+        "rssMb": 101.02,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 68522,
+        "rssMb": 107.88,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 68524,
+        "rssMb": 39.17,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 68525,
+        "rssMb": 39.51,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 68551,
+        "rssMb": 81,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 68543,
+        "rssMb": 74.06,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 68600,
+        "rssMb": 274.2,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:16:29.091Z",
+      "rootPid": 68503,
+      "processCount": 5,
+      "totalRssMb": 307.91,
+      "processes": [
+        {
+          "pid": 68503,
+          "rssMb": 99.13,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 68522,
+          "rssMb": 81.15,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68524,
+          "rssMb": 39.17,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68525,
+          "rssMb": 39.38,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68543,
+          "rssMb": 49.08,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:16:57.063Z",
+      "rootPid": 68503,
+      "processCount": 7,
+      "totalRssMb": 699.47,
+      "processes": [
+        {
+          "pid": 68503,
+          "rssMb": 101.3,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 68522,
+          "rssMb": 107.97,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68524,
+          "rssMb": 39.17,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68525,
+          "rssMb": 39.51,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68551,
+          "rssMb": 81,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68543,
+          "rssMb": 66.56,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 68600,
+          "rssMb": 263.96,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:16:28.327Z",
+    "runNumber": 1,
+    "business": "Myo Massage",
+    "platform": "mindbody-old",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 29821,
+    "durationSeconds": 29.82,
+    "sampleCount": 59,
+    "peakTotalRssMb": 700.61,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 66353,
+        "rssMb": 100.09,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 66372,
+        "rssMb": 107.17,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 66374,
+        "rssMb": 39.12,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 66375,
+        "rssMb": 39.52,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 66395,
+        "rssMb": 80.54,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 66391,
+        "rssMb": 76.54,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 66453,
+        "rssMb": 257.63,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:15:59.450Z",
+      "rootPid": 66353,
+      "processCount": 6,
+      "totalRssMb": 382.13,
+      "processes": [
+        {
+          "pid": 66353,
+          "rssMb": 98.77,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 66372,
+          "rssMb": 85.17,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66374,
+          "rssMb": 39.12,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66375,
+          "rssMb": 39.52,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66395,
+          "rssMb": 61.66,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66391,
+          "rssMb": 57.89,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:16:28.238Z",
+      "rootPid": 66353,
+      "processCount": 7,
+      "totalRssMb": 427.06,
+      "processes": [
+        {
+          "pid": 66353,
+          "rssMb": 100.42,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 66372,
+          "rssMb": 107.02,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66374,
+          "rssMb": 39.12,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66375,
+          "rssMb": 39.52,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66395,
+          "rssMb": 77.32,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66391,
+          "rssMb": 63.66,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 66453,
+          "rssMb": 0,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:13:29.700Z",
+    "runNumber": 3,
+    "business": "Massage Envy",
+    "platform": "massage-envy",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 138883,
+    "durationSeconds": 138.88,
+    "sampleCount": 277,
+    "peakTotalRssMb": 665.93,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 55612,
+        "rssMb": 114.6,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 55624,
+        "rssMb": 102.67,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 55626,
+        "rssMb": 38.89,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 55627,
+        "rssMb": 39.59,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 55647,
+        "rssMb": 82.37,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 55643,
+        "rssMb": 81.88,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 64279,
+        "rssMb": 205.93,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:11:11.755Z",
+      "rootPid": 55612,
+      "processCount": 6,
+      "totalRssMb": 387.23,
+      "processes": [
+        {
+          "pid": 55612,
+          "rssMb": 99.36,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 55624,
+          "rssMb": 86.54,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55626,
+          "rssMb": 38.89,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55627,
+          "rssMb": 39.59,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55647,
+          "rssMb": 64.86,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55643,
+          "rssMb": 57.99,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:13:29.560Z",
+      "rootPid": 55612,
+      "processCount": 7,
+      "totalRssMb": 651.96,
+      "processes": [
+        {
+          "pid": 55612,
+          "rssMb": 114.61,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 55624,
+          "rssMb": 102.26,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55626,
+          "rssMb": 38.89,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55627,
+          "rssMb": 39.59,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55647,
+          "rssMb": 81.87,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 55643,
+          "rssMb": 80.07,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 64279,
+          "rssMb": 194.67,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:11:10.815Z",
+    "runNumber": 2,
+    "business": "Massage Envy",
+    "platform": "massage-envy",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 135017,
+    "durationSeconds": 135.02,
+    "sampleCount": 269,
+    "peakTotalRssMb": 670.24,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 46256,
+        "rssMb": 118.16,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 46269,
+        "rssMb": 102.98,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 46271,
+        "rssMb": 39.3,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 46272,
+        "rssMb": 39.22,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 46292,
+        "rssMb": 81.99,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 46290,
+        "rssMb": 80.52,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52377,
+        "rssMb": 208.07,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:08:56.688Z",
+      "rootPid": 46256,
+      "processCount": 6,
+      "totalRssMb": 383.73,
+      "processes": [
+        {
+          "pid": 46256,
+          "rssMb": 99.83,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 46269,
+          "rssMb": 86.23,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46271,
+          "rssMb": 39.3,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46272,
+          "rssMb": 39.22,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46292,
+          "rssMb": 61.57,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46290,
+          "rssMb": 57.58,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:11:10.526Z",
+      "rootPid": 46256,
+      "processCount": 7,
+      "totalRssMb": 655.27,
+      "processes": [
+        {
+          "pid": 46256,
+          "rssMb": 117.23,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 46269,
+          "rssMb": 102.77,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46271,
+          "rssMb": 39.3,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46272,
+          "rssMb": 39.22,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46292,
+          "rssMb": 81.49,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 46290,
+          "rssMb": 78.78,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 54524,
+          "rssMb": 196.48,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:08:55.796Z",
+    "runNumber": 1,
+    "business": "Massage Envy",
+    "platform": "massage-envy",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 158036,
+    "durationSeconds": 158.04,
+    "sampleCount": 315,
+    "peakTotalRssMb": 679.27,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 35431,
+        "rssMb": 127.02,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 35443,
+        "rssMb": 101.89,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35445,
+        "rssMb": 38.85,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35446,
+        "rssMb": 39.39,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35463,
+        "rssMb": 81.88,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35460,
+        "rssMb": 83.53,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 40528,
+        "rssMb": 206.71,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:06:18.562Z",
+      "rootPid": 35431,
+      "processCount": 6,
+      "totalRssMb": 387.4,
+      "processes": [
+        {
+          "pid": 35431,
+          "rssMb": 100.72,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 35443,
+          "rssMb": 86.7,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35445,
+          "rssMb": 38.85,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35446,
+          "rssMb": 39.39,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35463,
+          "rssMb": 64.07,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35460,
+          "rssMb": 57.67,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:08:55.523Z",
+      "rootPid": 35431,
+      "processCount": 7,
+      "totalRssMb": 648.6,
+      "processes": [
+        {
+          "pid": 35431,
+          "rssMb": 127.13,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 35443,
+          "rssMb": 101.98,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35445,
+          "rssMb": 38.85,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35446,
+          "rssMb": 39.39,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35463,
+          "rssMb": 81.73,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35460,
+          "rssMb": 68.51,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 45125,
+          "rssMb": 191.01,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:04:15.654Z",
+    "runNumber": 3,
+    "business": "Zen Blend",
+    "platform": "booker",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 14293,
+    "durationSeconds": 14.29,
+    "sampleCount": 28,
+    "peakTotalRssMb": 708.9,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 33488,
+        "rssMb": 102.17,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 33505,
+        "rssMb": 105,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 33509,
+        "rssMb": 39.2,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 33511,
+        "rssMb": 38.97,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 33540,
+        "rssMb": 80.21,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 33534,
+        "rssMb": 70.4,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 33605,
+        "rssMb": 272.95,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:04:02.094Z",
+      "rootPid": 33488,
+      "processCount": 4,
+      "totalRssMb": 232.35,
+      "processes": [
+        {
+          "pid": 33488,
+          "rssMb": 98.04,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 33505,
+          "rssMb": 56.45,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 33509,
+          "rssMb": 39.2,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 33511,
+          "rssMb": 38.66,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:04:15.647Z",
+      "rootPid": 33488,
+      "processCount": 1,
+      "totalRssMb": 78.61,
+      "processes": [
+        {
+          "pid": 33488,
+          "rssMb": 78.61,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:04:01.356Z",
+    "runNumber": 2,
+    "business": "Zen Blend",
+    "platform": "booker",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 14157,
+    "durationSeconds": 14.16,
+    "sampleCount": 28,
+    "peakTotalRssMb": 690.64,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 32483,
+        "rssMb": 102.95,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 32506,
+        "rssMb": 104.65,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 32508,
+        "rssMb": 38.82,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 32509,
+        "rssMb": 39.45,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 32529,
+        "rssMb": 80.43,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 32526,
+        "rssMb": 70.07,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 32571,
+        "rssMb": 254.27,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:03:47.789Z",
+      "rootPid": 32483,
+      "processCount": 1,
+      "totalRssMb": 90.02,
+      "processes": [
+        {
+          "pid": 32483,
+          "rssMb": 90.02,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:04:01.355Z",
+      "rootPid": 32483,
+      "processCount": 1,
+      "totalRssMb": 84.59,
+      "processes": [
+        {
+          "pid": 32483,
+          "rssMb": 84.59,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:03:47.197Z",
+    "runNumber": 1,
+    "business": "Zen Blend",
+    "platform": "booker",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 13822,
+    "durationSeconds": 13.82,
+    "sampleCount": 27,
+    "peakTotalRssMb": 698.54,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 31454,
+        "rssMb": 103.5,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 31473,
+        "rssMb": 106.91,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 31480,
+        "rssMb": 39.32,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 31482,
+        "rssMb": 38.91,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 31501,
+        "rssMb": 80.44,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 31499,
+        "rssMb": 70.64,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 31536,
+        "rssMb": 258.82,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:03:33.976Z",
+      "rootPid": 31454,
+      "processCount": 2,
+      "totalRssMb": 137.95,
+      "processes": [
+        {
+          "pid": 31454,
+          "rssMb": 97.49,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 31473,
+          "rssMb": 40.46,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:03:47.196Z",
+      "rootPid": 31454,
+      "processCount": 1,
+      "totalRssMb": 0,
+      "processes": [
+        {
+          "pid": 31454,
+          "rssMb": 0,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:01:03.422Z",
+    "runNumber": 3,
+    "business": "Ace of Cups",
+    "platform": "booker",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 14452,
+    "durationSeconds": 14.45,
+    "sampleCount": 28,
+    "peakTotalRssMb": 694.91,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 29348,
+        "rssMb": 100.95,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 29377,
+        "rssMb": 104.9,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 29379,
+        "rssMb": 38.8,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 29380,
+        "rssMb": 38.66,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 29413,
+        "rssMb": 80.95,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 29394,
+        "rssMb": 69.96,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 29453,
+        "rssMb": 260.69,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:00:49.522Z",
+      "rootPid": 29348,
+      "processCount": 1,
+      "totalRssMb": 97.32,
+      "processes": [
+        {
+          "pid": 29348,
+          "rssMb": 97.32,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:01:03.417Z",
+      "rootPid": 29348,
+      "processCount": 1,
+      "totalRssMb": 106.51,
+      "processes": [
+        {
+          "pid": 29348,
+          "rssMb": 106.51,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:00:48.968Z",
+    "runNumber": 2,
+    "business": "Ace of Cups",
+    "platform": "booker",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 14446,
+    "durationSeconds": 14.45,
+    "sampleCount": 28,
+    "peakTotalRssMb": 702.17,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 28321,
+        "rssMb": 103.27,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 28346,
+        "rssMb": 104.14,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 28350,
+        "rssMb": 39.36,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 28351,
+        "rssMb": 39.36,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 28375,
+        "rssMb": 80.53,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 28365,
+        "rssMb": 71.75,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 28404,
+        "rssMb": 263.76,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:00:35.068Z",
+      "rootPid": 28321,
+      "processCount": 1,
+      "totalRssMb": 96.89,
+      "processes": [
+        {
+          "pid": 28321,
+          "rssMb": 96.89,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:00:48.968Z",
+      "rootPid": 28321,
+      "processCount": 1,
+      "totalRssMb": 95.87,
+      "processes": [
+        {
+          "pid": 28321,
+          "rssMb": 95.87,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T21:00:34.520Z",
+    "runNumber": 1,
+    "business": "Ace of Cups",
+    "platform": "booker",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 13358,
+    "durationSeconds": 13.36,
+    "sampleCount": 26,
+    "peakTotalRssMb": 700.55,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 27332,
+        "rssMb": 102.93,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 27358,
+        "rssMb": 104.22,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 27364,
+        "rssMb": 38.87,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 27365,
+        "rssMb": 39.65,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 27384,
+        "rssMb": 80.31,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 27382,
+        "rssMb": 69.99,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 27418,
+        "rssMb": 264.58,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T21:00:21.778Z",
+      "rootPid": 27332,
+      "processCount": 2,
+      "totalRssMb": 135.49,
+      "processes": [
+        {
+          "pid": 27332,
+          "rssMb": 97.12,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 27358,
+          "rssMb": 38.37,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T21:00:34.412Z",
+      "rootPid": 27332,
+      "processCount": 7,
+      "totalRssMb": 698.66,
+      "processes": [
+        {
+          "pid": 27332,
+          "rssMb": 102.93,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 27358,
+          "rssMb": 104.22,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 27364,
+          "rssMb": 38.87,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 27365,
+          "rssMb": 39.65,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 27384,
+          "rssMb": 80.31,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 27382,
+          "rssMb": 69.99,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 27418,
+          "rssMb": 262.69,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:42:40.863Z",
+    "runNumber": 3,
+    "business": "AustinDEEP",
+    "platform": "axl3",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 47448,
+    "durationSeconds": 47.45,
+    "sampleCount": 94,
+    "peakTotalRssMb": 598.48,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 16672,
+        "rssMb": 102.19,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 16690,
+        "rssMb": 98.86,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 16692,
+        "rssMb": 36.84,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 16693,
+        "rssMb": 37.01,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 16720,
+        "rssMb": 77.5,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 16706,
+        "rssMb": 72.8,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 16767,
+        "rssMb": 173.28,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:41:54.182Z",
+      "rootPid": 16672,
+      "processCount": 6,
+      "totalRssMb": 370.9,
+      "processes": [
+        {
+          "pid": 16672,
+          "rssMb": 100.46,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 16690,
+          "rssMb": 82.71,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16692,
+          "rssMb": 36.84,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16693,
+          "rssMb": 36.89,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16720,
+          "rssMb": 59.46,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16706,
+          "rssMb": 54.54,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:42:40.600Z",
+      "rootPid": 16672,
+      "processCount": 7,
+      "totalRssMb": 590.47,
+      "processes": [
+        {
+          "pid": 16672,
+          "rssMb": 102.74,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 16690,
+          "rssMb": 99.24,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16692,
+          "rssMb": 36.84,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16693,
+          "rssMb": 37.01,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16720,
+          "rssMb": 78.48,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 16706,
+          "rssMb": 71.9,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 18988,
+          "rssMb": 164.26,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:41:53.413Z",
+    "runNumber": 2,
+    "business": "AustinDEEP",
+    "platform": "axl3",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 48217,
+    "durationSeconds": 48.22,
+    "sampleCount": 96,
+    "peakTotalRssMb": 608.14,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 13222,
+        "rssMb": 113.85,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 13234,
+        "rssMb": 99.91,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 13236,
+        "rssMb": 39.5,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 13237,
+        "rssMb": 39.19,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 13257,
+        "rssMb": 80.72,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 13251,
+        "rssMb": 70.24,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 15561,
+        "rssMb": 164.73,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:41:06.004Z",
+      "rootPid": 13222,
+      "processCount": 6,
+      "totalRssMb": 380.69,
+      "processes": [
+        {
+          "pid": 13222,
+          "rssMb": 100.43,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 13234,
+          "rssMb": 84.92,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 13236,
+          "rssMb": 39.5,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 13237,
+          "rssMb": 39.19,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 13257,
+          "rssMb": 63.63,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 13251,
+          "rssMb": 53.02,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:41:53.413Z",
+      "rootPid": 13222,
+      "processCount": 1,
+      "totalRssMb": 119.76,
+      "processes": [
+        {
+          "pid": 13222,
+          "rssMb": 119.76,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:41:05.194Z",
+    "runNumber": 1,
+    "business": "AustinDEEP",
+    "platform": "axl3",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 52004,
+    "durationSeconds": 52,
+    "sampleCount": 103,
+    "peakTotalRssMb": 605.85,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 9502,
+        "rssMb": 107.44,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 9514,
+        "rssMb": 99.75,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 9516,
+        "rssMb": 39.1,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 9517,
+        "rssMb": 41.62,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 9535,
+        "rssMb": 80.18,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 9532,
+        "rssMb": 70.57,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 12083,
+        "rssMb": 167.19,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:40:14.042Z",
+      "rootPid": 9502,
+      "processCount": 6,
+      "totalRssMb": 391.57,
+      "processes": [
+        {
+          "pid": 9502,
+          "rssMb": 100.79,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 9514,
+          "rssMb": 86.24,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9516,
+          "rssMb": 39.1,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9517,
+          "rssMb": 41.62,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9535,
+          "rssMb": 65.11,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9532,
+          "rssMb": 58.71,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:41:04.903Z",
+      "rootPid": 9502,
+      "processCount": 7,
+      "totalRssMb": 605.85,
+      "processes": [
+        {
+          "pid": 9502,
+          "rssMb": 107.44,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 9514,
+          "rssMb": 99.75,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9516,
+          "rssMb": 39.1,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9517,
+          "rssMb": 41.62,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9535,
+          "rssMb": 80.18,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 9532,
+          "rssMb": 70.57,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 12083,
+          "rssMb": 167.19,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:38:35.531Z",
+    "runNumber": 3,
+    "business": "Hand & Stone Massage",
+    "platform": "hand-stone",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 10956,
+    "durationSeconds": 10.96,
+    "sampleCount": 21,
+    "peakTotalRssMb": 410.17,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 7934,
+        "rssMb": 129.46,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 7957,
+        "rssMb": 87.04,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7959,
+        "rssMb": 38.85,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7960,
+        "rssMb": 39.05,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7982,
+        "rssMb": 61.57,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7974,
+        "rssMb": 54.2,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:38:25.179Z",
+      "rootPid": 7934,
+      "processCount": 1,
+      "totalRssMb": 79.63,
+      "processes": [
+        {
+          "pid": 7934,
+          "rssMb": 79.63,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:38:35.242Z",
+      "rootPid": 7934,
+      "processCount": 6,
+      "totalRssMb": 391.74,
+      "processes": [
+        {
+          "pid": 7934,
+          "rssMb": 111,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 7957,
+          "rssMb": 87.07,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7959,
+          "rssMb": 38.85,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7960,
+          "rssMb": 39.05,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7982,
+          "rssMb": 61.57,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7974,
+          "rssMb": 54.2,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:38:24.572Z",
+    "runNumber": 2,
+    "business": "Hand & Stone Massage",
+    "platform": "hand-stone",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 9943,
+    "durationSeconds": 9.94,
+    "sampleCount": 19,
+    "peakTotalRssMb": 406.55,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 7235,
+        "rssMb": 127.78,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 7252,
+        "rssMb": 85.81,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7254,
+        "rssMb": 38.74,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7255,
+        "rssMb": 39.04,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7272,
+        "rssMb": 61.6,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 7270,
+        "rssMb": 53.58,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:38:15.160Z",
+      "rootPid": 7235,
+      "processCount": 1,
+      "totalRssMb": 79.11,
+      "processes": [
+        {
+          "pid": 7235,
+          "rssMb": 79.11,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:38:24.280Z",
+      "rootPid": 7235,
+      "processCount": 6,
+      "totalRssMb": 385.69,
+      "processes": [
+        {
+          "pid": 7235,
+          "rssMb": 106.84,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 7252,
+          "rssMb": 85.88,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7254,
+          "rssMb": 38.74,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7255,
+          "rssMb": 39.04,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7272,
+          "rssMb": 61.6,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 7270,
+          "rssMb": 53.59,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:38:14.622Z",
+    "runNumber": 1,
+    "business": "Hand & Stone Massage",
+    "platform": "hand-stone",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 9866,
+    "durationSeconds": 9.87,
+    "sampleCount": 19,
+    "peakTotalRssMb": 407.18,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 6508,
+        "rssMb": 127.37,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 6520,
+        "rssMb": 85.61,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 6522,
+        "rssMb": 39.14,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 6523,
+        "rssMb": 39.34,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 6546,
+        "rssMb": 61.42,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 6536,
+        "rssMb": 54.3,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:38:05.590Z",
+      "rootPid": 6508,
+      "processCount": 6,
+      "totalRssMb": 380.18,
+      "processes": [
+        {
+          "pid": 6508,
+          "rssMb": 100.93,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 6520,
+          "rssMb": 85.3,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 6522,
+          "rssMb": 39.14,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 6523,
+          "rssMb": 39.34,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 6546,
+          "rssMb": 61.32,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 6536,
+          "rssMb": 54.15,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:38:14.586Z",
+      "rootPid": 6508,
+      "processCount": 4,
+      "totalRssMb": 272.58,
+      "processes": [
+        {
+          "pid": 6508,
+          "rssMb": 108.47,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 6520,
+          "rssMb": 85.63,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 6522,
+          "rssMb": 39.14,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 6523,
+          "rssMb": 39.34,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:32:53.041Z",
+    "runNumber": 3,
+    "business": "Oak Haven",
+    "platform": "oakhaven",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 2799,
+    "durationSeconds": 2.8,
+    "sampleCount": 5,
+    "peakTotalRssMb": 403.36,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 4001,
+        "rssMb": 123.3,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 4021,
+        "rssMb": 85.81,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 4028,
+        "rssMb": 39.28,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 4029,
+        "rssMb": 39.35,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 4053,
+        "rssMb": 61.21,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 4048,
+        "rssMb": 54.41,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:32:50.890Z",
+      "rootPid": 4001,
+      "processCount": 2,
+      "totalRssMb": 139.88,
+      "processes": [
+        {
+          "pid": 4001,
+          "rssMb": 97.59,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 4021,
+          "rssMb": 42.29,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:32:53.026Z",
+      "rootPid": 4001,
+      "processCount": 3,
+      "totalRssMb": 119.42,
+      "processes": [
+        {
+          "pid": 4001,
+          "rssMb": 119.42,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 4021,
+          "rssMb": 0,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 4028,
+          "rssMb": 0,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:32:50.237Z",
+    "runNumber": 2,
+    "business": "Oak Haven",
+    "platform": "oakhaven",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 3216,
+    "durationSeconds": 3.22,
+    "sampleCount": 6,
+    "peakTotalRssMb": 403.93,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 3761,
+        "rssMb": 120.23,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 3784,
+        "rssMb": 85.89,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 3786,
+        "rssMb": 41.21,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 3787,
+        "rssMb": 39.3,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 3805,
+        "rssMb": 61.07,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 3801,
+        "rssMb": 56.23,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:32:47.560Z",
+      "rootPid": 3761,
+      "processCount": 1,
+      "totalRssMb": 81.32,
+      "processes": [
+        {
+          "pid": 3761,
+          "rssMb": 81.32,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:32:50.236Z",
+      "rootPid": 3761,
+      "processCount": 3,
+      "totalRssMb": 245.81,
+      "processes": [
+        {
+          "pid": 3761,
+          "rssMb": 118.5,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 3784,
+          "rssMb": 85.97,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 3786,
+          "rssMb": 41.34,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T20:32:47.013Z",
+    "runNumber": 1,
+    "business": "Oak Haven",
+    "platform": "oakhaven",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 36134,
+    "durationSeconds": 36.13,
+    "sampleCount": 71,
+    "peakTotalRssMb": 441.17,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 2387,
+        "rssMb": 101.21,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 2481,
+        "rssMb": 81.27,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 2877,
+        "rssMb": 37.95,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 2880,
+        "rssMb": 38.09,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 3210,
+        "rssMb": 58.17,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 2992,
+        "rssMb": 56.16,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 3353,
+        "rssMb": 68.32,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T20:32:11.425Z",
+      "rootPid": 2387,
+      "processCount": 1,
+      "totalRssMb": 48.02,
+      "processes": [
+        {
+          "pid": 2387,
+          "rssMb": 48.02,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T20:32:46.985Z",
+      "rootPid": 2387,
+      "processCount": 4,
+      "totalRssMb": 245.88,
+      "processes": [
+        {
+          "pid": 2387,
+          "rssMb": 124.29,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 2481,
+          "rssMb": 83.52,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 2877,
+          "rssMb": 38.07,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 2880,
+          "rssMb": 0,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:55:18.670Z",
+    "runNumber": 3,
+    "business": "Generator Athlete Lab",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "96",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 130241,
+    "durationSeconds": 130.24,
+    "sampleCount": 259,
+    "peakTotalRssMb": 784.47,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 79571,
+        "rssMb": 118.69,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 79584,
+        "rssMb": 107.32,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 79586,
+        "rssMb": 39.11,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 79587,
+        "rssMb": 39.07,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 79611,
+        "rssMb": 85.08,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 79605,
+        "rssMb": 71.04,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 79637,
+        "rssMb": 324.16,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:53:09.242Z",
+      "rootPid": 79571,
+      "processCount": 6,
+      "totalRssMb": 385.62,
+      "processes": [
+        {
+          "pid": 79571,
+          "rssMb": 101.75,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 79584,
+          "rssMb": 84.86,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79586,
+          "rssMb": 39.11,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79587,
+          "rssMb": 39.07,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79611,
+          "rssMb": 63.24,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79605,
+          "rssMb": 57.59,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:55:18.398Z",
+      "rootPid": 79571,
+      "processCount": 7,
+      "totalRssMb": 766.86,
+      "processes": [
+        {
+          "pid": 79571,
+          "rssMb": 101.09,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 79584,
+          "rssMb": 107.39,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79586,
+          "rssMb": 39.11,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79587,
+          "rssMb": 39.07,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79611,
+          "rssMb": 85.04,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79605,
+          "rssMb": 71.52,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 79637,
+          "rssMb": 323.64,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:53:08.427Z",
+    "runNumber": 2,
+    "business": "Generator Athlete Lab",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "96",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 130279,
+    "durationSeconds": 130.28,
+    "sampleCount": 260,
+    "peakTotalRssMb": 760.23,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 70072,
+        "rssMb": 117.14,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 70104,
+        "rssMb": 107.58,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70108,
+        "rssMb": 39.39,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70109,
+        "rssMb": 39.15,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70128,
+        "rssMb": 85.37,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70125,
+        "rssMb": 77.69,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 70149,
+        "rssMb": 293.91,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:50:58.718Z",
+      "rootPid": 70072,
+      "processCount": 1,
+      "totalRssMb": 97.45,
+      "processes": [
+        {
+          "pid": 70072,
+          "rssMb": 97.45,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:53:08.413Z",
+      "rootPid": 70072,
+      "processCount": 1,
+      "totalRssMb": 85.28,
+      "processes": [
+        {
+          "pid": 70072,
+          "rssMb": 85.28,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:50:58.146Z",
+    "runNumber": 1,
+    "business": "Generator Athlete Lab",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "96",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 130722,
+    "durationSeconds": 130.72,
+    "sampleCount": 260,
+    "peakTotalRssMb": 784.52,
+    "peakProcessCount": 7,
+    "peakProcesses": [
+      {
+        "pid": 60957,
+        "rssMb": 115.71,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 60976,
+        "rssMb": 109.75,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 60978,
+        "rssMb": 39.32,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 60979,
+        "rssMb": 38.93,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 61003,
+        "rssMb": 84.23,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 60999,
+        "rssMb": 70.45,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 61031,
+        "rssMb": 326.13,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:48:48.191Z",
+      "rootPid": 60957,
+      "processCount": 5,
+      "totalRssMb": 323.68,
+      "processes": [
+        {
+          "pid": 60957,
+          "rssMb": 102.66,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 60976,
+          "rssMb": 85.44,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 60978,
+          "rssMb": 39.32,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 60979,
+          "rssMb": 38.93,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 60999,
+          "rssMb": 57.33,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:50:57.829Z",
+      "rootPid": 60957,
+      "processCount": 7,
+      "totalRssMb": 767.53,
+      "processes": [
+        {
+          "pid": 60957,
+          "rssMb": 100.68,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 60976,
+          "rssMb": 109.88,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 60978,
+          "rssMb": 39.32,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 60979,
+          "rssMb": 38.93,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 61003,
+          "rssMb": 84.15,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 60999,
+          "rssMb": 71.09,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 61031,
+          "rssMb": 323.48,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:39:05.732Z",
+    "runNumber": 3,
+    "business": "Form+Function Massage",
+    "platform": "mangomint",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 1769,
+    "durationSeconds": 1.77,
+    "sampleCount": 3,
+    "peakTotalRssMb": 136.7,
+    "peakProcessCount": 2,
+    "peakProcesses": [
+      {
+        "pid": 56847,
+        "rssMb": 98.22,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 56896,
+        "rssMb": 38.48,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:39:04.567Z",
+      "rootPid": 56847,
+      "processCount": 1,
+      "totalRssMb": 78.45,
+      "processes": [
+        {
+          "pid": 56847,
+          "rssMb": 78.45,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:39:05.731Z",
+      "rootPid": 56847,
+      "processCount": 1,
+      "totalRssMb": 83.71,
+      "processes": [
+        {
+          "pid": 56847,
+          "rssMb": 83.71,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:39:03.956Z",
+    "runNumber": 2,
+    "business": "Form+Function Massage",
+    "platform": "mangomint",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 1295,
+    "durationSeconds": 1.29,
+    "sampleCount": 2,
+    "peakTotalRssMb": 387.75,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 56724,
+        "rssMb": 107.05,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 56736,
+        "rssMb": 86.62,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56738,
+        "rssMb": 38.94,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56739,
+        "rssMb": 39.61,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56765,
+        "rssMb": 61.6,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56760,
+        "rssMb": 53.93,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:39:03.472Z",
+      "rootPid": 56724,
+      "processCount": 5,
+      "totalRssMb": 318.27,
+      "processes": [
+        {
+          "pid": 56724,
+          "rssMb": 102.69,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 56736,
+          "rssMb": 83.23,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56738,
+          "rssMb": 38.94,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56739,
+          "rssMb": 39.48,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56760,
+          "rssMb": 53.93,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:39:03.808Z",
+      "rootPid": 56724,
+      "processCount": 6,
+      "totalRssMb": 387.75,
+      "processes": [
+        {
+          "pid": 56724,
+          "rssMb": 107.05,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 56736,
+          "rssMb": 86.62,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56738,
+          "rssMb": 38.94,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56739,
+          "rssMb": 39.61,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56765,
+          "rssMb": 61.6,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56760,
+          "rssMb": 53.93,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:39:02.660Z",
+    "runNumber": 1,
+    "business": "Form+Function Massage",
+    "platform": "mangomint",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 1283,
+    "durationSeconds": 1.28,
+    "sampleCount": 2,
+    "peakTotalRssMb": 383.47,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 56586,
+        "rssMb": 102.48,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 56598,
+        "rssMb": 86.43,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56600,
+        "rssMb": 39.21,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56601,
+        "rssMb": 39.38,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56626,
+        "rssMb": 61.39,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 56617,
+        "rssMb": 54.58,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:39:02.244Z",
+      "rootPid": 56586,
+      "processCount": 6,
+      "totalRssMb": 383.47,
+      "processes": [
+        {
+          "pid": 56586,
+          "rssMb": 102.48,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 56598,
+          "rssMb": 86.43,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56600,
+          "rssMb": 39.21,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56601,
+          "rssMb": 39.38,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56626,
+          "rssMb": 61.39,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 56617,
+          "rssMb": 54.58,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:39:02.659Z",
+      "rootPid": 56586,
+      "processCount": 2,
+      "totalRssMb": 130.18,
+      "processes": [
+        {
+          "pid": 56586,
+          "rssMb": 130.18,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 56598,
+          "rssMb": 0,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:31:05.303Z",
+    "runNumber": 3,
+    "business": "Cherry Blossoms",
+    "platform": "mangomint",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 1725,
+    "durationSeconds": 1.73,
+    "sampleCount": 3,
+    "peakTotalRssMb": 388.99,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 53115,
+        "rssMb": 107.2,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 53132,
+        "rssMb": 87.72,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 53137,
+        "rssMb": 39.7,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 53139,
+        "rssMb": 39.2,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 53169,
+        "rssMb": 61.63,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 53165,
+        "rssMb": 53.54,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:31:04.119Z",
+      "rootPid": 53115,
+      "processCount": 1,
+      "totalRssMb": 89.88,
+      "processes": [
+        {
+          "pid": 53115,
+          "rssMb": 89.88,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:31:05.302Z",
+      "rootPid": 53115,
+      "processCount": 3,
+      "totalRssMb": 256.05,
+      "processes": [
+        {
+          "pid": 53115,
+          "rssMb": 128.1,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 53132,
+          "rssMb": 88.13,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 53137,
+          "rssMb": 39.82,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:31:03.576Z",
+    "runNumber": 2,
+    "business": "Cherry Blossoms",
+    "platform": "mangomint",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 1915,
+    "durationSeconds": 1.92,
+    "sampleCount": 3,
+    "peakTotalRssMb": 405.25,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 52925,
+        "rssMb": 125.25,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 52949,
+        "rssMb": 86.6,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52951,
+        "rssMb": 39.49,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52952,
+        "rssMb": 39.32,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52981,
+        "rssMb": 61.29,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52974,
+        "rssMb": 53.3,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:31:02.475Z",
+      "rootPid": 52925,
+      "processCount": 5,
+      "totalRssMb": 317.94,
+      "processes": [
+        {
+          "pid": 52925,
+          "rssMb": 102.28,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 52949,
+          "rssMb": 83.88,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52951,
+          "rssMb": 39.49,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52952,
+          "rssMb": 39.19,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52974,
+          "rssMb": 53.1,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:31:03.515Z",
+      "rootPid": 52925,
+      "processCount": 6,
+      "totalRssMb": 405.25,
+      "processes": [
+        {
+          "pid": 52925,
+          "rssMb": 125.25,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 52949,
+          "rssMb": 86.6,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52951,
+          "rssMb": 39.49,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52952,
+          "rssMb": 39.32,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52981,
+          "rssMb": 61.29,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52974,
+          "rssMb": 53.3,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:31:01.660Z",
+    "runNumber": 1,
+    "business": "Cherry Blossoms",
+    "platform": "mangomint",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 1832,
+    "durationSeconds": 1.83,
+    "sampleCount": 3,
+    "peakTotalRssMb": 404.95,
+    "peakProcessCount": 6,
+    "peakProcesses": [
+      {
+        "pid": 52746,
+        "rssMb": 125.11,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 52762,
+        "rssMb": 86.02,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52764,
+        "rssMb": 38.93,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52765,
+        "rssMb": 39.15,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52786,
+        "rssMb": 61.18,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 52780,
+        "rssMb": 54.56,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:31:00.642Z",
+      "rootPid": 52746,
+      "processCount": 6,
+      "totalRssMb": 380.41,
+      "processes": [
+        {
+          "pid": 52746,
+          "rssMb": 102.22,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 52762,
+          "rssMb": 84.54,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52764,
+          "rssMb": 38.93,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52765,
+          "rssMb": 39.15,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52786,
+          "rssMb": 61.16,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52780,
+          "rssMb": 54.41,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:31:01.475Z",
+      "rootPid": 52746,
+      "processCount": 6,
+      "totalRssMb": 404.95,
+      "processes": [
+        {
+          "pid": 52746,
+          "rssMb": 125.11,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 52762,
+          "rssMb": 86.02,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52764,
+          "rssMb": 38.93,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52765,
+          "rssMb": 39.15,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52786,
+          "rssMb": 61.18,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 52780,
+          "rssMb": 54.56,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:19:33.997Z",
+    "runNumber": 3,
+    "business": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 34375,
+    "durationSeconds": 34.38,
+    "sampleCount": 68,
+    "peakTotalRssMb": 844.77,
+    "peakProcessCount": 9,
+    "peakProcesses": [
+      {
+        "pid": 44938,
+        "rssMb": 114.32,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 44956,
+        "rssMb": 103.87,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 44964,
+        "rssMb": 39.43,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 44965,
+        "rssMb": 39.38,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 44987,
+        "rssMb": 79.64,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 44983,
+        "rssMb": 73.32,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 45011,
+        "rssMb": 71.69,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 45020,
+        "rssMb": 241.15,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 46346,
+        "rssMb": 81.97,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:19:00.250Z",
+      "rootPid": 44938,
+      "processCount": 2,
+      "totalRssMb": 136,
+      "processes": [
+        {
+          "pid": 44938,
+          "rssMb": 97.64,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 44956,
+          "rssMb": 38.36,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:19:33.996Z",
+      "rootPid": 44938,
+      "processCount": 1,
+      "totalRssMb": 0,
+      "processes": [
+        {
+          "pid": 44938,
+          "rssMb": 0,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:18:59.621Z",
+    "runNumber": 2,
+    "business": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 33506,
+    "durationSeconds": 33.51,
+    "sampleCount": 66,
+    "peakTotalRssMb": 868.91,
+    "peakProcessCount": 9,
+    "peakProcesses": [
+      {
+        "pid": 42096,
+        "rssMb": 125.85,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 42108,
+        "rssMb": 104.59,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 42110,
+        "rssMb": 39.56,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 42111,
+        "rssMb": 39.49,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 42128,
+        "rssMb": 81.67,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 42126,
+        "rssMb": 74.76,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 43522,
+        "rssMb": 71.82,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 43530,
+        "rssMb": 249.92,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 44546,
+        "rssMb": 81.25,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:18:26.940Z",
+      "rootPid": 42096,
+      "processCount": 7,
+      "totalRssMb": 464.71,
+      "processes": [
+        {
+          "pid": 42096,
+          "rssMb": 102.43,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 42108,
+          "rssMb": 85.48,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42110,
+          "rssMb": 39.56,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42111,
+          "rssMb": 39.37,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42128,
+          "rssMb": 62.4,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42126,
+          "rssMb": 63.65,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42163,
+          "rssMb": 71.82,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:18:59.567Z",
+      "rootPid": 42096,
+      "processCount": 6,
+      "totalRssMb": 456.75,
+      "processes": [
+        {
+          "pid": 42096,
+          "rssMb": 125.85,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 42108,
+          "rssMb": 104.59,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42110,
+          "rssMb": 39.56,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42111,
+          "rssMb": 39.49,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42128,
+          "rssMb": 81.67,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 42126,
+          "rssMb": 65.59,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:18:26.114Z",
+    "runNumber": 1,
+    "business": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 33519,
+    "durationSeconds": 33.52,
+    "sampleCount": 66,
+    "peakTotalRssMb": 844.76,
+    "peakProcessCount": 9,
+    "peakProcesses": [
+      {
+        "pid": 39262,
+        "rssMb": 114.67,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 39275,
+        "rssMb": 103.3,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 39277,
+        "rssMb": 39.03,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 39278,
+        "rssMb": 39.75,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 39301,
+        "rssMb": 80.69,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 39293,
+        "rssMb": 72.39,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 39326,
+        "rssMb": 71.5,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 39347,
+        "rssMb": 242.02,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 40669,
+        "rssMb": 81.41,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:17:53.403Z",
+      "rootPid": 39262,
+      "processCount": 7,
+      "totalRssMb": 460.89,
+      "processes": [
+        {
+          "pid": 39262,
+          "rssMb": 102.89,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 39275,
+          "rssMb": 85.21,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39277,
+          "rssMb": 39.03,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39278,
+          "rssMb": 39.63,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39301,
+          "rssMb": 59.89,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39293,
+          "rssMb": 62.81,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39326,
+          "rssMb": 71.43,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:18:25.833Z",
+      "rootPid": 39262,
+      "processCount": 8,
+      "totalRssMb": 757.04,
+      "processes": [
+        {
+          "pid": 39262,
+          "rssMb": 122.64,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 39275,
+          "rssMb": 104.3,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39277,
+          "rssMb": 39.03,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39278,
+          "rssMb": 39.75,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39301,
+          "rssMb": 81.87,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 39293,
+          "rssMb": 72.11,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 40812,
+          "rssMb": 71.38,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 40825,
+          "rssMb": 225.96,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:14:32.978Z",
+    "runNumber": 3,
+    "business": "Deep Relief",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 10042,
+    "durationSeconds": 10.04,
+    "sampleCount": 16,
+    "peakTotalRssMb": 1150.79,
+    "peakProcessCount": 12,
+    "peakProcesses": [
+      {
+        "pid": 36833,
+        "rssMb": 117.86,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 36845,
+        "rssMb": 86.46,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36939,
+        "rssMb": 104.41,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36848,
+        "rssMb": 39.52,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36849,
+        "rssMb": 39.24,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36868,
+        "rssMb": 61.84,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36866,
+        "rssMb": 53.02,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36941,
+        "rssMb": 38.93,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36942,
+        "rssMb": 39.5,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36962,
+        "rssMb": 79.79,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36957,
+        "rssMb": 75.54,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 36975,
+        "rssMb": 414.68,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:14:23.725Z",
+      "rootPid": 36833,
+      "processCount": 6,
+      "totalRssMb": 378.68,
+      "processes": [
+        {
+          "pid": 36833,
+          "rssMb": 102.27,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 36845,
+          "rssMb": 85.08,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 36848,
+          "rssMb": 39.52,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 36849,
+          "rssMb": 39.12,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 36868,
+          "rssMb": 59.67,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 36866,
+          "rssMb": 53.02,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:14:32.978Z",
+      "rootPid": 36833,
+      "processCount": 3,
+      "totalRssMb": 249.84,
+      "processes": [
+        {
+          "pid": 36833,
+          "rssMb": 123.73,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 36845,
+          "rssMb": 86.46,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 36848,
+          "rssMb": 39.65,
+          "processName": "chrome-headless"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:14:22.933Z",
+    "runNumber": 2,
+    "business": "Deep Relief",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 10666,
+    "durationSeconds": 10.67,
+    "sampleCount": 18,
+    "peakTotalRssMb": 1165.28,
+    "peakProcessCount": 12,
+    "peakProcesses": [
+      {
+        "pid": 35736,
+        "rssMb": 117.16,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 35759,
+        "rssMb": 86.7,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35835,
+        "rssMb": 103.93,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35761,
+        "rssMb": 39.14,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35762,
+        "rssMb": 39.12,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35785,
+        "rssMb": 61.95,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35779,
+        "rssMb": 53.29,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35838,
+        "rssMb": 38.93,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35839,
+        "rssMb": 39.44,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35857,
+        "rssMb": 79.73,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35854,
+        "rssMb": 75.12,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 35873,
+        "rssMb": 430.77,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:14:13.067Z",
+      "rootPid": 35736,
+      "processCount": 6,
+      "totalRssMb": 379.5,
+      "processes": [
+        {
+          "pid": 35736,
+          "rssMb": 102.28,
+          "processName": "MainThread"
+        },
+        {
+          "pid": 35759,
+          "rssMb": 84.03,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35761,
+          "rssMb": 39.14,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35762,
+          "rssMb": 39,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35785,
+          "rssMb": 61.76,
+          "processName": "chrome-headless"
+        },
+        {
+          "pid": 35779,
+          "rssMb": 53.29,
+          "processName": "chrome-headless"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:14:22.910Z",
+      "rootPid": 35736,
+      "processCount": 1,
+      "totalRssMb": 115.58,
+      "processes": [
+        {
+          "pid": 35736,
+          "rssMb": 115.58,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:14:12.266Z",
+    "runNumber": 1,
+    "business": "Deep Relief",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "forceRefresh": "true",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 11071,
+    "durationSeconds": 11.07,
+    "sampleCount": 19,
+    "peakTotalRssMb": 1161.72,
+    "peakProcessCount": 12,
+    "peakProcesses": [
+      {
+        "pid": 34638,
+        "rssMb": 118.27,
+        "processName": "MainThread"
+      },
+      {
+        "pid": 34654,
+        "rssMb": 86.26,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34751,
+        "rssMb": 104.66,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34656,
+        "rssMb": 39.45,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34657,
+        "rssMb": 39.45,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34678,
+        "rssMb": 61.48,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34673,
+        "rssMb": 54.74,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34753,
+        "rssMb": 39.57,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34755,
+        "rssMb": 39.31,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34784,
+        "rssMb": 79.66,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34780,
+        "rssMb": 76.7,
+        "processName": "chrome-headless"
+      },
+      {
+        "pid": 34799,
+        "rssMb": 422.17,
+        "processName": "chrome-headless"
+      }
+    ],
+    "firstSample": {
+      "sampledAt": "2026-06-27T19:14:01.755Z",
+      "rootPid": 34638,
+      "processCount": 1,
+      "totalRssMb": 97.45,
+      "processes": [
+        {
+          "pid": 34638,
+          "rssMb": 97.45,
+          "processName": "MainThread"
+        }
+      ]
+    },
+    "lastSample": {
+      "sampledAt": "2026-06-27T19:14:12.264Z",
+      "rootPid": 34638,
+      "processCount": 1,
+      "totalRssMb": 93.29,
+      "processes": [
+        {
+          "pid": 34638,
+          "rssMb": 93.29,
+          "processName": "MainThread"
+        }
+      ]
+    }
+  }
+]

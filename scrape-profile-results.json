@@ -1,0 +1,632 @@
+[
+  {
+    "recordedAt": "2026-06-27T19:01:32.848Z",
+    "runNumber": 3,
+    "business": "AustinDeep Lake Austin Blvd",
+    "platform": "Axl3",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 731,
+    "durationSeconds": 0.73,
+    "sampleCount": 1,
+    "peakRssMb": 48.71,
+    "peakHeapUsedMb": 4.33,
+    "firstSample": {
+      "rssMb": 48.71,
+      "heapUsedMb": 4.33,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T19:01:32.625Z"
+    },
+    "lastSample": {
+      "rssMb": 48.71,
+      "heapUsedMb": 4.33,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T19:01:32.625Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:01:32.115Z",
+    "runNumber": 2,
+    "business": "AustinDeep Lake Austin Blvd",
+    "platform": "Axl3",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 606,
+    "durationSeconds": 0.61,
+    "sampleCount": 1,
+    "peakRssMb": 48.46,
+    "peakHeapUsedMb": 4.17,
+    "firstSample": {
+      "rssMb": 48.46,
+      "heapUsedMb": 4.17,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T19:01:32.012Z"
+    },
+    "lastSample": {
+      "rssMb": 48.46,
+      "heapUsedMb": 4.17,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T19:01:32.012Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T19:01:31.508Z",
+    "runNumber": 1,
+    "business": "AustinDeep Lake Austin Blvd",
+    "platform": "Axl3",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 47375,
+    "durationSeconds": 47.38,
+    "sampleCount": 94,
+    "peakRssMb": 47.71,
+    "peakHeapUsedMb": 4.58,
+    "firstSample": {
+      "rssMb": 46.71,
+      "heapUsedMb": 4.44,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T19:00:44.644Z"
+    },
+    "lastSample": {
+      "rssMb": 47.71,
+      "heapUsedMb": 4.58,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T19:01:31.210Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:59:22.675Z",
+    "runNumber": 3,
+    "business": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 624,
+    "durationSeconds": 0.62,
+    "sampleCount": 1,
+    "peakRssMb": 48.68,
+    "peakHeapUsedMb": 4.2,
+    "firstSample": {
+      "rssMb": 48.68,
+      "heapUsedMb": 4.2,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:59:22.555Z"
+    },
+    "lastSample": {
+      "rssMb": 48.68,
+      "heapUsedMb": 4.2,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:59:22.555Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:59:22.050Z",
+    "runNumber": 2,
+    "business": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 678,
+    "durationSeconds": 0.68,
+    "sampleCount": 1,
+    "peakRssMb": 48.05,
+    "peakHeapUsedMb": 4.7,
+    "firstSample": {
+      "rssMb": 48.05,
+      "heapUsedMb": 4.7,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:59:21.880Z"
+    },
+    "lastSample": {
+      "rssMb": 48.05,
+      "heapUsedMb": 4.7,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:59:21.880Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:59:21.370Z",
+    "runNumber": 1,
+    "business": "Mantis Massage Airport Boulevard",
+    "platform": "schedulista",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 31326,
+    "durationSeconds": 31.33,
+    "sampleCount": 62,
+    "peakRssMb": 47.68,
+    "peakHeapUsedMb": 4.54,
+    "firstSample": {
+      "rssMb": 46.55,
+      "heapUsedMb": 4.44,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:58:50.552Z"
+    },
+    "lastSample": {
+      "rssMb": 47.68,
+      "heapUsedMb": 4.54,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:59:21.102Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:57:42.580Z",
+    "runNumber": 3,
+    "business": "Mantra Wellness",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 649,
+    "durationSeconds": 0.65,
+    "sampleCount": 1,
+    "peakRssMb": 48.66,
+    "peakHeapUsedMb": 4.33,
+    "firstSample": {
+      "rssMb": 48.66,
+      "heapUsedMb": 4.33,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:57:42.437Z"
+    },
+    "lastSample": {
+      "rssMb": 48.66,
+      "heapUsedMb": 4.33,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:57:42.437Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:57:41.931Z",
+    "runNumber": 2,
+    "business": "Mantra Wellness",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 676,
+    "durationSeconds": 0.68,
+    "sampleCount": 1,
+    "peakRssMb": 48.54,
+    "peakHeapUsedMb": 4.19,
+    "firstSample": {
+      "rssMb": 48.54,
+      "heapUsedMb": 4.19,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:57:41.760Z"
+    },
+    "lastSample": {
+      "rssMb": 48.54,
+      "heapUsedMb": 4.19,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:57:41.760Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:57:41.253Z",
+    "runNumber": 1,
+    "business": "Mantra Wellness",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 61452,
+    "durationSeconds": 61.45,
+    "sampleCount": 122,
+    "peakRssMb": 47.66,
+    "peakHeapUsedMb": 4.61,
+    "firstSample": {
+      "rssMb": 46.54,
+      "heapUsedMb": 4.44,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:56:40.310Z"
+    },
+    "lastSample": {
+      "rssMb": 47.66,
+      "heapUsedMb": 4.61,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:57:40.890Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:54:57.947Z",
+    "runNumber": 3,
+    "business": "Generator Athlete Lab",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 580,
+    "durationSeconds": 0.58,
+    "sampleCount": 1,
+    "peakRssMb": 48.93,
+    "peakHeapUsedMb": 4.51,
+    "firstSample": {
+      "rssMb": 48.93,
+      "heapUsedMb": 4.51,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:54:57.871Z"
+    },
+    "lastSample": {
+      "rssMb": 48.93,
+      "heapUsedMb": 4.51,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:54:57.871Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:54:57.366Z",
+    "runNumber": 2,
+    "business": "Generator Athlete Lab",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 570,
+    "durationSeconds": 0.57,
+    "sampleCount": 1,
+    "peakRssMb": 48.8,
+    "peakHeapUsedMb": 4.38,
+    "firstSample": {
+      "rssMb": 48.8,
+      "heapUsedMb": 4.38,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:54:57.300Z"
+    },
+    "lastSample": {
+      "rssMb": 48.8,
+      "heapUsedMb": 4.38,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:54:57.300Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:54:56.794Z",
+    "runNumber": 1,
+    "business": "Generator Athlete Lab",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 125618,
+    "durationSeconds": 125.62,
+    "sampleCount": 250,
+    "peakRssMb": 48.55,
+    "peakHeapUsedMb": 4.72,
+    "firstSample": {
+      "rssMb": 46.3,
+      "heapUsedMb": 4.44,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:52:51.683Z"
+    },
+    "lastSample": {
+      "rssMb": 48.55,
+      "heapUsedMb": 4.22,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:54:56.360Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:50:59.863Z",
+    "runNumber": 3,
+    "business": "Dimensions Massage",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 585,
+    "durationSeconds": 0.58,
+    "sampleCount": 1,
+    "peakRssMb": 47.91,
+    "peakHeapUsedMb": 4.71,
+    "firstSample": {
+      "rssMb": 47.91,
+      "heapUsedMb": 4.71,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:59.782Z"
+    },
+    "lastSample": {
+      "rssMb": 47.91,
+      "heapUsedMb": 4.71,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:59.782Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:50:59.277Z",
+    "runNumber": 2,
+    "business": "Dimensions Massage",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 643,
+    "durationSeconds": 0.64,
+    "sampleCount": 1,
+    "peakRssMb": 47.79,
+    "peakHeapUsedMb": 4.59,
+    "firstSample": {
+      "rssMb": 47.79,
+      "heapUsedMb": 4.59,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:59.140Z"
+    },
+    "lastSample": {
+      "rssMb": 47.79,
+      "heapUsedMb": 4.59,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:59.140Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:50:58.633Z",
+    "runNumber": 1,
+    "business": "Dimensions Massage",
+    "platform": "mindbody",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 2007,
+    "durationSeconds": 2.01,
+    "sampleCount": 3,
+    "peakRssMb": 47.41,
+    "peakHeapUsedMb": 4.45,
+    "firstSample": {
+      "rssMb": 46.54,
+      "heapUsedMb": 4.44,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:57.134Z"
+    },
+    "lastSample": {
+      "rssMb": 47.41,
+      "heapUsedMb": 4.45,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:58.136Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:50:25.544Z",
+    "runNumber": 3,
+    "business": "Neuro Release Massage",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 705,
+    "durationSeconds": 0.7,
+    "sampleCount": 1,
+    "peakRssMb": 48.18,
+    "peakHeapUsedMb": 4.73,
+    "firstSample": {
+      "rssMb": 48.18,
+      "heapUsedMb": 4.73,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:25.344Z"
+    },
+    "lastSample": {
+      "rssMb": 48.18,
+      "heapUsedMb": 4.73,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:25.344Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:50:24.838Z",
+    "runNumber": 2,
+    "business": "Neuro Release Massage",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 584,
+    "durationSeconds": 0.58,
+    "sampleCount": 1,
+    "peakRssMb": 47.93,
+    "peakHeapUsedMb": 4.61,
+    "firstSample": {
+      "rssMb": 47.93,
+      "heapUsedMb": 4.61,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:24.758Z"
+    },
+    "lastSample": {
+      "rssMb": 47.93,
+      "heapUsedMb": 4.61,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:24.758Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:50:24.253Z",
+    "runNumber": 1,
+    "business": "Neuro Release Massage",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 8484,
+    "durationSeconds": 8.48,
+    "sampleCount": 16,
+    "peakRssMb": 47.43,
+    "peakHeapUsedMb": 4.49,
+    "firstSample": {
+      "rssMb": 46.55,
+      "heapUsedMb": 4.44,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:16.277Z"
+    },
+    "lastSample": {
+      "rssMb": 47.43,
+      "heapUsedMb": 4.49,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:50:23.790Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:47:46.124Z",
+    "runNumber": 3,
+    "business": "Deep Relief",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 588,
+    "durationSeconds": 0.59,
+    "sampleCount": 1,
+    "peakRssMb": 48.34,
+    "peakHeapUsedMb": 4.21,
+    "firstSample": {
+      "rssMb": 48.34,
+      "heapUsedMb": 4.21,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:47:46.041Z"
+    },
+    "lastSample": {
+      "rssMb": 48.34,
+      "heapUsedMb": 4.21,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:47:46.041Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:47:45.534Z",
+    "runNumber": 2,
+    "business": "Deep Relief",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 607,
+    "durationSeconds": 0.61,
+    "sampleCount": 1,
+    "peakRssMb": 47.84,
+    "peakHeapUsedMb": 4.69,
+    "firstSample": {
+      "rssMb": 47.84,
+      "heapUsedMb": 4.69,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:47:45.431Z"
+    },
+    "lastSample": {
+      "rssMb": 47.84,
+      "heapUsedMb": 4.69,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:47:45.431Z"
+    }
+  },
+  {
+    "recordedAt": "2026-06-27T18:47:44.926Z",
+    "runNumber": 1,
+    "business": "Deep Relief",
+    "platform": "meevo",
+    "serviceType": "",
+    "duration": "",
+    "lookaheadHours": "48",
+    "exitCode": 0,
+    "success": true,
+    "durationMs": 41742,
+    "durationSeconds": 41.74,
+    "sampleCount": 83,
+    "peakRssMb": 47.47,
+    "peakHeapUsedMb": 4.57,
+    "firstSample": {
+      "rssMb": 46.47,
+      "heapUsedMb": 4.44,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:47:03.692Z"
+    },
+    "lastSample": {
+      "rssMb": 47.47,
+      "heapUsedMb": 4.57,
+      "heapTotalMb": 5.83,
+      "externalMb": 1.56,
+      "sampledAt": "2026-06-27T18:47:44.749Z"
+    }
+  }
+]

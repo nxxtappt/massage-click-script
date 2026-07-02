@@ -1,11 +1,16 @@
 const { Pool } = require("pg");
 
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.warn("[DB] DATABASE_URL is not set.");
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false
+  connectionString,
+  ssl: connectionString
+    ? { rejectUnauthorized: false }
+    : false
 });
 
 module.exports = {

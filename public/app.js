@@ -602,8 +602,14 @@ function renderBusinessCards(appointments) {
 
     const isVerifiedBusiness = verificationStatus === "verified";
 
+const businessUrl =
+  firstAppointment.businessUrl ||
+  (firstAppointment.businessSlug
+    ? `/business/${firstAppointment.businessSlug}`
+    : `/business/${slugifyBusinessName(businessName)}`);
+
     const claimBusinessUrl = `/business?businessName=${encodeURIComponent(
-    businessName
+      businessName
     )}`;
 
     const distance =
@@ -611,13 +617,35 @@ function renderBusinessCards(appointments) {
         ? `${firstAppointment.distanceMiles.toFixed(1)} mi away`
         : "";
 
+    const reviewSummary = firstAppointment.reviewSummary || null;
+    const activeDeal = firstAppointment.activeDeal || null;
+    const profile = firstAppointment.publicProfile || {};
     const nextAppointments = group.appointments.slice(0, 4);
 
+    const shouldShowDeal =
+      isVerifiedBusiness &&
+      activeDeal &&
+      activeDeal.enabled === true &&
+      activeDeal.title;
+
+    const shouldShowReviews =
+      isVerifiedBusiness &&
+      reviewSummary &&
+      reviewSummary.rating &&
+      reviewSummary.count;
+
     const card = document.createElement("article");
-    card.className = isVerifiedBusiness
-    ? "business-card verified-business-card"
-    : "business-card";
+    card.className = businessUrl
+      ? "business-card clickable-business-card"
+      : "business-card";
+
     card.id = makeBusinessCardId(businessName);
+
+    if (businessUrl) {
+      card.setAttribute("data-business-url", businessUrl);
+      card.setAttribute("role", "link");
+      card.setAttribute("tabindex", "0");
+    }
 
     card.innerHTML = `
       <div class="logo-circle">
@@ -632,7 +660,7 @@ function renderBusinessCards(appointments) {
         <div class="business-header">
           <div>
             <div class="business-title-row">
-              <h2>${escapeHtml(businessName)}</h2>
+              <h2 class="business-title-text">${escapeHtml(businessName)}</h2>
               ${
                 isVerifiedBusiness
                   ? `<span class="verified-business-badge">Verified Business</span>`
@@ -641,6 +669,38 @@ function renderBusinessCards(appointments) {
             </div>
 
             <p class="business-address">${escapeHtml(address)}</p>
+
+            ${
+              shouldShowReviews
+                ? `<p class="business-review-summary">★★★★★ ${escapeHtml(reviewSummary.rating)} (${escapeHtml(reviewSummary.count)})</p>`
+                : ""
+            }
+
+            ${
+              profile.shortDescription && isVerifiedBusiness
+                ? `<p class="business-short-post">${escapeHtml(profile.shortDescription)}</p>`
+                : ""
+            }
+
+            ${
+              shouldShowDeal
+                ? `
+                  <div class="business-deal-preview">
+                    <strong>🔥 ${escapeHtml(activeDeal.title)}</strong>
+                    ${
+                      activeDeal.body
+                        ? `<span>${escapeHtml(activeDeal.body)}</span>`
+                        : ""
+                    }
+                    ${
+                      activeDeal.promoCode
+                        ? `<em>Code: ${escapeHtml(activeDeal.promoCode)}</em>`
+                        : ""
+                    }
+                  </div>
+                `
+                : ""
+            }
 
             ${
               !isVerifiedBusiness
@@ -699,6 +759,22 @@ function renderBusinessCards(appointments) {
         </div>
       </div>
     `;
+
+    if (businessUrl) {
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("a, button, input, select, textarea")) {
+          return;
+        }
+
+        window.location.href = businessUrl;
+      });
+
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          window.location.href = businessUrl;
+        }
+      });
+    }
 
     appointmentsGrid.appendChild(card);
   });
@@ -879,9 +955,28 @@ function renderMapMarkers(appointments) {
   }, 100);
 }
 
-function formatTimeButtonText(appointment) {
-  if (appointment.date && appointment.time && !String(appointment.time).includes("T")) {
+function formatTimeButtonText(appointment = {}) {
+  if (
+    appointment.date &&
+    appointment.time &&
+    !String(appointment.time).includes("T")
+  ) {
     return `${appointment.date} ${appointment.time}`;
+  }
+
+  if (appointment.localDateKey && appointment.time) {
+    const parsed = new Date(`${appointment.localDateKey}T12:00:00`);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      const displayDate = parsed.toLocaleDateString("en-US", {
+        timeZone: "America/Chicago",
+        weekday: "short",
+        month: "short",
+        day: "numeric"
+      });
+
+      return `${displayDate} ${appointment.time}`;
+    }
   }
 
   if (appointment.startTime) {
@@ -919,6 +1014,15 @@ function getInitials(name) {
     .map((word) => word[0])
     .join("")
     .toUpperCase();
+}
+
+function slugifyBusinessName(value = "") {
+  return String(value || "business")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 90) || "business";
 }
 
 function escapeHtml(value) {

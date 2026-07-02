@@ -1028,39 +1028,8 @@ if (!Array.isArray(results)) {
         }
       }
 
-      const scrapeRun = await createScrapeRun({
-        triggerType:
-          filters.onDemand === true || filters.onDemand === "true"
-            ? "on_demand"
-            : filters.manual === true || filters.manual === "true"
-              ? "manual"
-              : "scheduled",
-        businessName: job.businessName,
-        platform: job.platform,
-        serviceName: job.serviceName || job.service || "",
-        serviceType: job.serviceType || "",
-        durationMinutes: job.durationMinutes || null,
-        scrapeStartDate: job.scrapeStartDate || null,
-        scrapeEndDate: job.scrapeEndDate || null,
-        lookaheadHours: job.lookaheadHours || null,
-        daysForward: job.daysForward || null,
-        scrapeWindowMode: job.scrapeWindowMode || null
-      });
-
       const rawResult = await scrapeWithRetries(browser, job);
       const result = filterResultToScrapeWindow(rawResult, job);
-
-      await insertRawScrapeResult({
-        scrapeRunId: scrapeRun.id,
-        businessName: result.businessName || job.businessName,
-        platform: result.platform || job.platform,
-        serviceName: result.serviceName || job.serviceName || "",
-        serviceType: result.serviceType || job.serviceType || "",
-        durationMinutes: result.durationMinutes || job.durationMinutes || null,
-        scrapeStartDate: result.scrapeStartDate || job.scrapeStartDate || null,
-        scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null,
-        rawResult: result
-      });
 
 const confirmedAppointments = resultTimesToAppointments(result);
 
@@ -1136,12 +1105,6 @@ const resultWithInference = {
     generatedAt: new Date().toISOString()
   }
 };
-
-await finishScrapeRun(scrapeRun.id, {
-  runStatus: resultWithInference.status === "error" ? "error" : "success",
-  appointmentsFound: mergedAppointments.length,
-  errorMessage: resultWithInference.error || null
-});
 
 results = upsertResult(results, resultWithInference);
 cacheResult(resultWithInference);
