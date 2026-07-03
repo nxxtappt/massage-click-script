@@ -601,6 +601,15 @@ function normalizeBusinessKey(name) {
     .toLowerCase();
 }
 
+function slugifyBusinessName(value = "") {
+  return String(value || "business")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 90) || "business";
+}
+
 function normalizeSearchText(value) {
   return String(value || "")
     .toLowerCase()
@@ -719,11 +728,18 @@ function buildBusinessMetadataMap() {
   claimId: business.claimId || "",
   businessCategory: business.businessCategory || "wellness",
 
-  businessSlug: business.businessSlug || business.slug || "",
+  businessSlug:
+    business.businessSlug ||
+    business.slug ||
+    slugifyBusinessName(business.businessName || business.name || ""),
+
   businessUrl:
-    business.businessSlug || business.slug
-      ? `/business/${business.businessSlug || business.slug}`
-      : "",
+    business.businessUrl ||
+    `/business/${
+      business.businessSlug ||
+      business.slug ||
+      slugifyBusinessName(business.businessName || business.name || "")
+    }`,
   reviewSummary: business.reviewSummary || null,
   activeDeal: business.activeDeal || null,
   publicProfile: business.publicProfile || null
@@ -968,10 +984,18 @@ businessCategory:
   business.businessCategory || metadata.businessCategory || "wellness",
 
 businessSlug:
-  business.businessSlug || metadata.businessSlug || "",
+  business.businessSlug ||
+  metadata.businessSlug ||
+  slugifyBusinessName(business.businessName || business.name || ""),
 
 businessUrl:
-  business.businessUrl || metadata.businessUrl || "",
+  business.businessUrl ||
+  metadata.businessUrl ||
+  `/business/${
+    business.businessSlug ||
+    metadata.businessSlug ||
+    slugifyBusinessName(business.businessName || business.name || "")
+  }`,
 
 reviewSummary:
   business.reviewSummary || metadata.reviewSummary || null,
@@ -1049,7 +1073,32 @@ function normalizeExistingAppointment(business, appointment = {}) {
     claimId:
       appointment.claimId ||
       business.claimId ||
-      ""
+      "",
+
+    businessSlug:
+      appointment.businessSlug ||
+      business.businessSlug ||
+      "",
+
+    businessUrl:
+      appointment.businessUrl ||
+      business.businessUrl ||
+      "",
+
+    reviewSummary:
+      appointment.reviewSummary ||
+      business.reviewSummary ||
+      null,
+
+    activeDeal:
+      appointment.activeDeal ||
+      business.activeDeal ||
+      null,
+
+    publicProfile:
+      appointment.publicProfile ||
+      business.publicProfile ||
+      null
   };
 }
 
@@ -1106,7 +1155,12 @@ function normalizeOpeningResult(business, opening) {
     claimed: business.claimed === true,
     verificationStatus: business.verificationStatus || "unclaimed",
     claimedByEmail: business.claimedByEmail || "",
-    claimId: business.claimId || "",    
+    claimId: business.claimId || "",
+    businessSlug: business.businessSlug || "",
+    businessUrl: business.businessUrl || "",
+    reviewSummary: business.reviewSummary || null,
+    activeDeal: business.activeDeal || null,
+    publicProfile: business.publicProfile || null,
     sourceStatus: business.status || "unknown",
     localDateKey: local.localDateKey,
     localTimeKey: local.localTimeKey,
@@ -1157,6 +1211,11 @@ function normalizeTimesResult(business, time) {
     verificationStatus: business.verificationStatus || "unclaimed",
     claimedByEmail: business.claimedByEmail || "",
     claimId: business.claimId || "",
+    businessSlug: business.businessSlug || "",
+    businessUrl: business.businessUrl || "",
+    reviewSummary: business.reviewSummary || null,
+    activeDeal: business.activeDeal || null,
+    publicProfile: business.publicProfile || null,
     sourceStatus: business.status || "unknown",
     localDateKey: local.localDateKey,
     localTimeKey: local.localTimeKey,
