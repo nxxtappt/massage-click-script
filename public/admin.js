@@ -3,7 +3,7 @@ const pageSubtitle = document.getElementById("pageSubtitle");
 const content = document.getElementById("content");
 const statusBox = document.getElementById("statusBox");
 const refreshBtn = document.getElementById("refreshBtn");
-const navButtons = document.querySelectorAll(".nav-btn");
+let navButtons = document.querySelectorAll(".nav-btn");
 
 let currentView = "businesses";
 let businessesCache = [];
@@ -29,6 +29,12 @@ const views = {
     title: "Error Logs",
     subtitle: "Review scraper/API errors and failed availability checks."
   },
+
+  subscriptions: {
+    title: "Business Subscriptions",
+    subtitle: "Manually manage verified basic and premium business access."
+  },
+
   settings: {
     title: "Admin Controls",
     subtitle: "Control scraping, cache rules, platforms, service rules, targeted testing, and scheduler behavior."
@@ -474,8 +480,13 @@ async function saveBusinesses() {
   }
 }
 async function loadBusinessSubscriptionsView() {
+  currentView = "subscriptions";
+  setLoading("Loading business subscriptions...");
+
+  pageTitle.textContent = views.subscriptions.title;
+  pageSubtitle.textContent = views.subscriptions.subtitle;
+
   try {
-    setContent("Loading business subscriptions...");
 
     const [businessesData, subscriptionsData] = await Promise.all([
       fetchJson("/api/admin/businesses"),
@@ -1320,7 +1331,6 @@ function renderClaimCard(claim) {
         >
           Reject
         </button>
-        <button data-view="subscriptions">Subscriptions</button>
       </div>
     </div>
   `;
@@ -1384,6 +1394,45 @@ async function loadClaims() {
     );
   }
 }
+
+function refreshNavButtons() {
+  navButtons = document.querySelectorAll(".nav-btn");
+}
+
+function ensureSubscriptionsNavButton() {
+  if (document.querySelector(".nav-btn[data-view='subscriptions']")) {
+    refreshNavButtons();
+    return;
+  }
+
+  const navContainer =
+    document.querySelector(".admin-nav") ||
+    document.querySelector(".sidebar-nav") ||
+    document.querySelector("nav") ||
+    document.querySelector(".nav-btn")?.parentElement;
+
+  if (!navContainer) {
+    refreshNavButtons();
+    return;
+  }
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "nav-btn";
+  button.dataset.view = "subscriptions";
+  button.textContent = "Subscriptions";
+
+  const settingsButton = navContainer.querySelector(".nav-btn[data-view='settings']");
+
+  if (settingsButton) {
+    navContainer.insertBefore(button, settingsButton);
+  } else {
+    navContainer.appendChild(button);
+  }
+
+  refreshNavButtons();
+}
+
 function setActiveNav(viewName) {
   navButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.view === viewName);
@@ -1400,6 +1449,8 @@ function loadView(viewName) {
   if (viewName === "settings") return loadSettings();
   if (viewName === "subscriptions") return loadBusinessSubscriptionsView();
 }
+
+ensureSubscriptionsNavButton();
 
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {
