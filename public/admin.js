@@ -479,15 +479,60 @@ async function saveBusinesses() {
     setStatus(`Save failed: ${error.message}`, "error");
   }
 }
+function getBusinessSubscriptionKey(businessName) {
+  return String(businessName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function getNestedValue(source, path, fallback = "") {
+  const parts = String(path || "").split(".");
+  let current = source;
+
+  for (const part of parts) {
+    if (!current || typeof current !== "object") return fallback;
+    current = current[part];
+  }
+
+  return current ?? fallback;
+}
+
+function renderSubscriptionTextInput(label, id, value, placeholder = "") {
+  return `
+    <div class="admin-field">
+      <span>${escapeHtml(label)}</span>
+      <input id="${escapeHtml(id)}" value="${escapeHtml(value || "")}" placeholder="${escapeHtml(placeholder)}" />
+    </div>
+  `;
+}
+
+function renderSubscriptionUrlInput(label, id, value, placeholder = "https://...") {
+  return `
+    <div class="admin-field">
+      <span>${escapeHtml(label)}</span>
+      <input id="${escapeHtml(id)}" type="url" value="${escapeHtml(value || "")}" placeholder="${escapeHtml(placeholder)}" />
+    </div>
+  `;
+}
+
+function renderSubscriptionTextarea(label, id, value, placeholder = "", rows = 4) {
+  return `
+    <div class="admin-field admin-field-full">
+      <span>${escapeHtml(label)}</span>
+      <textarea id="${escapeHtml(id)}" rows="${rows}" placeholder="${escapeHtml(placeholder)}">${escapeHtml(value || "")}</textarea>
+    </div>
+  `;
+}
+
 async function loadBusinessSubscriptionsView() {
   currentView = "subscriptions";
   setLoading("Loading business subscriptions...");
 
   pageTitle.textContent = views.subscriptions.title;
-  pageSubtitle.textContent = views.subscriptions.subtitle;
+  pageSubtitle.textContent = "Manage subscription level, booking widgets, business bios, and search-card promos.";
 
   try {
-
     const [businessesData, subscriptionsData] = await Promise.all([
       fetchJson("/api/admin/businesses"),
       fetchJson("/api/admin/business-subscriptions")
@@ -500,25 +545,27 @@ async function loadBusinessSubscriptionsView() {
     const subscriptions = subscriptionsData.subscriptions || {};
 
     content.innerHTML = `
-      <h2>Business Subscriptions</h2>
-
-      <p class="admin-muted">
-        Manually set a business to Verified Basic or Premium. Stripe can later update this same subscription store.
-      </p>
+      <div class="section-heading compact-heading">
+        <div>
+          <h3>Business Subscriptions</h3>
+          <p class="admin-muted">
+            Universal premium controls for booking widgets, business bio text, and small search-card promotions.
+          </p>
+        </div>
+      </div>
 
       <div class="business-list">
         ${businesses
           .map((business, index) => {
             const businessName = business.businessName || business.name || "";
-            const key = businessName
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/(^-|-$)/g, "");
-
+            const key = getBusinessSubscriptionKey(businessName);
             const subscription = subscriptions[key] || {};
-
+            const widget = subscription.bookingWidget || {};
+            const profile = subscription.businessProfile || {};
+            const promotion = subscription.cardPromotion || {};
             const plan = subscription.plan || "verified_basic";
             const status = subscription.subscriptionStatus || "active";
+            const widgetType = widget.type || "url";
 
             return `
               <div class="admin-business-card">
@@ -528,44 +575,103 @@ async function loadBusinessSubscriptionsView() {
                     <p>${escapeHtml(business.address || "No address listed")}</p>
                   </div>
 
-                  <span class="platform-pill">
-                    ${escapeHtml(plan)}
-                  </span>
-                </div>
-
-                <div class="business-edit-grid">
-                  <div class="admin-field">
-                    <span>Plan</span>
-                    <select id="subscriptionPlan-${index}">
-                      <option value="verified_basic" ${plan === "verified_basic" ? "selected" : ""}>
-                        Verified Basic
-                      </option>
-                      <option value="premium" ${plan === "premium" ? "selected" : ""}>
-                        Premium
-                      </option>
-                    </select>
-                  </div>
-
-                  <div class="admin-field">
-                    <span>Status</span>
-                    <select id="subscriptionStatus-${index}">
-                      <option value="active" ${status === "active" ? "selected" : ""}>Active</option>
-                      <option value="trialing" ${status === "trialing" ? "selected" : ""}>Trialing</option>
-                      <option value="inactive" ${status === "inactive" ? "selected" : ""}>Inactive</option>
-                      <option value="past_due" ${status === "past_due" ? "selected" : ""}>Past Due</option>
-                      <option value="canceled" ${status === "canceled" ? "selected" : ""}>Canceled</option>
-                    </select>
-                  </div>
-
-                  <div class="admin-field">
-                    <span>Notes</span>
-                    <input
-                      id="subscriptionNotes-${index}"
-                      value="${escapeHtml(subscription.notes || "")}"
-                      placeholder="Optional internal note"
-                    />
+                  <div class="business-header-actions">
+                    <span class="platform-pill">${escapeHtml(plan)}</span>
+                    ${widget.enabled ? `<span class="enabled-pill enabled">Widget Enabled</span>` : ""}
                   </div>
                 </div>
+
+                <details open>
+                  <summary>Subscription</summary>
+                  <div class="business-edit-grid">
+                    <div class="admin-field">
+                      <span>Plan</span>
+                      <select id="subscriptionPlan-${index}">
+                        <option value="verified_basic" ${plan === "verified_basic" ? "selected" : ""}>Verified Basic</option>
+                        <option value="premium" ${plan === "premium" ? "selected" : ""}>Premium</option>
+                      </select>
+                    </div>
+
+                    <div class="admin-field">
+                      <span>Status</span>
+                      <select id="subscriptionStatus-${index}">
+                        <option value="active" ${status === "active" ? "selected" : ""}>Active</option>
+                        <option value="trialing" ${status === "trialing" ? "selected" : ""}>Trialing</option>
+                        <option value="inactive" ${status === "inactive" ? "selected" : ""}>Inactive</option>
+                        <option value="past_due" ${status === "past_due" ? "selected" : ""}>Past Due</option>
+                        <option value="canceled" ${status === "canceled" ? "selected" : ""}>Canceled</option>
+                      </select>
+                    </div>
+
+                    ${renderSubscriptionTextInput("Admin Notes", `subscriptionNotes-${index}`, subscription.notes || "", "Internal admin note")}
+                  </div>
+                </details>
+
+                <details>
+                  <summary>Universal Booking Widget</summary>
+                  <p class="admin-muted">
+                    Supports URL buttons, iframe URLs, and full provider embed snippets. This is intentionally provider-neutral.
+                  </p>
+
+                  <div class="business-edit-grid">
+                    <div class="admin-field checkbox-wrap">
+                      <span>Widget Status</span>
+                      <label class="admin-checkbox">
+                        <input id="bookingWidgetEnabled-${index}" type="checkbox" ${widget.enabled ? "checked" : ""} />
+                        <span>Enable booking widget</span>
+                      </label>
+                    </div>
+
+                    <div class="admin-field">
+                      <span>Widget Type</span>
+                      <select id="bookingWidgetType-${index}">
+                        <option value="url" ${widgetType === "url" ? "selected" : ""}>Booking URL Button</option>
+                        <option value="iframe" ${widgetType === "iframe" ? "selected" : ""}>Iframe URL</option>
+                        <option value="html" ${widgetType === "html" ? "selected" : ""}>HTML / JS Embed Snippet</option>
+                        <option value="link" ${widgetType === "link" ? "selected" : ""}>External Link</option>
+                      </select>
+                    </div>
+
+                    ${renderSubscriptionTextInput("Provider", `bookingWidgetProvider-${index}`, widget.provider || business.platform || "other", "mindbody, vagaro, schedulista, other")}
+                    ${renderSubscriptionTextInput("Widget Title", `bookingWidgetTitle-${index}`, widget.title || "Book online", "Book online")}
+                    ${renderSubscriptionUrlInput("Widget / Booking URL", `bookingWidgetUrl-${index}`, widget.url || "")}
+                    ${renderSubscriptionTextarea(
+                      "Embed Code / HTML Snippet",
+                      `bookingWidgetHtml-${index}`,
+                      widget.html || widget.code || "",
+                      '<div class="provider-widget"></div><script async src="https://..."></script>',
+                      7
+                    )}
+                  </div>
+                </details>
+
+                <details>
+                  <summary>Business Profile Content</summary>
+                  <div class="business-edit-grid">
+                    ${renderSubscriptionTextInput("Short Description", `businessShortDescription-${index}`, profile.shortDescription || "", "Short public summary")}
+                    ${renderSubscriptionUrlInput("Website URL", `businessWebsiteUrl-${index}`, profile.websiteUrl || business.website || business.bookingUrl || "")}
+                    ${renderSubscriptionTextarea("Business Bio", `businessBio-${index}`, profile.bio || "", "Longer business description for premium pages", 6)}
+                  </div>
+                </details>
+
+                <details>
+                  <summary>Search Card Promo / Deal</summary>
+                  <div class="business-edit-grid">
+                    <div class="admin-field checkbox-wrap">
+                      <span>Promo Status</span>
+                      <label class="admin-checkbox">
+                        <input id="cardPromotionEnabled-${index}" type="checkbox" ${promotion.enabled ? "checked" : ""} />
+                        <span>Show promo on business cards</span>
+                      </label>
+                    </div>
+
+                    ${renderSubscriptionTextInput("Promo Title", `cardPromotionTitle-${index}`, promotion.title || "", "Example: New client special")}
+                    ${renderSubscriptionTextInput("CTA Text", `cardPromotionCtaText-${index}`, promotion.ctaText || "Learn More", "Book Deal")}
+                    ${renderSubscriptionUrlInput("CTA URL", `cardPromotionCtaUrl-${index}`, promotion.ctaUrl || "")}
+                    ${renderSubscriptionTextInput("Expires At", `cardPromotionExpiresAt-${index}`, promotion.expiresAt || "", "YYYY-MM-DD or leave blank")}
+                    ${renderSubscriptionTextarea("Promo Body", `cardPromotionBody-${index}`, promotion.body || "", "Small deal text displayed on search cards", 3)}
+                  </div>
+                </details>
 
                 <div class="settings-actions">
                   <button
@@ -574,7 +680,7 @@ async function loadBusinessSubscriptionsView() {
                     data-business-name="${escapeHtml(businessName)}"
                     data-index="${index}"
                   >
-                    Save Subscription
+                    Save Subscription + Premium Features
                   </button>
                 </div>
               </div>
@@ -585,13 +691,54 @@ async function loadBusinessSubscriptionsView() {
     `;
 
     attachSubscriptionSaveHandlers();
+    setStatus(`Loaded ${businesses.length} business subscription records.`, "success");
   } catch (error) {
     content.innerHTML = `
       <h3>Could Not Load Subscriptions</h3>
       <p>${escapeHtml(error.message)}</p>
     `;
+    setStatus("Failed to load business subscriptions.", "error");
   }
 }
+
+function getInputValue(id) {
+  return document.getElementById(id)?.value || "";
+}
+
+function getInputChecked(id) {
+  return document.getElementById(id)?.checked === true;
+}
+
+function buildSubscriptionPayload(index, businessName) {
+  return {
+    businessName,
+    plan: getInputValue(`subscriptionPlan-${index}`),
+    subscriptionStatus: getInputValue(`subscriptionStatus-${index}`),
+    notes: getInputValue(`subscriptionNotes-${index}`),
+    bookingWidget: {
+      enabled: getInputChecked(`bookingWidgetEnabled-${index}`),
+      type: getInputValue(`bookingWidgetType-${index}`),
+      provider: getInputValue(`bookingWidgetProvider-${index}`),
+      title: getInputValue(`bookingWidgetTitle-${index}`),
+      url: getInputValue(`bookingWidgetUrl-${index}`),
+      html: getInputValue(`bookingWidgetHtml-${index}`)
+    },
+    businessProfile: {
+      shortDescription: getInputValue(`businessShortDescription-${index}`),
+      websiteUrl: getInputValue(`businessWebsiteUrl-${index}`),
+      bio: getInputValue(`businessBio-${index}`)
+    },
+    cardPromotion: {
+      enabled: getInputChecked(`cardPromotionEnabled-${index}`),
+      title: getInputValue(`cardPromotionTitle-${index}`),
+      body: getInputValue(`cardPromotionBody-${index}`),
+      ctaText: getInputValue(`cardPromotionCtaText-${index}`),
+      ctaUrl: getInputValue(`cardPromotionCtaUrl-${index}`),
+      expiresAt: getInputValue(`cardPromotionExpiresAt-${index}`)
+    }
+  };
+}
+
 function attachSubscriptionSaveHandlers() {
   document
     .querySelectorAll("[data-save-subscription='true']")
@@ -609,19 +756,16 @@ function attachSubscriptionSaveHandlers() {
             headers: {
               "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-              businessName,
-              plan: document.getElementById(`subscriptionPlan-${index}`)?.value,
-              subscriptionStatus: document.getElementById(`subscriptionStatus-${index}`)?.value,
-              notes: document.getElementById(`subscriptionNotes-${index}`)?.value || ""
-            })
+            body: JSON.stringify(buildSubscriptionPayload(index, businessName))
           });
 
           button.textContent = "Saved";
+          setStatus("Business subscription and premium feature settings saved.", "success");
           setTimeout(() => loadBusinessSubscriptionsView(), 500);
         } catch (error) {
           button.disabled = false;
-          button.textContent = "Save Subscription";
+          button.textContent = "Save Subscription + Premium Features";
+          setStatus(`Subscription save failed: ${error.message}`, "error");
           alert(error.message);
         }
       });

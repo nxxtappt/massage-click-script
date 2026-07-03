@@ -91,6 +91,90 @@ function buildScrapeArgsFromBody(body = {}) {
   return args;
 }
 
+function cleanText(value, maxLength = 5000) {
+  return String(value ?? "").trim().slice(0, maxLength);
+}
+
+function cleanUrl(value) {
+  const raw = cleanText(value, 2000);
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(raw);
+
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return "";
+    }
+
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function cleanBoolean(value) {
+  return value === true || value === "true";
+}
+
+function cleanEnum(value, allowed, fallback) {
+  const cleaned = cleanText(value, 80);
+  return allowed.includes(cleaned) ? cleaned : fallback;
+}
+
+function cleanBookingWidget(rawWidget = {}) {
+  const widget = rawWidget && typeof rawWidget === "object" ? rawWidget : {};
+  const type = cleanEnum(widget.type, ["url", "iframe", "html", "link"], "url");
+  const provider = cleanText(widget.provider || "other", 80) || "other";
+
+  return {
+    enabled: cleanBoolean(widget.enabled),
+    provider,
+    type,
+    title: cleanText(widget.title || "Book online", 160),
+    url: cleanUrl(widget.url),
+    html: cleanText(widget.html || widget.code || "", 20000)
+  };
+}
+
+function cleanBusinessProfile(rawProfile = {}) {
+  const profile = rawProfile && typeof rawProfile === "object" ? rawProfile : {};
+
+  return {
+    bio: cleanText(profile.bio, 3000),
+    shortDescription: cleanText(profile.shortDescription, 300),
+    websiteUrl: cleanUrl(profile.websiteUrl)
+  };
+}
+
+function cleanCardPromotion(rawPromotion = {}) {
+  const promotion = rawPromotion && typeof rawPromotion === "object" ? rawPromotion : {};
+
+  return {
+    enabled: cleanBoolean(promotion.enabled),
+    title: cleanText(promotion.title, 120),
+    body: cleanText(promotion.body, 400),
+    ctaText: cleanText(promotion.ctaText || "Learn More", 80),
+    ctaUrl: cleanUrl(promotion.ctaUrl),
+    expiresAt: cleanText(promotion.expiresAt, 40)
+  };
+}
+
+function cleanSubscriptionPayload(body = {}) {
+  return {
+    plan: cleanEnum(body.plan, ["verified_basic", "premium"], "verified_basic"),
+    subscriptionStatus: cleanEnum(
+      body.subscriptionStatus,
+      ["active", "trialing", "inactive", "past_due", "canceled"],
+      "active"
+    ),
+    billingProvider: "manual_admin",
+    notes: cleanText(body.notes, 2000),
+    bookingWidget: cleanBookingWidget(body.bookingWidget),
+    businessProfile: cleanBusinessProfile(body.businessProfile),
+    cardPromotion: cleanCardPromotion(body.cardPromotion)
+  };
+}
+
 router.get("/debug/routes", (req, res) => {
   res.json({
     success: true,
@@ -99,6 +183,8 @@ router.get("/debug/routes", (req, res) => {
     routes: [
       "GET /api/admin/businesses",
       "POST /api/admin/businesses/save",
+      "GET /api/admin/business-subscriptions",
+      "POST /api/admin/business-subscriptions",
       "GET /api/admin/results",
       "GET /api/admin/errors",
       "GET /api/admin/settings",
@@ -136,12 +222,7 @@ router.get("/business-subscriptions", (req, res) => {
 
 router.post("/business-subscriptions", (req, res) => {
   try {
-    const {
-      businessName,
-      plan,
-      subscriptionStatus,
-      notes
-    } = req.body || {};
+    const { businessName } = req.body || {};
 
     if (!businessName) {
       return res.status(400).json({
@@ -150,12 +231,10 @@ router.post("/business-subscriptions", (req, res) => {
       });
     }
 
-    const subscription = setBusinessSubscription(businessName, {
-      plan,
-      subscriptionStatus,
-      billingProvider: "manual_admin",
-      notes
-    });
+    const subscription = setBusinessSubscription(
+      businessName,
+      cleanSubscriptionPayload(req.body || {})
+    );
 
     res.json({
       success: true,

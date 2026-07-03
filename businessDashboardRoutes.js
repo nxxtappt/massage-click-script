@@ -282,12 +282,39 @@ function buildDashboard(session) {
       lastSyncTimestamp,
       logoUrl: business?.logoUrl || "",
       logoAlt: business?.logoAlt || `${businessName} logo`,
-      bookingWidgetUrl:
-      business?.bookingIntegration?.widgetUrl || "",
-
-      bookingWidgetEnabled:
-      business?.bookingIntegration?.enabled === true
+      phone: business?.phone || business?.businessPhone || "",
+      website: business?.website || business?.businessWebsite || "",
+      publicProfile: {
+        ...(business?.publicProfile || {}),
+        shortDescription:
+          business?.publicProfile?.shortDescription || business?.shortDescription || "",
+        bio:
+          business?.publicProfile?.bio || business?.bio || business?.businessBio || ""
       },
+      activeDeal: {
+        ...(business?.activeDeal || {})
+      },
+      bookingIntegration: {
+        enabled: business?.bookingIntegration?.enabled === true,
+        provider: business?.bookingIntegration?.provider || business?.platform || "other",
+        widgetType:
+          business?.bookingIntegration?.widgetType ||
+          business?.bookingIntegration?.type ||
+          (business?.bookingIntegration?.widgetUrl ? "iframe" : "url"),
+        embedCode:
+          business?.bookingIntegration?.embedCode ||
+          business?.bookingIntegration?.code ||
+          "",
+        iframeUrl:
+          business?.bookingIntegration?.iframeUrl ||
+          business?.bookingIntegration?.widgetUrl ||
+          "",
+        bookingUrl:
+          business?.bookingIntegration?.bookingUrl || business?.bookingUrl || ""
+      },
+      bookingWidgetUrl: business?.bookingIntegration?.widgetUrl || business?.bookingIntegration?.iframeUrl || "",
+      bookingWidgetEnabled: business?.bookingIntegration?.enabled === true
+    },
 
     inventoryHealth: {
       lastScrape: lastScrape || "Not scraped yet",
@@ -555,19 +582,52 @@ router.post("/profile", requireBusinessSession, (req, res) => {
       });
     }
 
+    const currentBusiness = businesses[businessIndex] || {};
     const logoUrl = String(req.body?.logoUrl || "").trim();
     const logoAlt = String(req.body?.logoAlt || "").trim();
+    const phone = String(req.body?.phone || "").trim();
+    const website = String(req.body?.website || "").trim();
+    const shortDescription = String(req.body?.shortDescription || "").trim();
+    const bio = String(req.body?.bio || "").trim();
+
+    if (website && !/^https?:\/\/.+/i.test(website)) {
+      return res.status(400).json({
+        success: false,
+        error: "Website must start with http:// or https://"
+      });
+    }
+
+    if (shortDescription.length > 220) {
+      return res.status(400).json({
+        success: false,
+        error: "Short description must be 220 characters or less."
+      });
+    }
+
+    if (bio.length > 2500) {
+      return res.status(400).json({
+        success: false,
+        error: "Business bio must be 2500 characters or less."
+      });
+    }
 
     const businessName =
-      businesses[businessIndex].businessName ||
-      businesses[businessIndex].name ||
+      currentBusiness.businessName ||
+      currentBusiness.name ||
       req.businessSession.businessName ||
       "Business";
 
     businesses[businessIndex] = {
-      ...businesses[businessIndex],
+      ...currentBusiness,
       logoUrl,
       logoAlt: logoAlt || `${businessName} logo`,
+      phone,
+      website,
+      publicProfile: {
+        ...(currentBusiness.publicProfile || {}),
+        shortDescription,
+        bio
+      },
       updatedAt: new Date().toISOString()
     };
 
@@ -579,7 +639,10 @@ router.post("/profile", requireBusinessSession, (req, res) => {
       profile: {
         businessName,
         logoUrl: businesses[businessIndex].logoUrl || "",
-        logoAlt: businesses[businessIndex].logoAlt || ""
+        logoAlt: businesses[businessIndex].logoAlt || "",
+        phone: businesses[businessIndex].phone || "",
+        website: businesses[businessIndex].website || "",
+        publicProfile: businesses[businessIndex].publicProfile || {}
       }
     });
   } catch (error) {
@@ -615,26 +678,89 @@ router.post("/booking-widget", requireBusinessSession, (req, res) => {
       });
     }
 
-    const widgetUrl = String(req.body?.bookingWidgetUrl || "").trim();
-    const enabled = req.body?.bookingWidgetEnabled === true;
+    const currentBusiness = businesses[businessIndex] || {};
+    const previousIntegration = currentBusiness.bookingIntegration || {};
 
-    if (widgetUrl && !/^https:\/\/.+/i.test(widgetUrl)) {
+    const enabled = req.body?.enabled === true || req.body?.bookingWidgetEnabled === true;
+    const provider = String(req.body?.provider || previousIntegration.provider || currentBusiness.platform || "other").trim() || "other";
+    const widgetType = String(
+      req.body?.widgetType ||
+      req.body?.type ||
+      previousIntegration.widgetType ||
+      previousIntegration.type ||
+      (req.body?.bookingWidgetUrl ? "iframe" : "url")
+    ).trim();
+
+    const embedCode = String(req.body?.embedCode || req.body?.code || "").trim();
+    const iframeUrl = String(req.body?.iframeUrl || req.body?.bookingWidgetUrl || "").trim();
+    const bookingUrl = String(req.body?.bookingUrl || "").trim();
+
+    const allowedWidgetTypes = ["html", "iframe", "url"];
+
+    if (!allowedWidgetTypes.includes(widgetType)) {
       return res.status(400).json({
         success: false,
-        error: "Booking widget URL must start with https://"
+        error: "Widget type must be html, iframe, or url."
+      });
+    }
+
+    if (embedCode.length > 12000) {
+      return res.status(400).json({
+        success: false,
+        error: "Embed code is too long. Maximum length is 12,000 characters."
+      });
+    }
+
+    if (iframeUrl && !/^https:\/\/.+/i.test(iframeUrl)) {
+      return res.status(400).json({
+        success: false,
+        error: "Iframe URL must start with https://"
+      });
+    }
+
+    if (bookingUrl && !/^https:\/\/.+/i.test(bookingUrl)) {
+      return res.status(400).json({
+        success: false,
+        error: "Booking URL must start with https://"
+      });
+    }
+
+    if (widgetType === "html" && enabled && !embedCode) {
+      return res.status(400).json({
+        success: false,
+        error: "Paste embed code or disable the widget before saving."
+      });
+    }
+
+    if (widgetType === "iframe" && enabled && !iframeUrl) {
+      return res.status(400).json({
+        success: false,
+        error: "Iframe URL is required when iframe widget is enabled."
+      });
+    }
+
+    if (widgetType === "url" && enabled && !bookingUrl) {
+      return res.status(400).json({
+        success: false,
+        error: "Booking URL is required when booking link widget is enabled."
       });
     }
 
     businesses[businessIndex] = {
-      ...businesses[businessIndex],
-
+      ...currentBusiness,
       bookingIntegration: {
-        ...(businesses[businessIndex].bookingIntegration || {}),
+        ...previousIntegration,
         mode: "widget",
-        widgetUrl,
-        enabled
+        enabled,
+        provider,
+        widgetType,
+        type: widgetType,
+        embedCode,
+        code: embedCode,
+        iframeUrl,
+        widgetUrl: iframeUrl,
+        bookingUrl
       },
-
       updatedAt: new Date().toISOString()
     };
 
@@ -647,6 +773,81 @@ router.post("/booking-widget", requireBusinessSession, (req, res) => {
     });
   } catch (error) {
     console.error("[BOOKING WIDGET SAVE ERROR]", error);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.post("/deal", requireBusinessSession, (req, res) => {
+  try {
+    const businesses = readJsonFile("businesses.json", []);
+
+    if (!Array.isArray(businesses)) {
+      return res.status(500).json({
+        success: false,
+        error: "businesses.json is not a valid array."
+      });
+    }
+
+    const businessIndex = findBusinessIndexForSession(
+      req.businessSession,
+      businesses
+    );
+
+    if (businessIndex < 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found for this session."
+      });
+    }
+
+    const currentBusiness = businesses[businessIndex] || {};
+    const enabled = req.body?.enabled === true;
+    const title = String(req.body?.title || "").trim();
+    const body = String(req.body?.body || "").trim();
+    const promoCode = String(req.body?.promoCode || "").trim();
+    const expiresAt = String(req.body?.expiresAt || "").trim();
+
+    if (title.length > 80) {
+      return res.status(400).json({
+        success: false,
+        error: "Deal title must be 80 characters or less."
+      });
+    }
+
+    if (body.length > 260) {
+      return res.status(400).json({
+        success: false,
+        error: "Deal text must be 260 characters or less."
+      });
+    }
+
+    businesses[businessIndex] = {
+      ...currentBusiness,
+      activeDeal: {
+        ...(currentBusiness.activeDeal || {}),
+        enabled,
+        title,
+        body,
+        promoCode,
+        expiresAt,
+        updatedAt: new Date().toISOString()
+      },
+      updatedAt: new Date().toISOString()
+    };
+
+    writeJsonFile("businesses.json", businesses);
+
+    res.json({
+      success: true,
+      message: "Deal saved.",
+      activeDeal: businesses[businessIndex].activeDeal
+    });
+  } catch (error) {
+    console.error("[BUSINESS DEAL SAVE ERROR]", error);
 
     res.status(500).json({
       success: false,

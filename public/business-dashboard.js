@@ -245,6 +245,45 @@ function renderBusinessProfilePanel(dashboard) {
             placeholder="${escapeHtml(logoAltPlaceholder)}"
           />
         </div>
+
+        <div class="admin-field">
+          <span>Phone</span>
+          <input
+            id="profilePhone"
+            value="${escapeHtml(profile.phone || "")}"
+            placeholder="Business phone"
+          />
+        </div>
+
+        <div class="admin-field">
+          <span>Website</span>
+          <input
+            id="profileWebsite"
+            type="url"
+            value="${escapeHtml(profile.website || "")}"
+            placeholder="https://example.com"
+          />
+        </div>
+
+        <div class="admin-field admin-field-full">
+          <span>Search Card Short Description</span>
+          <textarea
+            id="profileShortDescription"
+            rows="2"
+            maxlength="220"
+            placeholder="Short sentence shown on verified search cards."
+          >${escapeHtml(profile.publicProfile?.shortDescription || "")}</textarea>
+        </div>
+
+        <div class="admin-field admin-field-full">
+          <span>Business Bio</span>
+          <textarea
+            id="profileBio"
+            rows="5"
+            maxlength="2500"
+            placeholder="Longer business bio for the public business page."
+          >${escapeHtml(profile.publicProfile?.bio || "")}</textarea>
+        </div>
       </div>
 
       ${
@@ -694,7 +733,12 @@ function attachBusinessProfileHandlers() {
 
       const payload = {
         logoUrl: document.getElementById("profileLogoUrl")?.value.trim() || "",
-        logoAlt: document.getElementById("profileLogoAlt")?.value.trim() || ""
+        logoAlt: document.getElementById("profileLogoAlt")?.value.trim() || "",
+        phone: document.getElementById("profilePhone")?.value.trim() || "",
+        website: document.getElementById("profileWebsite")?.value.trim() || "",
+        shortDescription:
+          document.getElementById("profileShortDescription")?.value.trim() || "",
+        bio: document.getElementById("profileBio")?.value.trim() || ""
       };
 
       await fetchJson("/api/business-dashboard/profile", {
@@ -820,13 +864,16 @@ function renderLockedPremiumPanel(title, description) {
 
 function renderBookingWidgetPanel(dashboard) {
   const profile = dashboard.profile || {};
+  const bookingIntegration = profile.bookingIntegration || {};
+  const widgetType = bookingIntegration.widgetType || bookingIntegration.type || "url";
+  const enabled = bookingIntegration.enabled === true;
 
   return `
     <div class="admin-business-card">
       <div class="business-card-header">
         <div>
           <h3>Booking Widget</h3>
-          <p>Add a booking widget or iframe URL to display directly on your public business page.</p>
+          <p>Universal booking widget support for HTML embed snippets, iframe URLs, or booking links.</p>
         </div>
 
         <div class="business-header-actions">
@@ -836,23 +883,64 @@ function renderBookingWidgetPanel(dashboard) {
 
       <div class="business-edit-grid">
         <div class="admin-field">
-          <span>Booking Widget URL</span>
+          <span>Widget Enabled</span>
+          <select id="bookingWidgetEnabled">
+            <option value="true" ${enabled ? "selected" : ""}>Enabled</option>
+            <option value="false" ${!enabled ? "selected" : ""}>Disabled</option>
+          </select>
+        </div>
+
+        <div class="admin-field">
+          <span>Provider</span>
           <input
-            id="bookingWidgetUrl"
-            type="url"
-            value="${escapeHtml(profile.bookingWidgetUrl || "")}"
-            placeholder="https://..."
+            id="bookingWidgetProvider"
+            value="${escapeHtml(bookingIntegration.provider || "other")}"
+            placeholder="mindbody, vagaro, zenoti, booker, other"
           />
         </div>
 
         <div class="admin-field">
-          <span>Widget Enabled</span>
-          <select id="bookingWidgetEnabled">
-            <option value="true">Enabled</option>
-            <option value="false">Disabled</option>
+          <span>Widget Type</span>
+          <select id="bookingWidgetType">
+            <option value="html" ${widgetType === "html" ? "selected" : ""}>HTML Embed Code</option>
+            <option value="iframe" ${widgetType === "iframe" ? "selected" : ""}>Iframe URL</option>
+            <option value="url" ${widgetType === "url" ? "selected" : ""}>Booking URL / Link</option>
           </select>
         </div>
+
+        <div class="admin-field admin-field-full booking-widget-field booking-widget-html-field">
+          <span>HTML Embed Code</span>
+          <textarea
+            id="bookingWidgetEmbedCode"
+            rows="7"
+            placeholder="Paste the full booking widget snippet here. Example: Mindbody div + script embed code."
+          >${escapeHtml(bookingIntegration.embedCode || bookingIntegration.code || "")}</textarea>
+        </div>
+
+        <div class="admin-field admin-field-full booking-widget-field booking-widget-iframe-field">
+          <span>Iframe URL</span>
+          <input
+            id="bookingWidgetIframeUrl"
+            type="url"
+            value="${escapeHtml(bookingIntegration.iframeUrl || bookingIntegration.widgetUrl || profile.bookingWidgetUrl || "")}"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div class="admin-field admin-field-full booking-widget-field booking-widget-url-field">
+          <span>Booking URL</span>
+          <input
+            id="bookingWidgetBookingUrl"
+            type="url"
+            value="${escapeHtml(bookingIntegration.bookingUrl || "")}"
+            placeholder="https://..."
+          />
+        </div>
       </div>
+
+      <p style="margin-top:10px;color:#64748b;font-size:13px;">
+        Use HTML Embed Code for CRM snippets like Mindbody, iframe URL for iframe-based widgets, or Booking URL for simple booking links.
+      </p>
 
       <div class="settings-actions">
         <button id="saveBookingWidgetBtn" class="primary-btn">
@@ -865,9 +953,28 @@ function renderBookingWidgetPanel(dashboard) {
   `;
 }
 
+function updateBookingWidgetFieldVisibility() {
+  const widgetType = document.getElementById("bookingWidgetType")?.value || "url";
+
+  document.querySelectorAll(".booking-widget-field").forEach((field) => {
+    field.style.display = "none";
+  });
+
+  document.querySelectorAll(`.booking-widget-${widgetType}-field`).forEach((field) => {
+    field.style.display = "";
+  });
+}
+
 function attachBookingWidgetHandlers() {
   const saveBtn = document.getElementById("saveBookingWidgetBtn");
   const status = document.getElementById("bookingWidgetStatus");
+  const typeSelect = document.getElementById("bookingWidgetType");
+
+  updateBookingWidgetFieldVisibility();
+
+  if (typeSelect) {
+    typeSelect.addEventListener("change", updateBookingWidgetFieldVisibility);
+  }
 
   if (!saveBtn) return;
 
@@ -884,10 +991,18 @@ function attachBookingWidgetHandlers() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          bookingWidgetUrl:
-            document.getElementById("bookingWidgetUrl")?.value.trim() || "",
-          bookingWidgetEnabled:
-            document.getElementById("bookingWidgetEnabled")?.value === "true"
+          enabled:
+            document.getElementById("bookingWidgetEnabled")?.value === "true",
+          provider:
+            document.getElementById("bookingWidgetProvider")?.value.trim() || "other",
+          widgetType:
+            document.getElementById("bookingWidgetType")?.value || "url",
+          embedCode:
+            document.getElementById("bookingWidgetEmbedCode")?.value.trim() || "",
+          iframeUrl:
+            document.getElementById("bookingWidgetIframeUrl")?.value.trim() || "",
+          bookingUrl:
+            document.getElementById("bookingWidgetBookingUrl")?.value.trim() || ""
         })
       });
 
@@ -906,6 +1021,129 @@ function attachBookingWidgetHandlers() {
       }
 
       setStatus(`Booking widget error: ${error.message}`, "error");
+    }
+  });
+}
+
+function renderDealPanel(dashboard) {
+  const profile = dashboard.profile || {};
+  const activeDeal = profile.activeDeal || {};
+  const enabled = activeDeal.enabled === true;
+
+  return `
+    <div class="admin-business-card">
+      <div class="business-card-header">
+        <div>
+          <h3>Search Card Deal</h3>
+          <p>Post a small promotion on your verified business card in search results.</p>
+        </div>
+
+        <div class="business-header-actions">
+          <span class="platform-pill">Premium</span>
+        </div>
+      </div>
+
+      <div class="business-edit-grid">
+        <div class="admin-field">
+          <span>Deal Enabled</span>
+          <select id="dealEnabled">
+            <option value="true" ${enabled ? "selected" : ""}>Enabled</option>
+            <option value="false" ${!enabled ? "selected" : ""}>Disabled</option>
+          </select>
+        </div>
+
+        <div class="admin-field">
+          <span>Deal Title</span>
+          <input
+            id="dealTitle"
+            maxlength="80"
+            value="${escapeHtml(activeDeal.title || "")}"
+            placeholder="Example: Summer Massage Special"
+          />
+        </div>
+
+        <div class="admin-field">
+          <span>Promo Code</span>
+          <input
+            id="dealPromoCode"
+            value="${escapeHtml(activeDeal.promoCode || "")}"
+            placeholder="Optional code"
+          />
+        </div>
+
+        <div class="admin-field">
+          <span>Expiration</span>
+          <input
+            id="dealExpiresAt"
+            type="date"
+            value="${escapeHtml(activeDeal.expiresAt || "")}"
+          />
+        </div>
+
+        <div class="admin-field admin-field-full">
+          <span>Deal Text</span>
+          <textarea
+            id="dealBody"
+            rows="3"
+            maxlength="260"
+            placeholder="Short promo text shown on search cards."
+          >${escapeHtml(activeDeal.body || "")}</textarea>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button id="saveDealBtn" class="primary-btn">
+          Save Deal
+        </button>
+      </div>
+
+      <div id="dealStatus" class="status-box"></div>
+    </div>
+  `;
+}
+
+function attachDealHandlers() {
+  const saveBtn = document.getElementById("saveDealBtn");
+  const status = document.getElementById("dealStatus");
+
+  if (!saveBtn) return;
+
+  saveBtn.addEventListener("click", async () => {
+    try {
+      if (status) {
+        status.textContent = "Saving deal...";
+        status.className = "status-box info";
+      }
+
+      await fetchJson("/api/business-dashboard/deal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          enabled: document.getElementById("dealEnabled")?.value === "true",
+          title: document.getElementById("dealTitle")?.value.trim() || "",
+          body: document.getElementById("dealBody")?.value.trim() || "",
+          promoCode: document.getElementById("dealPromoCode")?.value.trim() || "",
+          expiresAt: document.getElementById("dealExpiresAt")?.value || ""
+        })
+      });
+
+      if (status) {
+        status.textContent = "Deal saved.";
+        status.className = "status-box success";
+      }
+
+      setStatus("Deal saved.", "success");
+
+      await loadDashboard();
+    } catch (error) {
+      if (status) {
+        status.textContent = error.message;
+        status.className = "status-box error";
+      }
+
+      setStatus(`Deal error: ${error.message}`, "error");
     }
   });
 }
@@ -939,6 +1177,15 @@ content.innerHTML = `
     }
 
     ${
+      entitlements.canUseBookingWidget
+        ? renderDealPanel(dashboard)
+        : renderLockedPremiumPanel(
+            "Search Card Deal",
+            "Premium businesses can post a small deal or promotion on their verified search card."
+          )
+    }
+
+    ${
       entitlements.canViewAnalytics
         ? renderAnalyticsPanel(dashboard)
         : renderLockedPremiumPanel(
@@ -952,6 +1199,7 @@ content.innerHTML = `
   attachBusinessProfileHandlers();
   attachCredentialConnectionHandlers(dashboard);
   attachBookingWidgetHandlers();
+  attachDealHandlers();
 }
 
 async function requestLoginCode() {
