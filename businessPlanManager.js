@@ -1,13 +1,15 @@
+const {
+  getBusinessSubscription
+} = require("./businessSubscriptionManager");
+
 function getBusinessPlan(business = {}) {
+  const subscription = getBusinessSubscription(business);
+
   const plan =
-    business.plan ||
-    business.subscriptionPlan ||
-    business.businessPlan ||
-    "verified_basic";
+    subscription.plan || "verified_basic";
 
   const subscriptionStatus =
-    business.subscriptionStatus ||
-    "active";
+    subscription.subscriptionStatus || "active";
 
   const isPremium =
     plan === "premium" &&
@@ -16,12 +18,18 @@ function getBusinessPlan(business = {}) {
   return {
     plan,
     subscriptionStatus,
+
+    billingProvider:
+      subscription.billingProvider || "manual",
+
     isPremium,
 
     entitlements: {
+      // Basic Verified
       canEditProfile: true,
       canUploadLogo: true,
 
+      // Premium Features
       canUseApiIntegration: isPremium,
       canUseBookingWidget: isPremium,
       canCreateDeals: isPremium,

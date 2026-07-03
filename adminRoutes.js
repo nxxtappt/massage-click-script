@@ -16,6 +16,11 @@ const {
 
 const router = express.Router();
 
+const {
+  loadBusinessSubscriptions,
+  setBusinessSubscription
+} = require("./businessSubscriptionManager");
+
 const BUSINESSES_FILE = path.join(__dirname, "businesses.json");
 const RESULTS_FILE = path.join(__dirname, "results.json");
 const ERROR_LOGS_FILE = path.join(__dirname, "errorLogs.json");
@@ -113,6 +118,57 @@ router.get("/businesses", (req, res) => {
     success: true,
     businesses: readJsonFile(BUSINESSES_FILE, [])
   });
+});
+
+router.get("/business-subscriptions", (req, res) => {
+  try {
+    res.json({
+      success: true,
+      subscriptions: loadBusinessSubscriptions()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.post("/business-subscriptions", (req, res) => {
+  try {
+    const {
+      businessName,
+      plan,
+      subscriptionStatus,
+      notes
+    } = req.body || {};
+
+    if (!businessName) {
+      return res.status(400).json({
+        success: false,
+        error: "businessName is required."
+      });
+    }
+
+    const subscription = setBusinessSubscription(businessName, {
+      plan,
+      subscriptionStatus,
+      billingProvider: "manual_admin",
+      notes
+    });
+
+    res.json({
+      success: true,
+      message: "Business subscription updated.",
+      businessName,
+      subscription
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 router.post("/businesses/save", (req, res) => {

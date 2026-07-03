@@ -72,6 +72,35 @@ async function fetchJson(url, options = {}) {
   return response.json();
 }
 
+async function loadBusinessSubscriptions() {
+  const response = await fetch("/api/admin/business-subscriptions");
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error(data.error || "Failed to load business subscriptions.");
+  }
+
+  return data.subscriptions || {};
+}
+
+async function saveBusinessSubscription(payload) {
+  const response = await fetch("/api/admin/business-subscriptions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error(data.error || "Failed to save subscription.");
+  }
+
+  return data;
+}
+
 function normalizeBusinessDefaults(business) {
   const normalized = {
     enabled: business.enabled !== false,
@@ -444,7 +473,149 @@ async function saveBusinesses() {
     setStatus(`Save failed: ${error.message}`, "error");
   }
 }
+async function loadBusinessSubscriptionsView() {
+  try {
+    setContent("Loading business subscriptions...");
 
+    const [businessesData, subscriptionsData] = await Promise.all([
+      fetchJson("/api/admin/businesses"),
+      fetchJson("/api/admin/business-subscriptions")
+    ]);
+
+    const businesses = Array.isArray(businessesData.businesses)
+      ? businessesData.businesses
+      : [];
+
+    const subscriptions = subscriptionsData.subscriptions || {};
+
+    content.innerHTML = `
+      <h2>Business Subscriptions</h2>
+
+      <p class="admin-muted">
+        Manually set a business to Verified Basic or Premium. Stripe can later update this same subscription store.
+      </p>
+
+      <div class="business-list">
+        ${businesses
+          .map((business, index) => {
+            const businessName = business.businessName || business.name || "";
+            const key = businessName
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, "");
+
+            const subscription = subscriptions[key] || {};
+
+            const plan = subscription.plan || "verified_basic";
+            const status = subscription.subscriptionStatus || "active";
+
+            return `
+              <div class="admin-business-card">
+                <div class="business-card-header">
+                  <div>
+                    <h3>${escapeHtml(businessName || "Unknown Business")}</h3>
+                    <p>${escapeHtml(business.address || "No address listed")}</p>
+                  </div>
+
+                  <span class="platform-pill">
+                    ${escapeHtml(plan)}
+                  </span>
+                </div>
+
+                <div class="business-edit-grid">
+                  <div class="admin-field">
+                    <span>Plan</span>
+                    <select id="subscriptionPlan-${index}">
+                      <option value="verified_basic" ${plan === "verified_basic" ? "selected" : ""}>
+                        Verified Basic
+                      </option>
+                      <option value="premium" ${plan === "premium" ? "selected" : ""}>
+                        Premium
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="admin-field">
+                    <span>Status</span>
+                    <select id="subscriptionStatus-${index}">
+                      <option value="active" ${status === "active" ? "selected" : ""}>Active</option>
+                      <option value="trialing" ${status === "trialing" ? "selected" : ""}>Trialing</option>
+                      <option value="inactive" ${status === "inactive" ? "selected" : ""}>Inactive</option>
+                      <option value="past_due" ${status === "past_due" ? "selected" : ""}>Past Due</option>
+                      <option value="canceled" ${status === "canceled" ? "selected" : ""}>Canceled</option>
+                    </select>
+                  </div>
+
+                  <div class="admin-field">
+                    <span>Notes</span>
+                    <input
+                      id="subscriptionNotes-${index}"
+                      value="${escapeHtml(subscription.notes || "")}"
+                      placeholder="Optional internal note"
+                    />
+                  </div>
+                </div>
+
+                <div class="settings-actions">
+                  <button
+                    class="primary-btn"
+                    data-save-subscription="true"
+                    data-business-name="${escapeHtml(businessName)}"
+                    data-index="${index}"
+                  >
+                    Save Subscription
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+
+    attachSubscriptionSaveHandlers();
+  } catch (error) {
+    content.innerHTML = `
+      <h3>Could Not Load Subscriptions</h3>
+      <p>${escapeHtml(error.message)}</p>
+    `;
+  }
+}
+function attachSubscriptionSaveHandlers() {
+  document
+    .querySelectorAll("[data-save-subscription='true']")
+    .forEach((button) => {
+      button.addEventListener("click", async () => {
+        const businessName = button.dataset.businessName || "";
+        const index = button.dataset.index;
+
+        try {
+          button.disabled = true;
+          button.textContent = "Saving...";
+
+          await fetchJson("/api/admin/business-subscriptions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              businessName,
+              plan: document.getElementById(`subscriptionPlan-${index}`)?.value,
+              subscriptionStatus: document.getElementById(`subscriptionStatus-${index}`)?.value,
+              notes: document.getElementById(`subscriptionNotes-${index}`)?.value || ""
+            })
+          });
+
+          button.textContent = "Saved";
+          setTimeout(() => loadBusinessSubscriptionsView(), 500);
+        } catch (error) {
+          button.disabled = false;
+          button.textContent = "Save Subscription";
+          alert(error.message);
+        }
+      });
+    });
+}
 async function loadBusinesses() {
   currentView = "businesses";
   setLoading("Loading businesses...");
@@ -1149,6 +1320,7 @@ function renderClaimCard(claim) {
         >
           Reject
         </button>
+        <button data-view="subscriptions">Subscriptions</button>
       </div>
     </div>
   `;
@@ -1226,6 +1398,7 @@ function loadView(viewName) {
   if (viewName === "results") return loadResults();
   if (viewName === "errors") return loadErrors();
   if (viewName === "settings") return loadSettings();
+  if (viewName === "subscriptions") return loadBusinessSubscriptionsView();
 }
 
 navButtons.forEach((button) => {
