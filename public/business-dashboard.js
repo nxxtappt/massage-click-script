@@ -797,19 +797,161 @@ function attachCredentialConnectionHandlers(dashboard) {
   });
 }
 
+function renderLockedPremiumPanel(title, description) {
+  return `
+    <div class="admin-business-card premium-locked-card">
+      <div class="business-card-header">
+        <div>
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(description)}</p>
+        </div>
+
+        <div class="business-header-actions">
+          <span class="platform-pill">Premium</span>
+        </div>
+      </div>
+
+      <p style="margin-top:12px;color:#64748b;">
+        Upgrade to Premium to unlock this feature.
+      </p>
+    </div>
+  `;
+}
+
+function renderBookingWidgetPanel(dashboard) {
+  const profile = dashboard.profile || {};
+
+  return `
+    <div class="admin-business-card">
+      <div class="business-card-header">
+        <div>
+          <h3>Booking Widget</h3>
+          <p>Add a booking widget or iframe URL to display directly on your public business page.</p>
+        </div>
+
+        <div class="business-header-actions">
+          <span class="platform-pill">Premium</span>
+        </div>
+      </div>
+
+      <div class="business-edit-grid">
+        <div class="admin-field">
+          <span>Booking Widget URL</span>
+          <input
+            id="bookingWidgetUrl"
+            type="url"
+            value="${escapeHtml(profile.bookingWidgetUrl || "")}"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div class="admin-field">
+          <span>Widget Enabled</span>
+          <select id="bookingWidgetEnabled">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button id="saveBookingWidgetBtn" class="primary-btn">
+          Save Booking Widget
+        </button>
+      </div>
+
+      <div id="bookingWidgetStatus" class="status-box"></div>
+    </div>
+  `;
+}
+
+function attachBookingWidgetHandlers() {
+  const saveBtn = document.getElementById("saveBookingWidgetBtn");
+  const status = document.getElementById("bookingWidgetStatus");
+
+  if (!saveBtn) return;
+
+  saveBtn.addEventListener("click", async () => {
+    try {
+      if (status) {
+        status.textContent = "Saving booking widget...";
+        status.className = "status-box info";
+      }
+
+      await fetchJson("/api/business-dashboard/booking-widget", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          bookingWidgetUrl:
+            document.getElementById("bookingWidgetUrl")?.value.trim() || "",
+          bookingWidgetEnabled:
+            document.getElementById("bookingWidgetEnabled")?.value === "true"
+        })
+      });
+
+      if (status) {
+        status.textContent = "Booking widget saved.";
+        status.className = "status-box success";
+      }
+
+      setStatus("Booking widget saved.", "success");
+
+      await loadDashboard();
+    } catch (error) {
+      if (status) {
+        status.textContent = error.message;
+        status.className = "status-box error";
+      }
+
+      setStatus(`Booking widget error: ${error.message}`, "error");
+    }
+  });
+}
+
 function renderDashboard(dashboard) {
   logoutBtn.style.display = "inline-flex";
 
-  content.innerHTML = `
-    <div class="business-list">
-      ${renderBusinessProfilePanel(dashboard)}
-      ${renderCredentialConnectionPanel(dashboard)}
-      ${renderAnalyticsPanel(dashboard)}
-    </div>
-  `;
+const entitlements = dashboard.entitlements || {};
+const isPremium = dashboard.isPremium === true;
+
+content.innerHTML = `
+  <div class="business-list">
+    ${renderBusinessProfilePanel(dashboard)}
+
+    ${
+      entitlements.canUseApiIntegration
+        ? renderCredentialConnectionPanel(dashboard)
+        : renderLockedPremiumPanel(
+            "Connect CRM/API",
+            "Premium businesses can connect API credentials so NextAppt can display richer live availability."
+          )
+    }
+
+    ${
+      entitlements.canUseBookingWidget
+        ? renderBookingWidgetPanel(dashboard)
+        : renderLockedPremiumPanel(
+            "Booking Widget",
+            "Premium businesses can add a booking widget or booking iframe directly to their public business page."
+          )
+    }
+
+    ${
+      entitlements.canViewAnalytics
+        ? renderAnalyticsPanel(dashboard)
+        : renderLockedPremiumPanel(
+            "Appointment Analytics",
+            "Premium businesses can see appointment clicks, popular days, popular times, and customer demand signals."
+          )
+    }
+  </div>
+`;
 
   attachBusinessProfileHandlers();
   attachCredentialConnectionHandlers(dashboard);
+  attachBookingWidgetHandlers();
 }
 
 async function requestLoginCode() {

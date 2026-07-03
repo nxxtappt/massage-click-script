@@ -23,6 +23,10 @@ const {
   storagePath
 } = require("./storagePaths");
 
+const {
+  getBusinessPlan
+} = require("./businessPlanManager");
+
 const LOGO_UPLOAD_DIR = storagePath(
   "public",
   "uploads",
@@ -240,6 +244,7 @@ function buildDashboard(session) {
 
   const latestResult = findLatestResultForBusiness(businessName);
   const latestCache = findLatestCacheForBusiness(businessName);
+  const planInfo = getBusinessPlan(business || {});
 
   const lastScrape =
     latestResult?.lastChecked ||
@@ -264,6 +269,11 @@ function buildDashboard(session) {
     email: session.email,
     sessionExpiresAt: session.expiresAt,
 
+    plan: planInfo.plan,
+    subscriptionStatus: planInfo.subscriptionStatus,
+    isPremium: planInfo.isPremium,
+    entitlements: planInfo.entitlements,
+
     profile: {
       businessName,
       verificationStatus: getVerificationStatus(session, business),
@@ -271,8 +281,13 @@ function buildDashboard(session) {
       integrationStatus: getIntegrationStatus(business),
       lastSyncTimestamp,
       logoUrl: business?.logoUrl || "",
-      logoAlt: business?.logoAlt || `${businessName} logo`
-    },
+      logoAlt: business?.logoAlt || `${businessName} logo`,
+      bookingWidgetUrl:
+      business?.bookingIntegration?.widgetUrl || "",
+
+      bookingWidgetEnabled:
+      business?.bookingIntegration?.enabled === true
+      },
 
     inventoryHealth: {
       lastScrape: lastScrape || "Not scraped yet",
@@ -569,6 +584,69 @@ router.post("/profile", requireBusinessSession, (req, res) => {
     });
   } catch (error) {
     console.error("[BUSINESS DASHBOARD PROFILE SAVE ERROR]", error);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.post("/booking-widget", requireBusinessSession, (req, res) => {
+  try {
+    const businesses = readJsonFile("businesses.json", []);
+
+    if (!Array.isArray(businesses)) {
+      return res.status(500).json({
+        success: false,
+        error: "businesses.json is not a valid array."
+      });
+    }
+
+    const businessIndex = findBusinessIndexForSession(
+      req.businessSession,
+      businesses
+    );
+
+    if (businessIndex < 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found for this session."
+      });
+    }
+
+    const widgetUrl = String(req.body?.bookingWidgetUrl || "").trim();
+    const enabled = req.body?.bookingWidgetEnabled === true;
+
+    if (widgetUrl && !/^https:\/\/.+/i.test(widgetUrl)) {
+      return res.status(400).json({
+        success: false,
+        error: "Booking widget URL must start with https://"
+      });
+    }
+
+    businesses[businessIndex] = {
+      ...businesses[businessIndex],
+
+      bookingIntegration: {
+        ...(businesses[businessIndex].bookingIntegration || {}),
+        mode: "widget",
+        widgetUrl,
+        enabled
+      },
+
+      updatedAt: new Date().toISOString()
+    };
+
+    writeJsonFile("businesses.json", businesses);
+
+    res.json({
+      success: true,
+      message: "Booking widget saved.",
+      bookingIntegration: businesses[businessIndex].bookingIntegration
+    });
+  } catch (error) {
+    console.error("[BOOKING WIDGET SAVE ERROR]", error);
 
     res.status(500).json({
       success: false,
