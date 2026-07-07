@@ -16,6 +16,8 @@ const {
   getActiveLock
 } = require("./searchLockManager");
 
+const businessManager = require("./businessManager");
+
 const {
   normalizeServiceType,
   getCanonicalServiceTypes
@@ -615,11 +617,7 @@ function buildTargetsForIntent(
   intent,
   query = {}
 ) {
-  const businesses =
-    readJsonFile(
-      "businesses.json",
-      []
-    );
+  const businesses = businessManager.getAllBusinessesSync();
 
   if (
     !Array.isArray(
