@@ -1999,7 +1999,7 @@ function serviceMatchesIntent(service, query) {
 }
 
 function buildLiveSearchTargets(query) {
-  const businesses = readJsonFile("businesses.json", []);
+  const businesses = businessManager.getAllBusinessesSync();
 
   if (!Array.isArray(businesses)) {
     return [];
