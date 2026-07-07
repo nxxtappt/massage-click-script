@@ -1,293 +1,83 @@
 const fs = require("fs");
 const path = require("path");
 
-const {
-  storagePath,
-  readJson,
-  writeJsonAtomic
-} = require("./storagePaths");
+let BusinessRepository = null;
 
-const BUSINESSES_FILE = path.join(__dirname, "businesses.json");
-
-function normalize(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+try {
+  BusinessRepository = require("./database/BusinessRepository");
+} catch (error) {
+  console.warn("[BUSINESS MANAGER] PostgreSQL repository unavailable:", error.message);
 }
 
-function slugify(value = "") {
-  return String(value || "business")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 90) || "business";
-}
+function readJsonBusinesses() {
+  const filePath = path.join(__dirname, "businesses.json");
 
-function readJsonFile(filePath, fallback) {
-  if (!fs.existsSync(filePath)) return fallback;
-
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
-    console.error("[BUSINESS MANAGER] Failed to read JSON:", error.message);
-    return fallback;
-  }
-}
-
-function loadBusinesses() {
-  const businesses = readJsonFile(BUSINESSES_FILE, []);
-
-  if (!Array.isArray(businesses)) {
+  if (!fs.existsSync(filePath)) {
     return [];
   }
 
-  return businesses.map(normalizeBusiness);
-}
-
-function saveBusinesses(businesses = []) {
-  fs.writeFileSync(BUSINESSES_FILE, JSON.stringify(businesses, null, 2));
-}
-
-function normalizeBusiness(business = {}) {
-  const businessName =
-    business.businessName ||
-    business.name ||
-    "Unknown Business";
-
-  const businessSlug =
-    business.businessSlug ||
-    business.slug ||
-    slugify(businessName);
-
-  return {
-    ...business,
-    businessName,
-    businessSlug,
-    publicPageEnabled: business.publicPageEnabled !== false,
-    verificationStatus:
-      business.verificationStatus ||
-      business.claimStatus ||
-      "unclaimed",
-    claimed: business.claimed === true,
-    publicProfile: {
-      shortDescription:
-        business.publicProfile?.shortDescription ||
-        business.shortDescription ||
-        "",
-      bio:
-        business.publicProfile?.bio ||
-        business.bio ||
-        "",
-      specialties:
-        business.publicProfile?.specialties ||
-        business.specialties ||
-        [],
-      amenities:
-        business.publicProfile?.amenities ||
-        business.amenities ||
-        []
-    },
-    activeDeal: {
-      enabled: business.activeDeal?.enabled === true,
-      title: business.activeDeal?.title || "",
-      body: business.activeDeal?.body || "",
-      promoCode: business.activeDeal?.promoCode || "",
-      expiresAt: business.activeDeal?.expiresAt || ""
-    }
-  };
-}
-
-function findBusinessByName(businessName = "") {
-  const target = normalize(businessName);
-
-  return (
-    loadBusinesses().find((business) => {
-      return normalize(business.businessName || business.name) === target;
-    }) || null
-  );
-}
-
-function findBusinessBySlug(slug = "") {
-  const target = normalize(slug);
-
-  return (
-    loadBusinesses().find((business) => {
-      return normalize(business.businessSlug || slugify(business.businessName)) === target;
-    }) || null
-  );
-}
-
-function findBusinessIndexBySlug(businesses = [], slug = "") {
-  const target = normalize(slug);
-
-  return businesses.findIndex((business) => {
-    const businessSlug =
-      business.businessSlug ||
-      business.slug ||
-      slugify(business.businessName || business.name);
-
-    return normalize(businessSlug) === target;
-  });
-}
-
-function isVerifiedBusiness(business = {}) {
-  return (
-    business.verificationStatus === "verified" ||
-    business.claimStatus === "claimed_verified" ||
-    business.status === "claimed_verified" ||
-    business.claimed === true
-  );
-}
-
-function getBusinessCardData(business = {}) {
-  const normalized = normalizeBusiness(business);
-
-  return {
-    businessName: normalized.businessName,
-    businessSlug: normalized.businessSlug,
-    businessUrl: `/business/${normalized.businessSlug}`,
-    address: normalized.address || "",
-    latitude: normalized.latitude ?? null,
-    longitude: normalized.longitude ?? null,
-    logoUrl: normalized.logoUrl || "",
-    logoAlt: normalized.logoAlt || `${normalized.businessName} logo`,
-    verificationStatus: normalized.verificationStatus,
-    claimed: normalized.claimed,
-    isVerified: isVerifiedBusiness(normalized),
-    activeDeal: getActiveDeal(normalized)
-  };
-}
-
-function getBusinessPageData(slug = "") {
-  const business = findBusinessBySlug(slug);
-
-  if (!business || business.publicPageEnabled === false) {
-    return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("[BUSINESS MANAGER] Failed to read businesses.json:", error.message);
+    return [];
   }
+}
 
-  const verified = isVerifiedBusiness(business);
+function toLegacyBusiness(row = {}) {
+  const raw = row.raw_json && typeof row.raw_json === "object" ? row.raw_json : {};
 
   return {
-    ...getBusinessCardData(business),
-    publicPageEnabled: business.publicPageEnabled !== false,
-    isVerified: verified,
-    publicProfile: verified
-      ? business.publicProfile
-      : {
-          shortDescription: "",
-          bio: "",
-          specialties: [],
-          amenities: []
-        },
-    activeDeal: verified ? getActiveDeal(business) : null,
-    unverifiedMessage: verified
-      ? ""
-      : "This business has not claimed its NextAppt profile yet."
+    ...raw,
+    id: row.business_id || raw.id,
+    businessId: row.business_id || raw.businessId,
+    businessName: row.business_name || raw.businessName || raw.name,
+    displayName: row.display_name || raw.displayName,
+    businessCategory: row.business_category || raw.businessCategory || "wellness",
+    platform: row.platform || raw.platform,
+    bookingUrl: row.booking_url || raw.bookingUrl,
+    website: row.website || raw.website,
+    phone: row.phone || raw.phone,
+    email: row.email || raw.email,
+    ownerEmail: row.owner_email || raw.ownerEmail,
+    verificationStatus: row.verification_status || raw.verificationStatus || "unclaimed",
+    claimed: row.claimed === true || raw.claimed === true,
+    claimedByEmail: row.claimed_by_email || raw.claimedByEmail,
+    claimId: row.claim_id || raw.claimId,
+    enabled: row.enabled !== false,
+    priority: row.priority || raw.priority,
+    discoveryStatus: row.discovery_status || raw.discoveryStatus
   };
 }
 
-function getActiveDeal(business = {}) {
-  const deal = business.activeDeal || {};
+async function getAllBusinesses(options = {}) {
+  const usePostgres =
+    process.env.BUSINESS_SOURCE === "postgres" ||
+    options.source === "postgres";
 
-  if (deal.enabled !== true) {
-    return null;
-  }
+  if (usePostgres && BusinessRepository?.getAllBusinesses) {
+    try {
+      const rows = await BusinessRepository.getAllBusinesses({
+        includeDisabled: options.includeDisabled === true
+      });
 
-  if (deal.expiresAt) {
-    const expiresAt = new Date(deal.expiresAt).getTime();
-
-    if (!Number.isNaN(expiresAt) && expiresAt < Date.now()) {
-      return null;
+      return rows.map(toLegacyBusiness);
+    } catch (error) {
+      console.error("[BUSINESS MANAGER] PostgreSQL read failed, falling back to JSON:", error.message);
     }
   }
 
-  return {
-    enabled: true,
-    title: deal.title || "",
-    body: deal.body || "",
-    promoCode: deal.promoCode || "",
-    expiresAt: deal.expiresAt || ""
-  };
+  return readJsonBusinesses();
 }
 
-function updateBusinessProfile(slug = "", profile = {}) {
-  const businesses = readJsonFile(BUSINESSES_FILE, []);
-
-  if (!Array.isArray(businesses)) {
-    throw new Error("businesses.json must be an array.");
-  }
-
-  const index = findBusinessIndexBySlug(businesses, slug);
-
-  if (index < 0) {
-    throw new Error("Business not found.");
-  }
-
-  businesses[index] = normalizeBusiness({
-    ...businesses[index],
-    publicProfile: {
-      ...(businesses[index].publicProfile || {}),
-      shortDescription: String(profile.shortDescription || "").trim(),
-      bio: String(profile.bio || "").trim(),
-      specialties: Array.isArray(profile.specialties)
-        ? profile.specialties
-        : [],
-      amenities: Array.isArray(profile.amenities)
-        ? profile.amenities
-        : []
-    },
-    updatedAt: new Date().toISOString()
-  });
-
-  saveBusinesses(businesses);
-
-  return businesses[index];
-}
-
-function updateBusinessDeal(slug = "", deal = {}) {
-  const businesses = readJsonFile(BUSINESSES_FILE, []);
-
-  if (!Array.isArray(businesses)) {
-    throw new Error("businesses.json must be an array.");
-  }
-
-  const index = findBusinessIndexBySlug(businesses, slug);
-
-  if (index < 0) {
-    throw new Error("Business not found.");
-  }
-
-  businesses[index] = normalizeBusiness({
-    ...businesses[index],
-    activeDeal: {
-      enabled: deal.enabled === true,
-      title: String(deal.title || "").trim(),
-      body: String(deal.body || "").trim(),
-      promoCode: String(deal.promoCode || "").trim(),
-      expiresAt: String(deal.expiresAt || "").trim()
-    },
-    updatedAt: new Date().toISOString()
-  });
-
-  saveBusinesses(businesses);
-
-  return businesses[index];
+function getAllBusinessesSync() {
+  return readJsonBusinesses();
 }
 
 module.exports = {
-  normalize,
-  slugify,
-  loadBusinesses,
-  saveBusinesses,
-  normalizeBusiness,
-  findBusinessByName,
-  findBusinessBySlug,
-  isVerifiedBusiness,
-  getBusinessCardData,
-  getBusinessPageData,
-  getActiveDeal,
-  updateBusinessProfile,
-  updateBusinessDeal
+  getAllBusinesses,
+  getAllBusinessesSync,
+  readJsonBusinesses,
+  toLegacyBusiness
 };
