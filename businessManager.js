@@ -9,20 +9,34 @@ try {
   console.warn("[BUSINESS MANAGER] PostgreSQL repository unavailable:", error.message);
 }
 
-function readJsonBusinesses() {
-  const filePath = path.join(__dirname, "businesses.json");
+const BUSINESS_FILE = path.join(__dirname, "businesses.json");
 
-  if (!fs.existsSync(filePath)) {
-    return [];
-  }
+function usePostgres(options = {}) {
+  return (
+    process.env.BUSINESS_SOURCE === "postgres" ||
+    options.source === "postgres"
+  );
+}
+
+function readJsonBusinesses() {
+  if (!fs.existsSync(BUSINESS_FILE)) return [];
 
   try {
-    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const parsed = JSON.parse(fs.readFileSync(BUSINESS_FILE, "utf8"));
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.error("[BUSINESS MANAGER] Failed to read businesses.json:", error.message);
     return [];
   }
+}
+
+function writeJsonBusinesses(businesses = []) {
+  fs.writeFileSync(BUSINESS_FILE, JSON.stringify(businesses, null, 2));
+  return businesses;
+}
+
+function normalize(value) {
+  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function toLegacyBusiness(row = {}) {
@@ -52,11 +66,7 @@ function toLegacyBusiness(row = {}) {
 }
 
 async function getAllBusinesses(options = {}) {
-  const usePostgres =
-    process.env.BUSINESS_SOURCE === "postgres" ||
-    options.source === "postgres";
-
-  if (usePostgres && BusinessRepository?.getAllBusinesses) {
+  if (usePostgres(options) && BusinessRepository?.getAllBusinesses) {
     try {
       const rows = await BusinessRepository.getAllBusinesses({
         includeDisabled: options.includeDisabled === true
@@ -75,9 +85,71 @@ function getAllBusinessesSync() {
   return readJsonBusinesses();
 }
 
+async function createBusiness(business = {}, options = {}) {
+  if (usePostgres(options) && BusinessRepository?.createBusiness) {
+    const row = await BusinessRepository.createBusiness(business);
+    return toLegacyBusiness(row);
+  }
+
+  const businesses = readJsonBusinesses();
+  businesses.push(business);
+  writeJsonBusinesses(businesses);
+  return business;
+}
+
+async function updateBusiness(idOrBusinessName, updates = {}, options = {}) {
+  if (usePostgres(options) && BusinessRepository?.updateBusiness) {
+    const row = await BusinessRepository.updateBusiness(idOrBusinessName, updates);
+    return toLegacyBusiness(row);
+  }
+
+  const businesses = readJsonBusinesses();
+  const target = normalize(idOrBusinessName);
+
+  const index = businesses.findIndex((business) => {
+    return (
+      normalize(business.businessId || business.id) === target ||
+      normalize(business.businessName || business.name) === target
+    );
+  });
+
+  if (index < 0) {
+    throw new Error("Business not found.");
+  }
+
+  businesses[index] = {
+    ...businesses[index],
+    ...updates,
+    updatedAt: new Date().toISOString()
+  };
+
+  writeJsonBusinesses(businesses);
+  return businesses[index];
+}
+
+async function saveBusiness(business = {}, options = {}) {
+  if (usePostgres(options) && BusinessRepository?.saveBusinessFull) {
+    const row = await BusinessRepository.saveBusinessFull(business);
+    return toLegacyBusiness(row);
+  }
+
+  const idOrName = business.businessId || business.id || business.businessName || business.name;
+
+  try {
+    return await updateBusiness(idOrName, business, options);
+  } catch {
+    return createBusiness(business, options);
+  }
+}
+
 module.exports = {
   getAllBusinesses,
   getAllBusinessesSync,
   readJsonBusinesses,
-  toLegacyBusiness
+  writeJsonBusinesses,
+  toLegacyBusiness,
+
+  createBusiness,
+  updateBusiness,
+  saveBusiness
 };
