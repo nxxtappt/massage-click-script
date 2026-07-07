@@ -18,6 +18,7 @@ function slugify(value = "") {
 
 function normalizeBusiness(input = {}) {
   const businessName = input.businessName || input.name || input.displayName || "";
+
   return {
     business_id: input.businessId || input.id || slugify(businessName),
     business_name: businessName,
@@ -40,31 +41,8 @@ function normalizeBusiness(input = {}) {
   };
 }
 
-function normalizeServices(input = {}, numericBusinessId) {
-  const services = Array.isArray(input.services) && input.services.length ? input.services : [input];
-
-  return services.map((service) => ({
-    business_id: numericBusinessId,
-    service_name: service.serviceName || input.serviceName || "",
-    service_type: service.serviceType || service.serviceCategory || input.serviceType || input.serviceCategory || null,
-    duration_minutes: service.durationMinutes || input.durationMinutes || null,
-    price: service.price || service.servicePrice || input.price || null,
-    platform_service_id: service.platformServiceId || input.platformServiceId || null,
-    service_button_id: service.serviceButtonId || input.serviceButtonId || null,
-    service_id: service.serviceId || input.serviceId || service.platformServiceId || service.serviceButtonId || null,
-    category_text: service.categoryText || service.categoryName || input.categoryText || input.categoryName || null,
-    provider_text: service.providerText || input.providerText || null,
-    enabled: service.enabled !== false,
-    priority: service.priority || input.priority || null,
-    discovery_status: service.discoveryStatus || input.discoveryStatus || null,
-    days_forward: service.daysForward || input.daysForward || null,
-    lookahead_hours: service.lookaheadHours || input.lookaheadHours || null,
-    raw_json: service
-  })).filter((s) => s.service_name || s.service_type || s.platform_service_id || s.service_id);
-}
-
-function normalizeLocations(input = {}, numericBusinessId) {
-  return [{
+function normalizeLocation(input = {}, numericBusinessId) {
+  return {
     business_id: numericBusinessId,
     location_name: input.locationName || input.businessName || input.name || null,
     address: input.address || null,
@@ -75,7 +53,49 @@ function normalizeLocations(input = {}, numericBusinessId) {
     longitude: input.longitude ?? null,
     timezone: input.timezone || "America/Chicago",
     raw_json: input
-  }].filter((l) => l.address || l.latitude || l.longitude);
+  };
+}
+
+function normalizeService(input = {}, business = {}, numericBusinessId) {
+  return {
+    business_id: numericBusinessId,
+    service_name: input.serviceName || business.serviceName || "",
+    service_type:
+      input.serviceType ||
+      input.serviceCategory ||
+      business.serviceType ||
+      business.serviceCategory ||
+      null,
+    duration_minutes: input.durationMinutes || business.durationMinutes || null,
+    price: input.price || input.servicePrice || business.price || business.servicePrice || null,
+    platform_service_id:
+      input.platformServiceId ||
+      business.platformServiceId ||
+      null,
+    service_button_id:
+      input.serviceButtonId ||
+      business.serviceButtonId ||
+      null,
+    service_id:
+      input.serviceId ||
+      business.serviceId ||
+      input.platformServiceId ||
+      input.serviceButtonId ||
+      null,
+    category_text:
+      input.categoryText ||
+      input.categoryName ||
+      business.categoryText ||
+      business.categoryName ||
+      null,
+    provider_text: input.providerText || business.providerText || null,
+    enabled: input.enabled !== false,
+    priority: input.priority || business.priority || null,
+    discovery_status: input.discoveryStatus || business.discoveryStatus || null,
+    days_forward: input.daysForward || business.daysForward || null,
+    lookahead_hours: input.lookaheadHours || business.lookaheadHours || null,
+    raw_json: input
+  };
 }
 
 function normalizeIntegration(input = {}, numericBusinessId) {
@@ -87,6 +107,79 @@ function normalizeIntegration(input = {}, numericBusinessId) {
     platform: input.platform || null,
     status: input.integrationStatus || "active",
     raw_json: input
+  };
+}
+
+function getServicesFromBusiness(business = {}) {
+  const services =
+    Array.isArray(business.services) && business.services.length
+      ? business.services
+      : [business];
+
+  return services;
+}
+
+async function getAllBusinesses(options = {}) {
+  const includeDisabled = options.includeDisabled === true;
+
+  const result = await query(
+    `
+      SELECT *
+      FROM businesses
+      WHERE ($1::boolean = true OR enabled IS NOT FALSE)
+      ORDER BY business_name ASC
+    `,
+    [includeDisabled]
+  );
+
+  return result.rows;
+}
+
+async function getBusinessById(id) {
+  const result = await query(
+    `
+      SELECT *
+      FROM businesses
+      WHERE id = $1 OR business_id = $2
+      LIMIT 1
+    `,
+    [Number(id) || 0, String(id || "")]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getBusinessByName(businessName) {
+  const result = await query(
+    `
+      SELECT *
+      FROM businesses
+      WHERE lower(business_name) = lower($1)
+         OR lower(display_name) = lower($1)
+      LIMIT 1
+    `,
+    [businessName]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getBusinessWithChildren(idOrBusinessId) {
+  const business = await getBusinessById(idOrBusinessId);
+
+  if (!business) return null;
+
+  const [locations, services, integrations] = await Promise.all([
+    getLocations(business.id),
+    getServices(business.id),
+    getIntegrations(business.id)
+  ]);
+
+  return {
+    ...business,
+    locations,
+    services,
+    integrations
   };
 }
 
@@ -111,17 +204,154 @@ async function upsertBusiness(business) {
   return result.rows[0];
 }
 
-async function insertRows(tableName, rows = []) {
-  for (const row of rows) {
+async function createBusiness(business) {
+  return upsertBusiness(business);
+}
+
+async function updateBusiness(idOrBusinessId, updates = {}) {
+  const existing = await getBusinessById(idOrBusinessId);
+
+  if (!existing) {
+    throw new Error("Business not found.");
+  }
+
+  const merged = {
+    ...(existing.raw_json || {}),
+    ...updates,
+    businessId: existing.business_id,
+    businessName: updates.businessName || updates.business_name || existing.business_name
+  };
+
+  return upsertBusiness(merged);
+}
+
+async function deleteBusiness(idOrBusinessId) {
+  const existing = await getBusinessById(idOrBusinessId);
+
+  if (!existing) {
+    return false;
+  }
+
+  await query("DELETE FROM businesses WHERE id = $1", [existing.id]);
+  return true;
+}
+
+async function getLocations(numericBusinessId) {
+  const result = await query(
+    `
+      SELECT *
+      FROM business_locations
+      WHERE business_id = $1
+      ORDER BY id ASC
+    `,
+    [numericBusinessId]
+  );
+
+  return result.rows;
+}
+
+async function saveLocations(numericBusinessId, locations = []) {
+  await query("DELETE FROM business_locations WHERE business_id = $1", [numericBusinessId]);
+
+  const saved = [];
+
+  for (const location of locations) {
+    const row = normalizeLocation(location, numericBusinessId);
     const keys = Object.keys(row);
-    await query(
+
+    const result = await query(
       `
-        INSERT INTO ${tableName} (${keys.join(", ")})
+        INSERT INTO business_locations (${keys.join(", ")})
         VALUES (${keys.map((_, i) => `$${i + 1}`).join(", ")})
+        RETURNING *
       `,
       keys.map((key) => row[key])
     );
+
+    saved.push(result.rows[0]);
   }
+
+  return saved;
+}
+
+async function getServices(numericBusinessId) {
+  const result = await query(
+    `
+      SELECT *
+      FROM business_services
+      WHERE business_id = $1
+      ORDER BY service_name ASC, duration_minutes ASC NULLS LAST
+    `,
+    [numericBusinessId]
+  );
+
+  return result.rows;
+}
+
+async function saveServices(numericBusinessId, businessOrServices = []) {
+  const business = Array.isArray(businessOrServices) ? {} : businessOrServices;
+  const services = Array.isArray(businessOrServices)
+    ? businessOrServices
+    : getServicesFromBusiness(businessOrServices);
+
+  await query("DELETE FROM business_services WHERE business_id = $1", [numericBusinessId]);
+
+  const saved = [];
+
+  for (const service of services) {
+    const row = normalizeService(service, business, numericBusinessId);
+
+    if (!row.service_name && !row.service_type && !row.platform_service_id && !row.service_id) {
+      continue;
+    }
+
+    const keys = Object.keys(row);
+
+    const result = await query(
+      `
+        INSERT INTO business_services (${keys.join(", ")})
+        VALUES (${keys.map((_, i) => `$${i + 1}`).join(", ")})
+        RETURNING *
+      `,
+      keys.map((key) => row[key])
+    );
+
+    saved.push(result.rows[0]);
+  }
+
+  return saved;
+}
+
+async function getIntegrations(numericBusinessId) {
+  const result = await query(
+    `
+      SELECT *
+      FROM business_integrations
+      WHERE business_id = $1
+      ORDER BY id ASC
+    `,
+    [numericBusinessId]
+  );
+
+  return result.rows;
+}
+
+async function saveIntegration(numericBusinessId, integration = {}) {
+  await query("DELETE FROM business_integrations WHERE business_id = $1", [numericBusinessId]);
+
+  const row = normalizeIntegration(integration, numericBusinessId);
+  const keys = Object.keys(row);
+
+  const result = await query(
+    `
+      INSERT INTO business_integrations (${keys.join(", ")})
+      VALUES (${keys.map((_, i) => `$${i + 1}`).join(", ")})
+      RETURNING *
+    `,
+    keys.map((key) => row[key])
+  );
+
+  return result.rows[0];
 }
 
 async function saveBusinessFull(business) {
@@ -131,13 +361,9 @@ async function saveBusinessFull(business) {
     const savedBusiness = await upsertBusiness(business);
     const numericBusinessId = savedBusiness.id;
 
-    await query("DELETE FROM business_locations WHERE business_id = $1", [numericBusinessId]);
-    await query("DELETE FROM business_services WHERE business_id = $1", [numericBusinessId]);
-    await query("DELETE FROM business_integrations WHERE business_id = $1", [numericBusinessId]);
-
-    await insertRows("business_locations", normalizeLocations(business, numericBusinessId));
-    await insertRows("business_services", normalizeServices(business, numericBusinessId));
-    await insertRows("business_integrations", [normalizeIntegration(business, numericBusinessId)]);
+    await saveLocations(numericBusinessId, [business]);
+    await saveServices(numericBusinessId, business);
+    await saveIntegration(numericBusinessId, business);
 
     await query("COMMIT");
     return savedBusiness;
@@ -147,7 +373,31 @@ async function saveBusinessFull(business) {
   }
 }
 
+async function getBusinessCount() {
+  const result = await query("SELECT COUNT(*) FROM businesses");
+  return Number(result.rows[0].count || 0);
+}
+
 module.exports = {
+  getAllBusinesses,
+  getBusinessById,
+  getBusinessByName,
+  getBusinessWithChildren,
+  getBusinessCount,
+
+  createBusiness,
+  updateBusiness,
+  deleteBusiness,
+
+  upsertBusiness,
   saveBusinessFull,
-  upsertBusiness
+
+  getLocations,
+  saveLocations,
+
+  getServices,
+  saveServices,
+
+  getIntegrations,
+  saveIntegration
 };
