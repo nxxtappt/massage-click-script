@@ -33,6 +33,7 @@ const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
 const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
+const businessManager = require("./businessManager");
 
 const MAX_ATTEMPTS = 2;
 const RESULTS_FILE = storagePath("results.json");
@@ -926,7 +927,7 @@ async function run() {
     return;
   }
 
-  const businesses = JSON.parse(fs.readFileSync("businesses.json", "utf8"));
+  const businesses = businessManager.getAllBusinessesSync();
 
   const supportedPlatforms = [
     "mindbody",
@@ -952,7 +953,7 @@ async function run() {
   let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, filters);
   scrapeJobs = enforceOnDemandLimits(scrapeJobs, filters, adminSettings);
 
-  console.log(`Loaded ${businesses.length} businesses from businesses.json`);
+  console.log(`Loaded ${businesses.length} businesses from businessManager`);
   console.log(`Built ${scrapeJobs.length} service-level scrape job(s)`);
 
   if (Object.keys(filters).length > 0) {
