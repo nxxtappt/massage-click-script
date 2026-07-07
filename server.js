@@ -694,7 +694,7 @@ function businessMatchesSearch(business = {}, businessSearch = "") {
   return targetWords.some((word) => searchableText.includes(word));
 }
 function buildBusinessMetadataMap() {
-  const businessConfig = readJsonFile("businesses.json", []);
+  const businessConfig = businessManager.getAllBusinessesSync();
   const map = {};
 
   if (!Array.isArray(businessConfig)) {
