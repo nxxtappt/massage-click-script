@@ -453,7 +453,7 @@ function loadCacheBusinesses() {
   return businesses;
 }
 function getBusinessConfigByName(businessName) {
-  const businesses = readJsonFile("businesses.json", []);
+  const businesses = businessManager.getAllBusinessesSync();
 
   if (!Array.isArray(businesses)) {
     return null;
