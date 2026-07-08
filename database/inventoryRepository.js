@@ -45,12 +45,18 @@ function parseDateKey(value) {
 
   const raw = String(value).trim();
 
+  // Prevent time-only strings from becoming 1970-01-01.
+  if (/^\d{1,2}:\d{2}(:\d{2})?(\.\d+)?$/.test(raw)) {
+    return "";
+  }
+
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
     return raw;
   }
 
   if (raw.includes("T")) {
     const datePart = raw.split("T")[0];
+
     if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
       return datePart;
     }
@@ -58,7 +64,7 @@ function parseDateKey(value) {
 
   const parsed = new Date(raw);
 
-  if (!Number.isNaN(parsed.getTime())) {
+  if (!Number.isNaN(parsed.getTime()) && parsed.getFullYear() > 2000) {
     return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(
       parsed.getDate()
     )}`;
@@ -66,7 +72,6 @@ function parseDateKey(value) {
 
   return "";
 }
-
 function parseTimeKey(value) {
   if (!value) return "";
 
@@ -141,11 +146,14 @@ function buildAppointmentStart(appointment = {}, parentResult = {}) {
 
 function buildLocalDate(appointment = {}, parentResult = {}) {
   return (
-    parseDateKey(appointment.localDateKey) ||
+    parseDateKey(appointment.startTime) ||
     parseDateKey(appointment.date) ||
+    parseDateKey(appointment.rawDate) ||
+    parseDateKey(appointment.rawTime) ||
+    parseDateKey(appointment.localDateKey) ||
     parseDateKey(appointment.appointmentDate) ||
     parseDateKey(appointment.AvailableDate) ||
-    parseDateKey(appointment.startTime) ||
+    parseDateKey(parentResult.scrapeStartDate) ||
     parseDateKey(parentResult.localDateKey) ||
     parseDateKey(parentResult.date) ||
     null
@@ -605,7 +613,15 @@ async function getRawResults(limit = 500) {
 async function getInventory(filters = {}) {
   const values = [];
   const where = [];
-  where.push("appointment_start > NOW()");
+  where.push(`
+  (
+    local_date > (NOW() AT TIME ZONE 'America/Chicago')::date
+    OR (
+      local_date = (NOW() AT TIME ZONE 'America/Chicago')::date
+      AND local_time > (NOW() AT TIME ZONE 'America/Chicago')::time
+    )
+  )
+`);
   where.push("searchable = true");
 
   function addWhere(sql, value) {

@@ -45,7 +45,7 @@ const {
   createScrapeRun,
   finishScrapeRun,
   insertRawScrapeResult,
-  insertConfirmedAppointment
+  insertConfirmedAppointmentsFromResult
 } = require("./database/inventoryRepository");
 const VAGARO_DISCOVERY_FILE = storagePath("vagaro-marketplace-results.json");
 
@@ -55,8 +55,9 @@ const scrapeVagaroMarketplace =
   vagaroModule;
 
 function saveResults(results) {
-  writeJsonAtomic(RESULTS_FILE, results);
-  console.log(`Saved ${results.length} result(s) to ${RESULTS_FILE}`);
+  console.log(
+    `[RESULTS] Legacy results.json write disabled. ${results.length} result(s) kept in memory only.`
+  );
 }
 
 function normalizeResultKeyValue(value) {
@@ -996,16 +997,11 @@ async function run() {
     headless: true
   });
 
-let results = readJson(RESULTS_FILE, []);
+let results = [];
 
-if (!Array.isArray(results)) {
-  console.error(
-    "[RESULTS] Existing results file was not an array. Starting with empty results."
+  console.log(
+    "[RESULTS] Legacy results.json loading disabled. Starting with empty in-memory run results."
   );
-
-  results = [];
-}
-  console.log(`[RESULTS] Starting with ${results.length} existing result(s).`);
 
   try {
     for (const job of scrapeJobs) {
@@ -1051,7 +1047,7 @@ if (!Array.isArray(results)) {
       const rawResult = await scrapeWithRetries(browser, job);
       const result = filterResultToScrapeWindow(rawResult, job);
 
-      await insertRawScrapeResult({
+      const rawScrapeResult = await insertRawScrapeResult({
         scrapeRunId: scrapeRun.id,
         businessName: result.businessName || job.businessName,
         platform: result.platform || job.platform,
@@ -1143,6 +1139,29 @@ await finishScrapeRun(scrapeRun.id, {
   appointmentsFound: mergedAppointments.length,
   errorMessage: resultWithInference.error || null
 });
+
+const confirmedInventoryResult = {
+  ...result,
+  appointments: confirmedAppointments
+};
+
+const insertedInventoryAppointments =
+  await insertConfirmedAppointmentsFromResult(confirmedInventoryResult, {
+    scrapeRunId: scrapeRun.id,
+    rawScrapeResultId: rawScrapeResult.id
+  });
+
+console.log(
+  `[INVENTORY] Saved ${insertedInventoryAppointments.length} confirmed appointment(s) to PostgreSQL inventory.`
+);
+
+const inferredCount = mergedAppointments.length - confirmedAppointments.length;
+
+if (inferredCount > 0) {
+  console.log(
+    `[INVENTORY] ${inferredCount} inferred appointment(s) generated but not written to confirmed inventory yet.`
+  );
+}
 
 results = upsertResult(results, resultWithInference);
 cacheResult(resultWithInference);
