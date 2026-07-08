@@ -1,4 +1,4 @@
-const inventoryRepository = require("./database/InventoryRepository");
+const inventoryRepository = require("./database/inventoryRepository");
 
 function normalizeText(value) {
   return String(value || "")

@@ -37,6 +37,8 @@ const {
 const {
   upsertBusinessResult
 } = require("./resultStore");
+
+const inventoryManager = require("./inventoryManager");
 const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
@@ -1807,70 +1809,27 @@ function dedupeAppointmentsByStrictTimeKey(appointments = []) {
   });
 }
 
-function loadNormalizedAppointments(query, options = {}) {
-  const includeAppointmentCache =
-    options.includeAppointmentCache === true ||
-    String(query.includeAppointmentCache || "") === "true" ||
-    String(query.onDemand || "") === "true" ||
-    String(query.useOrchestration || "") === "true" ||
-    String(query.orchestrated || "") === "true";
+async function loadNormalizedAppointments(query, options = {}) {
+  const intent = inferSearchIntent(query);
 
-  const resultsPath = storagePath("results.json");
-  const hasResultsFile = fs.existsSync(resultsPath);
-  const cacheBusinesses = includeAppointmentCache ? loadCacheBusinesses() : [];
-
-  if (!hasResultsFile) {
-    return {
-      missingResultsFile: true,
-      businesses: [],
-      appointments: [],
-      totalAppointmentsBeforeTimingEvaluation: 0,
-      timingBreakdown: {},
-      cacheBusinessesLoaded: 0
-    };
-  }
-
-  const businessMetadataMap = buildBusinessMetadataMap();
-  const parsed = hasResultsFile ? readJsonFile("results.json", []) : [];
-
-  let businessesFromResults = Array.isArray(parsed)
-    ? parsed
-    : Array.isArray(parsed.results)
-      ? parsed.results
-      : Array.isArray(parsed.businesses)
-        ? parsed.businesses
-        : [];
-
-let businesses = mergeBusinessesForNormalization(
-  businessesFromResults,
-  cacheBusinesses
-);
-
-businesses = businesses.map((business) =>
-  mergeBusinessMetadata(business, businessMetadataMap)
-);
-
- let appointments = businesses.flatMap((business) =>
-  getAppointmentsFromBusiness(business)
-);
-
-console.log("[NORMALIZED APPOINTMENT DEBUG]", appointments.slice(0, 10).map((a) => ({
-  businessName: a.businessName,
-  serviceName: a.serviceName,
-  sourceType: a.sourceType,
-  date: a.date,
-  time: a.time,
-  startTime: a.startTime,
-  localDateKey: a.localDateKey,
-  localTimeKey: a.localTimeKey,
-  localSortable: a.localSortable,
-  rawDate: a.rawDate,
-  rawTime: a.rawTime
-})));
+  let appointments = await inventoryManager.getInventory({
+    ...query,
+    serviceCategory: query.serviceCategory || intent.serviceCategory || query.serviceType || "",
+    durationMinutes: query.durationMinutes || query.duration || intent.duration || null,
+    hours: query.hours || intent.hours || "",
+    limit: query.limit || 2000,
+    limitPerBusiness: query.limitPerBusiness || 999,
+    includeInactive: query.showPast === "true"
+  });
 
   const totalAppointmentsBeforeTimingEvaluation = appointments.length;
 
-  appointments = appointments.map(evaluateAppointmentTiming);
+  appointments = appointments.map((appointment) => ({
+    ...appointment,
+    timingStatus: "future",
+    shouldDisplay: true,
+    normalizationWarning: ""
+  }));
 
   const timingBreakdown = appointments.reduce((summary, appointment) => {
     const key = appointment.timingStatus || "unknown";
@@ -1878,36 +1837,51 @@ console.log("[NORMALIZED APPOINTMENT DEBUG]", appointments.slice(0, 10).map((a) 
     return summary;
   }, {});
 
-  appointments = appointments.filter((appointment) => {
-    if (query.showPast === "true") return true;
-
-    if (query.showInvalidDates === "true") {
-      return appointment.shouldDisplay || appointment.timingStatus === "unknown";
-    }
-
-    return appointment.shouldDisplay;
-  });
-
   appointments = appointments.filter((appointment) =>
     appointmentMatchesQuery(appointment, query)
   );
 
-  const intent = inferSearchIntent(query);
   appointments = appointments.filter((appointment) =>
     appointmentWithinHours(appointment, query.hours || intent.hours)
   );
-appointments = dedupeAppointments(appointments);
-appointments = dedupeAppointmentsByStrictTimeKey(appointments);
 
-appointments = sortAppointmentsByRanking(
-  appointments,
-  query
-);
+  appointments = dedupeAppointments(appointments);
+  appointments = dedupeAppointmentsByStrictTimeKey(appointments);
+
+  appointments = sortAppointmentsByRanking(
+    appointments,
+    query
+  );
 
   appointments = limitAppointmentsPerBusiness(
     appointments,
     query.limitPerBusiness || 999
   );
+
+  const businessMap = new Map();
+
+  appointments.forEach((appointment) => {
+    const key = appointment.businessName || "Unknown Business";
+
+    if (!businessMap.has(key)) {
+      businessMap.set(key, {
+        businessName: key,
+        name: key,
+        platform: appointment.platform || "unknown",
+        status: appointment.sourceStatus || appointment.status || "active",
+        address: appointment.address || "",
+        latitude: appointment.latitude ?? null,
+        longitude: appointment.longitude ?? null,
+        logoUrl: appointment.logoUrl || "",
+        logoAlt: appointment.logoAlt || "",
+        appointments: []
+      });
+    }
+
+    businessMap.get(key).appointments.push(appointment);
+  });
+
+  const businesses = [...businessMap.values()];
 
   return {
     missingResultsFile: false,
@@ -1915,7 +1889,7 @@ appointments = sortAppointmentsByRanking(
     appointments,
     totalAppointmentsBeforeTimingEvaluation,
     timingBreakdown,
-    cacheBusinessesLoaded: cacheBusinesses.length
+    cacheBusinessesLoaded: 0
   };
 }
 
@@ -2319,9 +2293,9 @@ app.get("/api/search", async (req, res) => {
       totalAppointmentsBeforeTimingEvaluation,
       timingBreakdown,
       cacheBusinessesLoaded
-    } = loadNormalizedAppointments(req.query, {
-      includeAppointmentCache: true
-    });
+    } = await loadNormalizedAppointments(req.query, {
+  includeAppointmentCache: true
+});
 
     if (missingResultsFile) {
       return res.status(404).json({
@@ -2396,7 +2370,7 @@ app.get("/api/search", async (req, res) => {
     });
   }
 });
-    app.get("/api/appointments", (req, res) => {
+    app.get("/api/appointments", async (req, res) => {
 
   try {
     const {
@@ -2405,7 +2379,7 @@ app.get("/api/search", async (req, res) => {
       appointments,
       totalAppointmentsBeforeTimingEvaluation,
       timingBreakdown
-    } = loadNormalizedAppointments(req.query);
+   } = await loadNormalizedAppointments(req.query);
 
     if (missingResultsFile) {
       return res.status(404).json({
