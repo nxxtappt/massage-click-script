@@ -1,4 +1,5 @@
 const inventoryRepository = require("./database/inventoryRepository");
+const businessManager = require("./businessManager");
 
 const DEFAULT_TIMEZONE = "America/Chicago";
 
@@ -72,6 +73,188 @@ function dedupeInventory(appointments = []) {
   return deduped;
 }
 
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function normalizeDateKey(value) {
+  if (!value) return "";
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${value.getUTCFullYear()}-${pad2(value.getUTCMonth() + 1)}-${pad2(value.getUTCDate())}`;
+  }
+
+  const raw = String(value).trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  const isoMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoMatch) {
+    return isoMatch[1];
+  }
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime()) && parsed.getUTCFullYear() > 2000) {
+    return `${parsed.getUTCFullYear()}-${pad2(parsed.getUTCMonth() + 1)}-${pad2(parsed.getUTCDate())}`;
+  }
+
+  return "";
+}
+
+function normalizeTimeKey(value) {
+  if (!value) return "";
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${pad2(value.getUTCHours())}:${pad2(value.getUTCMinutes())}`;
+  }
+
+  const raw = String(value).trim();
+
+  const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1]);
+    const minute = Number(ampmMatch[2]);
+    const ampm = ampmMatch[3].toUpperCase();
+
+    if (ampm === "PM" && hour !== 12) hour += 12;
+    if (ampm === "AM" && hour === 12) hour = 0;
+
+    return `${pad2(hour)}:${pad2(minute)}`;
+  }
+
+  const isoMatch = raw.match(/T(\d{1,2}):(\d{2})/);
+  if (isoMatch) {
+    return `${pad2(isoMatch[1])}:${pad2(isoMatch[2])}`;
+  }
+
+  const normalMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?/);
+  if (normalMatch) {
+    return `${pad2(normalMatch[1])}:${pad2(normalMatch[2])}`;
+  }
+
+  return "";
+}
+
+function buildLocalSortable(localDateKey = "", localTimeKey = "") {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(localDateKey))) return null;
+  if (!/^\d{2}:\d{2}$/.test(String(localTimeKey))) return null;
+
+  return Number(`${localDateKey.replace(/-/g, "")}${localTimeKey.replace(":", "")}`);
+}
+
+function formatDisplayDate(localDateKey = "") {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(localDateKey))) return "";
+
+  const [year, month, day] = String(localDateKey).split("-").map(Number);
+  const date = new Date(year, month - 1, day, 12, 0, 0);
+
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+function formatDisplayTime(localTimeKey = "") {
+  if (!/^\d{2}:\d{2}$/.test(String(localTimeKey))) return "";
+
+  const [hourValue, minuteValue] = String(localTimeKey).split(":").map(Number);
+  const suffix = hourValue >= 12 ? "PM" : "AM";
+  const hour = hourValue % 12 || 12;
+
+  return `${hour}:${pad2(minuteValue)} ${suffix}`;
+}
+
+function toNumber(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function normalizeBusinessKey(value = "") {
+  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function slugifyBusinessName(value = "") {
+  return String(value || "business")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 90) || "business";
+}
+
+let cachedBusinessMetadataMap = null;
+let cachedBusinessMetadataAt = 0;
+
+function getBusinessMetadataMap() {
+  const now = Date.now();
+
+  if (cachedBusinessMetadataMap && now - cachedBusinessMetadataAt < 30000) {
+    return cachedBusinessMetadataMap;
+  }
+
+  const businesses = businessManager.getAllBusinessesSync();
+  const map = new Map();
+
+  if (Array.isArray(businesses)) {
+    businesses.forEach((business) => {
+      const businessName = business.businessName || business.name || "";
+      const key = normalizeBusinessKey(businessName);
+      if (!key) return;
+
+      const slug = business.businessSlug || business.slug || slugifyBusinessName(businessName);
+
+      map.set(key, {
+        businessName,
+        businessCategory: business.businessCategory || "wellness",
+        address: business.address || "",
+        latitude: toNumber(business.latitude),
+        longitude: toNumber(business.longitude),
+        logoUrl: business.logoUrl || "",
+        logoAlt: business.logoAlt || `${businessName} logo`,
+        claimed: business.claimed === true,
+        verificationStatus: business.verificationStatus || business.claimStatus || "unclaimed",
+        claimedByEmail: business.claimedByEmail || "",
+        claimId: business.claimId || "",
+        businessSlug: slug,
+        businessUrl: business.businessUrl || `/business/${slug}`,
+        reviewSummary: business.reviewSummary || null,
+        activeDeal: business.activeDeal || null,
+        publicProfile: business.publicProfile || null,
+        price: business.price || business.servicePrice || null
+      });
+    });
+  }
+
+  cachedBusinessMetadataMap = map;
+  cachedBusinessMetadataAt = now;
+
+  return map;
+}
+
+function getBusinessMetadata(businessName = "") {
+  const map = getBusinessMetadataMap();
+  const target = normalizeBusinessKey(businessName);
+
+  if (!target) return {};
+
+  if (map.has(target)) {
+    return map.get(target);
+  }
+
+  for (const [key, value] of map.entries()) {
+    if (key.includes(target) || target.includes(key)) {
+      return value;
+    }
+  }
+
+  return {};
+}
+
 function normalizeInventoryRow(row = {}) {
   const serviceName = row.serviceName || row.service_name || row.service || "";
   const serviceCategory =
@@ -81,11 +264,59 @@ function normalizeInventoryRow(row = {}) {
     row.service_type ||
     "";
 
+  const businessName = row.businessName || row.business_name || "";
+  const metadata = getBusinessMetadata(businessName);
+
+  const rawAppointmentStart =
+    row.appointmentStart ||
+    row.appointment_start ||
+    row.startTime ||
+    row.start_time ||
+    "";
+
+  const localDateKey =
+    normalizeDateKey(row.localDateKey) ||
+    normalizeDateKey(row.localDate) ||
+    normalizeDateKey(row.local_date) ||
+    normalizeDateKey(rawAppointmentStart);
+
+  const localTimeKey =
+    normalizeTimeKey(row.localTimeKey) ||
+    normalizeTimeKey(row.localTime) ||
+    normalizeTimeKey(row.local_time) ||
+    normalizeTimeKey(rawAppointmentStart);
+
+  const safeStartTime =
+    localDateKey && localTimeKey
+      ? `${localDateKey}T${localTimeKey}:00`
+      : rawAppointmentStart || "";
+
+  const latitude =
+    toNumber(row.latitude) ??
+    toNumber(row.businessLatitude) ??
+    toNumber(row.business_latitude) ??
+    metadata.latitude ??
+    null;
+
+  const longitude =
+    toNumber(row.longitude) ??
+    toNumber(row.businessLongitude) ??
+    toNumber(row.business_longitude) ??
+    metadata.longitude ??
+    null;
+
+  const displayDate = row.date || row.displayDate || formatDisplayDate(localDateKey);
+  const displayTime = row.time || row.displayTime || formatDisplayTime(localTimeKey);
+
   return {
     id: row.id || null,
 
-    businessName: row.businessName || row.business_name || "",
-    businessCategory: row.businessCategory || row.business_category || "wellness",
+    businessName: businessName || metadata.businessName || "",
+    businessCategory:
+      row.businessCategory ||
+      row.business_category ||
+      metadata.businessCategory ||
+      "wellness",
 
     platform: row.platform || "",
     bookingUrl: row.bookingUrl || row.booking_url || "",
@@ -110,19 +341,8 @@ function normalizeInventoryRow(row = {}) {
       row.provider ||
       "",
 
-    appointmentStart:
-      row.appointmentStart ||
-      row.appointment_start ||
-      row.startTime ||
-      row.start_time ||
-      "",
-
-    startTime:
-      row.startTime ||
-      row.appointmentStart ||
-      row.appointment_start ||
-      row.start_time ||
-      "",
+    appointmentStart: rawAppointmentStart || safeStartTime,
+    startTime: safeStartTime,
 
     appointmentEnd:
       row.appointmentEnd ||
@@ -138,19 +358,28 @@ function normalizeInventoryRow(row = {}) {
       row.end_time ||
       "",
 
-    localDate:
-      row.localDate || row.local_date || row.localDateKey || "",
-    localDateKey:
-      row.localDateKey || row.localDate || row.local_date || "",
+    localDate: localDateKey,
+    localDateKey,
 
-    localTime:
-      row.localTime || row.local_time || row.localTimeKey || "",
-    localTimeKey:
-      row.localTimeKey || row.localTime || row.local_time || "",
+    localTime: localTimeKey,
+    localTimeKey,
+
+    localSortable: buildLocalSortable(localDateKey, localTimeKey),
+
+    date: displayDate,
+    time: displayTime,
+    displayDate,
+    displayTime,
 
     timezone: row.timezone || DEFAULT_TIMEZONE,
 
-    sourceType: row.sourceType || row.source_type || "confirmed",
+    sourceType:
+      row.sourceType ||
+      row.source_type ||
+      row.appointmentSource ||
+      row.appointment_source ||
+      "confirmed",
+
     confidence:
       row.confidence === undefined || row.confidence === null
         ? 1
@@ -161,13 +390,31 @@ function normalizeInventoryRow(row = {}) {
 
     status: row.status || row.inventoryStatus || row.inventory_status || "active",
 
-    latitude: row.latitude ?? null,
-    longitude: row.longitude ?? null,
-    address: row.address || "",
-    logoUrl: row.logoUrl || row.logo_url || "",
-    logoAlt: row.logoAlt || row.logo_alt || "",
+    latitude,
+    longitude,
+    address: row.address || row.businessAddress || row.business_address || metadata.address || "",
+    logoUrl: row.logoUrl || row.logo_url || metadata.logoUrl || "",
+    logoAlt:
+      row.logoAlt ||
+      row.logo_alt ||
+      metadata.logoAlt ||
+      `${businessName || "Business"} logo`,
 
-    price: row.price || row.servicePrice || row.service_price || null,
+    claimed: row.claimed === true || metadata.claimed === true,
+    verificationStatus:
+      row.verificationStatus ||
+      row.verification_status ||
+      metadata.verificationStatus ||
+      "unclaimed",
+    claimedByEmail: row.claimedByEmail || row.claimed_by_email || metadata.claimedByEmail || "",
+    claimId: row.claimId || row.claim_id || metadata.claimId || "",
+    businessSlug: row.businessSlug || row.business_slug || metadata.businessSlug || slugifyBusinessName(businessName),
+    businessUrl: row.businessUrl || row.business_url || metadata.businessUrl || `/business/${slugifyBusinessName(businessName)}`,
+    reviewSummary: row.reviewSummary || row.review_summary || metadata.reviewSummary || null,
+    activeDeal: row.activeDeal || row.active_deal || metadata.activeDeal || null,
+    publicProfile: row.publicProfile || row.public_profile || metadata.publicProfile || null,
+
+    price: row.price || row.servicePrice || row.service_price || metadata.price || null,
 
     rawJson: row.rawJson || row.raw_json || null,
 
@@ -196,6 +443,8 @@ function normalizeFilters(filters = {}) {
     limitPerBusiness: toNumberOrNull(filters.limitPerBusiness),
     includeInactive:
       filters.includeInactive === true || String(filters.includeInactive) === "true",
+    showPast:
+      filters.showPast === true || String(filters.showPast) === "true",
     includeInferred:
       filters.includeInferred !== false && String(filters.includeInferred) !== "false",
     includeConfirmed:
@@ -280,11 +529,8 @@ function applyLookahead(appointments = [], filters = {}) {
   const cutoff = now + normalizedFilters.hours * 60 * 60 * 1000;
 
   return appointments.filter((appointment) => {
-    const rawStart =
-      appointment.appointmentStart ||
-      appointment.appointment_start ||
-      appointment.startTime ||
-      "";
+    const normalized = normalizeInventoryRow(appointment);
+    const rawStart = normalized.startTime || normalized.appointmentStart || "";
 
     if (!rawStart) {
       return true;
@@ -357,7 +603,7 @@ function filterInventory(appointments = [], filters = {}) {
 
     if (
       normalizedFilters.targetLocalDateKey &&
-      normalized.localDateKey !== normalizedFilters.targetLocalDateKey
+      normalized.localDateKey !== normalizeDateKey(normalizedFilters.targetLocalDateKey)
     ) {
       return false;
     }

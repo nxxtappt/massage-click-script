@@ -613,16 +613,29 @@ async function getRawResults(limit = 500) {
 async function getInventory(filters = {}) {
   const values = [];
   const where = [];
-  where.push(`
-  (
-    local_date > (NOW() AT TIME ZONE 'America/Chicago')::date
-    OR (
-      local_date = (NOW() AT TIME ZONE 'America/Chicago')::date
-      AND local_time > (NOW() AT TIME ZONE 'America/Chicago')::time
-    )
-  )
-`);
-  where.push("searchable = true");
+  const columns = await getTableColumns("appointment_inventory");
+
+  const showPast =
+    filters.showPast === true ||
+    String(filters.showPast) === "true" ||
+    filters.includePast === true ||
+    String(filters.includePast) === "true";
+
+  if (!showPast) {
+    where.push(`
+      (
+        local_date > (NOW() AT TIME ZONE 'America/Chicago')::date
+        OR (
+          local_date = (NOW() AT TIME ZONE 'America/Chicago')::date
+          AND local_time > (NOW() AT TIME ZONE 'America/Chicago')::time
+        )
+      )
+    `);
+  }
+
+  if (columns.has("searchable")) {
+    where.push("searchable = true");
+  }
 
   function addWhere(sql, value) {
     values.push(value);
@@ -641,31 +654,50 @@ async function getInventory(filters = {}) {
     addWhere("LOWER(service_category) = LOWER(?)", filters.serviceCategory);
   }
 
+  if (filters.serviceName) {
+    addWhere("LOWER(service_name) LIKE LOWER(?)", `%${filters.serviceName}%`);
+  }
+
   if (filters.durationMinutes) {
     addWhere("duration_minutes = ?", Number(filters.durationMinutes));
   }
 
   if (filters.targetLocalDateKey) {
-    addWhere("local_date::text = ?", filters.targetLocalDateKey);
+    addWhere("local_date = ?::date", filters.targetLocalDateKey);
   }
 
   if (filters.startTimeKey) {
-    addWhere("local_time::text >= ?", filters.startTimeKey);
+    addWhere("local_time >= ?::time", filters.startTimeKey);
   }
 
   if (filters.endTimeKey) {
-    addWhere("local_time::text <= ?", filters.endTimeKey);
+    addWhere("local_time <= ?::time", filters.endTimeKey);
   }
 
-  if (filters.includeConfirmed === false) {
-    where.push("source_type <> 'confirmed'");
+  const sourceColumn = columns.has("appointment_source")
+    ? "appointment_source"
+    : columns.has("source_type")
+      ? "source_type"
+      : null;
+
+  if (sourceColumn && filters.includeConfirmed === false) {
+    where.push(`${sourceColumn} <> 'confirmed'`);
   }
 
-  if (filters.includeInferred === false) {
-    where.push("source_type <> 'inferred'");
+  if (sourceColumn && filters.includeInferred === false) {
+    where.push(`${sourceColumn} <> 'inferred'`);
+  }
+
+  if (!filters.includeInactive) {
+    if (columns.has("inventory_status")) {
+      where.push("COALESCE(inventory_status, 'active') NOT IN ('inactive', 'expired', 'archived', 'deleted')");
+    } else if (columns.has("status")) {
+      where.push("COALESCE(status, 'active') NOT IN ('inactive', 'expired', 'archived', 'deleted')");
+    }
   }
 
   const limit = Number(filters.limit || 1000);
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 10000) : 1000;
 
   const result = await db.query(
     `
@@ -673,7 +705,7 @@ async function getInventory(filters = {}) {
     FROM appointment_inventory
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY appointment_start ASC NULLS LAST, local_date ASC NULLS LAST, local_time ASC NULLS LAST
-    LIMIT ${Number.isFinite(limit) && limit > 0 ? limit : 1000}
+    LIMIT ${safeLimit}
     `,
     values
   );
