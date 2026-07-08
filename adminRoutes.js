@@ -21,7 +21,8 @@ const {
   setBusinessSubscription
 } = require("./businessSubscriptionManager");
 
-const BUSINESSES_FILE = path.join(__dirname, "businesses.json");
+const businessManager = require("./businessManager");
+
 const RESULTS_FILE = path.join(__dirname, "results.json");
 const ERROR_LOGS_FILE = path.join(__dirname, "errorLogs.json");
 
@@ -199,11 +200,22 @@ router.get("/debug/routes", (req, res) => {
   });
 });
 
-router.get("/businesses", (req, res) => {
-  res.json({
-    success: true,
-    businesses: readJsonFile(BUSINESSES_FILE, [])
-  });
+router.get("/businesses", async (req, res) => {
+  try {
+    const businesses = await businessManager.getAllBusinesses({
+      includeDisabled: true
+    });
+
+    res.json({
+      success: true,
+      businesses
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 router.get("/business-subscriptions", (req, res) => {
@@ -250,22 +262,34 @@ router.post("/business-subscriptions", (req, res) => {
   }
 });
 
-router.post("/businesses/save", (req, res) => {
-  const businesses = req.body?.businesses;
+router.post("/businesses/save", async (req, res) => {
+  try {
+    const businesses = req.body?.businesses;
 
-  if (!Array.isArray(businesses)) {
-    return res.status(400).json({
+    if (!Array.isArray(businesses)) {
+      return res.status(400).json({
+        success: false,
+        error: "businesses must be an array"
+      });
+    }
+
+    const savedBusinesses = [];
+
+    for (const business of businesses) {
+      savedBusinesses.push(await businessManager.saveBusiness(business));
+    }
+
+    res.json({
+      success: true,
+      count: savedBusinesses.length,
+      businesses: savedBusinesses
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
-      error: "businesses must be an array"
+      error: error.message
     });
   }
-
-  writeJsonFile(BUSINESSES_FILE, businesses);
-
-  res.json({
-    success: true,
-    count: businesses.length
-  });
 });
 
 router.get("/results", (req, res) => {

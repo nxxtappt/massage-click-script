@@ -1,6 +1,4 @@
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 
 const {
   saveApiCredential,
@@ -21,36 +19,9 @@ const {
   findClaimById
 } = require("./businessClaimManager");
 
+const businessManager = require("./businessManager");
+
 const router = express.Router();
-
-const BUSINESSES_FILE = path.join(__dirname, "businesses.json");
-
-function ensureFile(filePath, fallback) {
-  const dir = path.dirname(filePath);
-
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify(fallback, null, 2));
-  }
-}
-
-function readJson(filePath, fallback) {
-  ensureFile(filePath, fallback);
-
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson(filePath, data) {
-  ensureFile(filePath, Array.isArray(data) ? [] : {});
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
 
 function slugify(value) {
   return String(value || "")
@@ -59,7 +30,14 @@ function slugify(value) {
     .replace(/(^-|-$)/g, "");
 }
 
-function safeBusinessPublicView(business) {
+function normalize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function safeBusinessPublicView(business = {}) {
   return {
     businessName: business.businessName || business.name || "",
     platform: business.platform || "",
@@ -74,7 +52,7 @@ function safeBusinessPublicView(business) {
   };
 }
 
-function safeClaimPublicView(claim) {
+function safeClaimPublicView(claim = {}) {
   return {
     claimId: claim.claimId,
     businessId: claim.businessId || "",
@@ -92,89 +70,79 @@ function safeClaimPublicView(claim) {
   };
 }
 
-function getBusinesses() {
-  return readJson(BUSINESSES_FILE, []);
+async function getBusinesses() {
+  return businessManager.getAllBusinesses({ includeDisabled: true });
 }
 
-function saveBusinesses(businesses) {
-  writeJson(BUSINESSES_FILE, businesses);
+async function findBusinessByName(businessName) {
+  const businesses = await getBusinesses();
+  const target = normalize(businessName);
+
+  return (
+    businesses.find((business) => {
+      return normalize(business.businessName || business.name || "") === target;
+    }) || null
+  );
 }
 
-function findBusinessIndexByName(businesses, businessName) {
-  return businesses.findIndex((business) => {
-    return String(business.businessName || business.name || "")
-      .toLowerCase()
-      .trim() === String(businessName || "").toLowerCase().trim();
+async function saveBusinessMerge(businessName, updates = {}) {
+  const existingBusiness = await findBusinessByName(businessName);
+
+  if (!existingBusiness) {
+    return null;
+  }
+
+  const mergedBusiness = {
+    ...existingBusiness,
+    ...updates,
+    businessId: existingBusiness.businessId || existingBusiness.id,
+    businessName: existingBusiness.businessName || existingBusiness.name || businessName,
+    updatedAt: new Date().toISOString()
+  };
+
+  return businessManager.saveBusiness(mergedBusiness);
+}
+
+async function updateBusinessClaimStatus({ businessName, claimStatus, verificationStatus }) {
+  return saveBusinessMerge(businessName, {
+    claimStatus,
+    verificationStatus
   });
 }
 
-function updateBusinessClaimStatus({ businessName, claimStatus, verificationStatus }) {
-  const businesses = getBusinesses();
-  const index = findBusinessIndexByName(businesses, businessName);
+async function updateBusinessPendingCredential({ businessName, apiProvider, credentialId }) {
+  const existingBusiness = await findBusinessByName(businessName);
 
-  if (index < 0) {
+  if (!existingBusiness) {
     return null;
   }
 
-  businesses[index] = {
-    ...businesses[index],
-    claimStatus,
-    verificationStatus,
-    updatedAt: new Date().toISOString()
-  };
-
-  saveBusinesses(businesses);
-
-  return businesses[index];
-}
-
-function updateBusinessPendingCredential({ businessName, apiProvider, credentialId }) {
-  const businesses = getBusinesses();
-  const index = findBusinessIndexByName(businesses, businessName);
-
-  if (index < 0) {
-    return null;
-  }
-
-  businesses[index] = {
-    ...businesses[index],
-    claimStatus: businesses[index].claimStatus || "claimed_pending",
-    verificationStatus: businesses[index].verificationStatus || "unverified",
+  return saveBusinessMerge(businessName, {
+    claimStatus: existingBusiness.claimStatus || "claimed_pending",
+    verificationStatus: existingBusiness.verificationStatus || "unverified",
     apiProvider,
     pendingCredentialId: credentialId,
-    apiConnectionStatus: "credential_submitted",
-    updatedAt: new Date().toISOString()
-  };
-
-  saveBusinesses(businesses);
-
-  return businesses[index];
+    apiConnectionStatus: "credential_submitted"
+  });
 }
 
-function updateBusinessApprovedCredential({ businessName }) {
-  const businesses = getBusinesses();
-  const index = findBusinessIndexByName(businesses, businessName);
+async function updateBusinessApprovedCredential({ businessName }) {
+  const existingBusiness = await findBusinessByName(businessName);
 
-  if (index < 0) {
+  if (!existingBusiness) {
     return null;
   }
 
-  businesses[index] = {
-    ...businesses[index],
+  return saveBusinessMerge(businessName, {
     claimStatus: "claimed_verified",
     verificationStatus: "verified",
     apiConnectionStatus:
-      businesses[index].apiConnectionStatus === "credential_submitted"
+      existingBusiness.apiConnectionStatus === "credential_submitted"
         ? "api_pending_verification"
-        : businesses[index].apiConnectionStatus || "not_connected",
-    credentialId: businesses[index].pendingCredentialId || businesses[index].credentialId || "",
-    pendingCredentialId: "",
-    updatedAt: new Date().toISOString()
-  };
-
-  saveBusinesses(businesses);
-
-  return businesses[index];
+        : existingBusiness.apiConnectionStatus || "not_connected",
+    credentialId: existingBusiness.pendingCredentialId || existingBusiness.credentialId || "",
+    pendingCredentialId: ""
+  });
 }
 
 router.get("/health", (req, res) => {
@@ -184,16 +152,23 @@ router.get("/health", (req, res) => {
   });
 });
 
-router.get("/businesses", (req, res) => {
-  const businesses = getBusinesses();
+router.get("/businesses", async (req, res) => {
+  try {
+    const businesses = await getBusinesses();
 
-  res.json({
-    success: true,
-    businesses: businesses.map(safeBusinessPublicView)
-  });
+    res.json({
+      success: true,
+      businesses: businesses.map(safeBusinessPublicView)
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
-router.post("/claim", (req, res) => {
+router.post("/claim", async (req, res) => {
   try {
     const {
       businessName,
@@ -218,7 +193,7 @@ router.post("/claim", (req, res) => {
       notes: notes || note
     });
 
-    const updatedBusiness = updateBusinessClaimStatus({
+    const updatedBusiness = await updateBusinessClaimStatus({
       businessName: claim.businessName,
       claimStatus: "claimed_pending",
       verificationStatus: "unverified"
@@ -270,7 +245,7 @@ router.get("/claims/pending", (req, res) => {
   }
 });
 
-router.post("/claims/:claimId/approve", (req, res) => {
+router.post("/claims/:claimId/approve", async (req, res) => {
   try {
     const { claimId } = req.params;
 
@@ -278,7 +253,7 @@ router.post("/claims/:claimId/approve", (req, res) => {
       reviewedBy: req.body?.reviewedBy || "admin"
     });
 
-    const updatedBusiness = updateBusinessApprovedCredential({
+    const updatedBusiness = await updateBusinessApprovedCredential({
       businessName: approvedClaim.businessName
     });
 
@@ -295,7 +270,7 @@ router.post("/claims/:claimId/approve", (req, res) => {
   }
 });
 
-router.post("/claims/:claimId/reject", (req, res) => {
+router.post("/claims/:claimId/reject", async (req, res) => {
   try {
     const { claimId } = req.params;
     const existingClaim = findClaimById(claimId);
@@ -305,7 +280,7 @@ router.post("/claims/:claimId/reject", (req, res) => {
       reason: req.body?.reason || ""
     });
 
-    const updatedBusiness = updateBusinessClaimStatus({
+    const updatedBusiness = await updateBusinessClaimStatus({
       businessName: rejectedClaim.businessName || existingClaim?.businessName,
       claimStatus: "claimed_rejected",
       verificationStatus: "rejected"
@@ -367,7 +342,7 @@ router.post("/credentials", async (req, res) => {
       metadata: credentialMetadata
     });
 
-    const updatedBusiness = updateBusinessPendingCredential({
+    const updatedBusiness = await updateBusinessPendingCredential({
       businessName,
       apiProvider,
       credentialId
