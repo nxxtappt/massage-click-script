@@ -1663,10 +1663,26 @@ if (
   return false;
 }
   if (serviceCategory) {
+    const broadMassageCategories = new Set([
+      "massage",
+      "swedish",
+      "relaxation",
+      "deep_tissue",
+      "sports",
+      "prenatal",
+      "ashiatsu",
+      "lomi_lomi",
+      "trigger_point",
+      "myofascial_release"
+    ]);
+
     const categoryMatches =
-      appointmentServiceCategory === serviceCategory ||
-      appointmentServiceCategory.includes(serviceCategory) ||
-      text.includes(serviceCategory);
+      serviceCategory === "massage"
+        ? broadMassageCategories.has(appointmentServiceCategory) ||
+          text.includes("massage")
+        : appointmentServiceCategory === serviceCategory ||
+          appointmentServiceCategory.includes(serviceCategory) ||
+          text.includes(serviceCategory);
 
     if (!categoryMatches) return false;
   }
@@ -1812,378 +1828,255 @@ function dedupeAppointmentsByStrictTimeKey(appointments = []) {
   });
 }
 
-function getDisplayDateFromDateKey(dateKey = "") {
-  const normalized = String(dateKey || "").trim();
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    return "";
+function extractDateKeyFromValue(value) {
+  if (!value) return "";
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`;
   }
 
-  const [year, month, day] = normalized.split("-").map(Number);
-
-  return formatDisplayDateFromParts(year, month, day);
-}
-
-function getDisplayTimeFromTimeKey(timeKey = "") {
-  const match = String(timeKey || "").match(/^(\d{1,2}):(\d{2})/);
-
-  if (!match) {
-    return "";
-  }
-
-  return formatTimeDisplay(Number(match[1]), Number(match[2]));
-}
-
-function normalizeLocalDateKey(value = "") {
-  const raw = String(value || "").trim();
+  const raw = String(value).trim();
 
   const isoMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoMatch) return isoMatch[1];
 
-  if (isoMatch) {
-    return isoMatch[1];
+  if (/^\d{1,2}:\d{2}/.test(raw)) {
+    return "";
+  }
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime()) && /[a-zA-Z]/.test(raw)) {
+    return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(parsed.getDate())}`;
   }
 
   return "";
 }
 
-function normalizeLocalTimeKey(value = "") {
-  const raw = String(value || "").trim();
+function extractTimeKeyFromValue(value) {
+  if (!value) return "";
 
-  const timeMatch = raw.match(/(?:T|^)(\d{1,2}):(\d{2})/);
-
-  if (timeMatch) {
-    return `${pad2(Number(timeMatch[1]))}:${pad2(Number(timeMatch[2]))}`;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${pad2(value.getHours())}:${pad2(value.getMinutes())}`;
   }
 
-  const normalMatch = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  const raw = String(value).trim();
 
-  if (normalMatch) {
-    const parsed = parseTimeToParts(raw);
-    return parsed ? `${pad2(parsed.hour)}:${pad2(parsed.minute)}` : "";
+  const ampmMatch = raw.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1]);
+    const minute = Number(ampmMatch[2]);
+    const ampm = ampmMatch[3].toUpperCase();
+
+    if (ampm === "PM" && hour !== 12) hour += 12;
+    if (ampm === "AM" && hour === 12) hour = 0;
+
+    return `${pad2(hour)}:${pad2(minute)}`;
   }
+
+  const isoMatch = raw.match(/T(\d{1,2}):(\d{2})/);
+  if (isoMatch) return `${pad2(isoMatch[1])}:${pad2(isoMatch[2])}`;
+
+  const plainMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (plainMatch) return `${pad2(plainMatch[1])}:${pad2(plainMatch[2])}`;
 
   return "";
 }
 
-function buildSortableFromLocalKeys(localDateKey = "", localTimeKey = "") {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(localDateKey || ""))) {
-    return null;
-  }
-
-  if (!/^\d{2}:\d{2}$/.test(String(localTimeKey || ""))) {
-    return null;
-  }
+function buildSortableFromKeys(localDateKey, localTimeKey) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(localDateKey || ""))) return null;
+  if (!/^\d{2}:\d{2}$/.test(String(localTimeKey || ""))) return null;
 
   return Number(
     `${localDateKey.replace(/-/g, "")}${localTimeKey.replace(":", "")}`
   );
 }
 
+function displayDateFromDateKey(localDateKey) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(localDateKey || ""))) return "";
+
+  const [year, month, day] = localDateKey.split("-").map(Number);
+  return formatDisplayDateFromParts(year, month, day);
+}
+
+function displayTimeFromTimeKey(localTimeKey) {
+  if (!/^\d{2}:\d{2}$/.test(String(localTimeKey || ""))) return "";
+
+  const [hour, minute] = localTimeKey.split(":").map(Number);
+  return formatTimeDisplay(hour, minute);
+}
+
+function parseOptionalNumber(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function isUsableCoordinate(latitude, longitude) {
-  const lat = Number(latitude);
-  const lon = Number(longitude);
+  const lat = parseOptionalNumber(latitude);
+  const lon = parseOptionalNumber(longitude);
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return false;
-  }
-
-  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    return false;
-  }
-
-  if (Math.abs(lat) < 0.0001 && Math.abs(lon) < 0.0001) {
-    return false;
-  }
+  if (lat === null || lon === null) return false;
+  if (lat === 0 && lon === 0) return false;
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return false;
 
   return true;
 }
 
-function calculateDistanceMiles(lat1, lon1, lat2, lon2) {
-  if (!isUsableCoordinate(lat1, lon1) || !isUsableCoordinate(lat2, lon2)) {
-    return null;
-  }
-
-  const earthRadiusMiles = 3958.8;
-  const toRadians = (degrees) => degrees * (Math.PI / 180);
-  const dLat = toRadians(Number(lat2) - Number(lat1));
-  const dLon = toRadians(Number(lon2) - Number(lon1));
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(Number(lat1))) *
-      Math.cos(toRadians(Number(lat2))) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return earthRadiusMiles * c;
-}
-
-function normalizeInventoryAppointment(appointment = {}, metadataMap = {}, query = {}) {
+function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
   const businessName =
-    appointment.businessName ||
-    appointment.business_name ||
-    appointment.name ||
+    rawAppointment.businessName ||
+    rawAppointment.business_name ||
+    rawAppointment.name ||
     "Unknown Business";
 
   const metadata = metadataMap[normalizeBusinessKey(businessName)] || {};
 
-  const platform = appointment.platform || metadata.platform || "unknown";
+  const localDateKey =
+    rawAppointment.localDateKey ||
+    rawAppointment.local_date_key ||
+    extractDateKeyFromValue(rawAppointment.localDate || rawAppointment.local_date) ||
+    extractDateKeyFromValue(rawAppointment.appointmentDate || rawAppointment.appointment_date) ||
+    extractDateKeyFromValue(rawAppointment.date) ||
+    extractDateKeyFromValue(rawAppointment.startTime || rawAppointment.start_time);
 
-  const rawStartTime =
-    appointment.startTime ||
-    appointment.start_time ||
-    appointment.startsAt ||
-    appointment.starts_at ||
-    "";
-
-  const rawDate =
-    appointment.localDateKey ||
-    appointment.local_date_key ||
-    appointment.localDate ||
-    appointment.local_date ||
-    appointment.date ||
-    appointment.appointmentDate ||
-    rawStartTime ||
-    "";
-
-  const rawTime =
-    appointment.localTimeKey ||
-    appointment.local_time_key ||
-    appointment.localTime ||
-    appointment.local_time ||
-    appointment.time ||
-    appointment.appointmentTime ||
-    rawStartTime ||
-    "";
-
-  let localDateKey = normalizeLocalDateKey(rawDate);
-  let localTimeKey = normalizeLocalTimeKey(rawTime);
-
-  if ((!localDateKey || !localTimeKey) && rawStartTime) {
-    localDateKey = localDateKey || normalizeLocalDateKey(rawStartTime);
-    localTimeKey = localTimeKey || normalizeLocalTimeKey(rawStartTime);
-  }
-
-  if ((!localDateKey || !localTimeKey) && appointment.start_time) {
-    localDateKey = localDateKey || normalizeLocalDateKey(appointment.start_time);
-    localTimeKey = localTimeKey || normalizeLocalTimeKey(appointment.start_time);
-  }
+  const localTimeKey =
+    rawAppointment.localTimeKey ||
+    rawAppointment.local_time_key ||
+    extractTimeKeyFromValue(rawAppointment.localTime || rawAppointment.local_time) ||
+    extractTimeKeyFromValue(rawAppointment.time) ||
+    extractTimeKeyFromValue(rawAppointment.startTime || rawAppointment.start_time);
 
   const localSortable =
-    appointment.localSortable ||
-    appointment.local_sortable ||
-    buildSortableFromLocalKeys(localDateKey, localTimeKey);
+    parseOptionalNumber(rawAppointment.localSortable || rawAppointment.local_sortable) ||
+    buildSortableFromKeys(localDateKey, localTimeKey);
 
-  const metadataLatitude = metadata.latitude;
-  const metadataLongitude = metadata.longitude;
-  const appointmentLatitude = appointment.latitude ?? appointment.lat;
-  const appointmentLongitude = appointment.longitude ?? appointment.lng ?? appointment.lon;
+  const rawLatitude = rawAppointment.latitude ?? rawAppointment.lat ?? null;
+  const rawLongitude = rawAppointment.longitude ?? rawAppointment.lng ?? rawAppointment.lon ?? null;
+  const useRawCoordinates = isUsableCoordinate(rawLatitude, rawLongitude);
+  const useMetadataCoordinates = isUsableCoordinate(metadata.latitude, metadata.longitude);
 
-  const hasAppointmentCoordinates = isUsableCoordinate(
-    appointmentLatitude,
-    appointmentLongitude
-  );
-
-  const latitude = hasAppointmentCoordinates
-    ? Number(appointmentLatitude)
-    : isUsableCoordinate(metadataLatitude, metadataLongitude)
-      ? Number(metadataLatitude)
+  const latitude = useRawCoordinates
+    ? Number(rawLatitude)
+    : useMetadataCoordinates
+      ? Number(metadata.latitude)
       : null;
 
-  const longitude = hasAppointmentCoordinates
-    ? Number(appointmentLongitude)
-    : isUsableCoordinate(metadataLatitude, metadataLongitude)
-      ? Number(metadataLongitude)
+  const longitude = useRawCoordinates
+    ? Number(rawLongitude)
+    : useMetadataCoordinates
+      ? Number(metadata.longitude)
       : null;
 
-  const userLatitude = query.latitude ? Number(query.latitude) : null;
-  const userLongitude = query.longitude ? Number(query.longitude) : null;
-  const calculatedDistance = calculateDistanceMiles(
-    userLatitude,
-    userLongitude,
-    latitude,
-    longitude
-  );
-
-  const existingDistance = Number(appointment.distanceMiles ?? appointment.distance_miles);
-  const distanceMiles = calculatedDistance !== null
-    ? calculatedDistance
-    : Number.isFinite(existingDistance) && existingDistance >= 0 && existingDistance < 500
-      ? existingDistance
-      : null;
-
-  const serviceName =
-    appointment.serviceName ||
-    appointment.service_name ||
-    appointment.service ||
-    "";
-
-  const normalized = {
-    ...appointment,
-
+  return {
+    ...rawAppointment,
     businessName,
     businessCategory:
-      appointment.businessCategory ||
-      appointment.business_category ||
+      rawAppointment.businessCategory ||
+      rawAppointment.business_category ||
       metadata.businessCategory ||
       "wellness",
-
-    platform,
-    bookingUrl:
-      appointment.bookingUrl ||
-      appointment.booking_url ||
-      metadata.bookingUrl ||
+    platform: rawAppointment.platform || metadata.platform || "unknown",
+    bookingUrl: rawAppointment.bookingUrl || rawAppointment.booking_url || metadata.bookingUrl || "",
+    serviceName:
+      rawAppointment.serviceName ||
+      rawAppointment.service_name ||
+      rawAppointment.service ||
       "",
-
-    serviceName,
     serviceCategory:
-      appointment.serviceCategory ||
-      appointment.service_category ||
-      appointment.serviceType ||
-      appointment.service_type ||
-      determineServiceCategory(serviceName),
+      rawAppointment.serviceCategory ||
+      rawAppointment.service_category ||
+      rawAppointment.serviceType ||
+      rawAppointment.service_type ||
+      determineServiceCategory(rawAppointment.serviceName || rawAppointment.service_name || ""),
     serviceType:
-      appointment.serviceType ||
-      appointment.service_type ||
-      appointment.serviceCategory ||
-      appointment.service_category ||
+      rawAppointment.serviceType ||
+      rawAppointment.service_type ||
+      rawAppointment.serviceCategory ||
+      rawAppointment.service_category ||
       "",
     durationMinutes:
-      appointment.durationMinutes ||
-      appointment.duration_minutes ||
-      extractDurationMinutes(serviceName),
-
+      parseOptionalNumber(rawAppointment.durationMinutes || rawAppointment.duration_minutes) ||
+      extractDurationMinutes(rawAppointment.serviceName || rawAppointment.service_name || ""),
     therapistName:
-      appointment.therapistName ||
-      appointment.therapist_name ||
-      appointment.staffName ||
-      appointment.staff_name ||
-      appointment.providerName ||
-      appointment.provider_name ||
+      rawAppointment.therapistName ||
+      rawAppointment.therapist_name ||
+      rawAppointment.providerName ||
+      rawAppointment.provider_name ||
+      rawAppointment.staffName ||
+      rawAppointment.staff_name ||
       "",
-
-    date:
-      appointment.date && !/^\d{4}-\d{2}-\d{2}$/.test(String(appointment.date))
-        ? appointment.date
-        : getDisplayDateFromDateKey(localDateKey),
-    time:
-      appointment.time && !/^\d{2}:\d{2}(:\d{2})?$/.test(String(appointment.time))
-        ? appointment.time
-        : getDisplayTimeFromTimeKey(localTimeKey),
+    date: rawAppointment.date || displayDateFromDateKey(localDateKey),
+    time: rawAppointment.time || displayTimeFromTimeKey(localTimeKey),
     startTime:
-      localDateKey && localTimeKey
-        ? `${localDateKey}T${localTimeKey}:00`
-        : rawStartTime || "",
-    endTime:
-      appointment.endTime ||
-      appointment.end_time ||
-      "",
-
-    price:
-      appointment.price ||
-      appointment.servicePrice ||
-      appointment.service_price ||
-      null,
-
+      rawAppointment.startTime ||
+      rawAppointment.start_time ||
+      (localDateKey && localTimeKey ? `${localDateKey}T${localTimeKey}:00` : ""),
+    endTime: rawAppointment.endTime || rawAppointment.end_time || "",
+    price: rawAppointment.price || rawAppointment.servicePrice || rawAppointment.service_price || null,
     latitude,
     longitude,
-    distanceMiles,
-    address:
-      appointment.address ||
-      metadata.address ||
-      "",
-    logoUrl:
-      appointment.logoUrl ||
-      appointment.logo_url ||
-      metadata.logoUrl ||
-      "",
-    logoAlt:
-      appointment.logoAlt ||
-      appointment.logo_alt ||
-      metadata.logoAlt ||
-      `${businessName} logo`,
-    claimed:
-      appointment.claimed === true || metadata.claimed === true,
+    address: rawAppointment.address || metadata.address || "",
+    logoUrl: rawAppointment.logoUrl || rawAppointment.logo_url || metadata.logoUrl || "",
+    logoAlt: rawAppointment.logoAlt || rawAppointment.logo_alt || metadata.logoAlt || `${businessName} logo`,
+    claimed: rawAppointment.claimed === true || metadata.claimed === true,
     verificationStatus:
-      appointment.verificationStatus ||
-      appointment.verification_status ||
+      rawAppointment.verificationStatus ||
+      rawAppointment.verification_status ||
       metadata.verificationStatus ||
       "unclaimed",
     claimedByEmail:
-      appointment.claimedByEmail ||
-      appointment.claimed_by_email ||
+      rawAppointment.claimedByEmail ||
+      rawAppointment.claimed_by_email ||
       metadata.claimedByEmail ||
       "",
-    claimId:
-      appointment.claimId ||
-      appointment.claim_id ||
-      metadata.claimId ||
-      "",
-    businessSlug:
-      appointment.businessSlug ||
-      appointment.business_slug ||
-      metadata.businessSlug ||
-      slugifyBusinessName(businessName),
-    businessUrl:
-      appointment.businessUrl ||
-      appointment.business_url ||
-      metadata.businessUrl ||
-      `/business/${slugifyBusinessName(businessName)}`,
-    reviewSummary:
-      appointment.reviewSummary || metadata.reviewSummary || null,
-    activeDeal:
-      appointment.activeDeal || metadata.activeDeal || null,
-    publicProfile:
-      appointment.publicProfile || metadata.publicProfile || null,
-
-    sourceStatus:
-      appointment.sourceStatus ||
-      appointment.source_status ||
-      appointment.status ||
-      "active",
-    sourceType:
-      appointment.sourceType ||
-      appointment.source_type ||
-      "confirmed",
-
+    claimId: rawAppointment.claimId || rawAppointment.claim_id || metadata.claimId || "",
+    businessSlug: rawAppointment.businessSlug || rawAppointment.business_slug || metadata.businessSlug || "",
+    businessUrl: rawAppointment.businessUrl || rawAppointment.business_url || metadata.businessUrl || "",
+    reviewSummary: rawAppointment.reviewSummary || rawAppointment.review_summary || metadata.reviewSummary || null,
+    activeDeal: rawAppointment.activeDeal || rawAppointment.active_deal || metadata.activeDeal || null,
+    publicProfile: rawAppointment.publicProfile || rawAppointment.public_profile || metadata.publicProfile || null,
+    sourceType: rawAppointment.sourceType || rawAppointment.source_type || "confirmed",
+    sourceStatus: rawAppointment.sourceStatus || rawAppointment.source_status || rawAppointment.status || "active",
     localDateKey,
     localTimeKey,
     localSortable,
-    rawDate,
-    rawTime
+    rawDate: rawAppointment.rawDate || rawAppointment.raw_date || localDateKey,
+    rawTime: rawAppointment.rawTime || rawAppointment.raw_time || localTimeKey
   };
-
-  return normalized;
 }
 
-function evaluateSearchAppointmentTiming(appointment = {}, query = {}) {
-  if (!appointment.localSortable) {
-    return {
-      ...appointment,
-      timingStatus: "invalid",
-      shouldDisplay: query.showInvalidDates === "true" || query.showPast === "true",
-      normalizationWarning: "Missing local date/time. Hidden unless showInvalidDates=true."
-    };
-  }
+function unpackInventoryPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
 
-  const nowSortable = getCurrentLocalSortable();
+  return (
+    payload.appointments ||
+    payload.inventory ||
+    payload.rows ||
+    payload.results ||
+    payload.data ||
+    []
+  );
+}
 
-  if (Number(appointment.localSortable) <= nowSortable) {
-    return {
-      ...appointment,
-      timingStatus: "past",
-      shouldDisplay: query.showPast === "true",
-      normalizationWarning: "Past local appointment. Hidden unless showPast=true."
-    };
-  }
+function shouldDisplayAppointmentNow(appointment = {}, query = {}) {
+  if (query.showPast === "true") return true;
+  if (!appointment.localSortable) return query.showInvalidDates === "true";
+  return appointment.localSortable > getCurrentLocalSortable();
+}
 
+function getInventoryFiltersForSearch(query = {}, intent = {}) {
   return {
-    ...appointment,
-    timingStatus: "future",
-    shouldDisplay: true,
-    normalizationWarning: ""
+    business: query.business || "",
+    platform: query.platform || "",
+    serviceCategory: query.serviceCategory || query.serviceType || intent.serviceCategory || "",
+    serviceType: query.serviceType || query.serviceCategory || intent.serviceCategory || "",
+    durationMinutes: query.durationMinutes || query.duration || intent.duration || null,
+    hours: query.hours || intent.hours || "",
+    limit: query.limit || 5000,
+    limitPerBusiness: query.limitPerBusiness || 999,
+    includeInactive: true
   };
 }
 
@@ -2191,35 +2084,27 @@ async function loadNormalizedAppointments(query, options = {}) {
   const intent = inferSearchIntent(query);
   const metadataMap = buildBusinessMetadataMap();
 
-  let appointments = await inventoryManager.getInventory({
-    ...query,
-    serviceCategory: query.serviceCategory || intent.serviceCategory || query.serviceType || "",
-    durationMinutes: query.durationMinutes || query.duration || intent.duration || null,
-    hours: query.hours || intent.hours || "",
-    limit: query.limit || 2000,
-    limitPerBusiness: query.limitPerBusiness || 999,
-    includeInactive: query.showPast === "true"
-  });
+  const inventoryPayload = await inventoryManager.getInventory(
+    getInventoryFiltersForSearch(query, intent)
+  );
 
-  appointments = Array.isArray(appointments) ? appointments : [];
-
-  appointments = appointments.map((appointment) =>
-    normalizeInventoryAppointment(appointment, metadataMap, query)
+  let appointments = unpackInventoryPayload(inventoryPayload).map((appointment) =>
+    normalizeInventoryAppointment(appointment, metadataMap)
   );
 
   const totalAppointmentsBeforeTimingEvaluation = appointments.length;
 
-  appointments = appointments.map((appointment) =>
-    evaluateSearchAppointmentTiming(appointment, query)
-  );
+  appointments = appointments.map(evaluateAppointmentTiming);
 
-  const timingBreakdown = appointments.reduce((summary, appointment) => {
+  const timingBreakdownBeforeFilters = appointments.reduce((summary, appointment) => {
     const key = appointment.timingStatus || "unknown";
     summary[key] = (summary[key] || 0) + 1;
     return summary;
   }, {});
 
-  appointments = appointments.filter((appointment) => appointment.shouldDisplay === true);
+  appointments = appointments.filter((appointment) =>
+    shouldDisplayAppointmentNow(appointment, query)
+  );
 
   appointments = appointments.filter((appointment) =>
     appointmentMatchesQuery(appointment, query)
@@ -2242,6 +2127,12 @@ async function loadNormalizedAppointments(query, options = {}) {
     query.limitPerBusiness || 999
   );
 
+  const timingBreakdown = appointments.reduce((summary, appointment) => {
+    const key = appointment.timingStatus || "unknown";
+    summary[key] = (summary[key] || 0) + 1;
+    return summary;
+  }, {});
+
   const businessMap = new Map();
 
   appointments.forEach((appointment) => {
@@ -2262,8 +2153,8 @@ async function loadNormalizedAppointments(query, options = {}) {
         verificationStatus: appointment.verificationStatus || "unclaimed",
         claimedByEmail: appointment.claimedByEmail || "",
         claimId: appointment.claimId || "",
-        businessSlug: appointment.businessSlug || slugifyBusinessName(key),
-        businessUrl: appointment.businessUrl || `/business/${slugifyBusinessName(key)}`,
+        businessSlug: appointment.businessSlug || "",
+        businessUrl: appointment.businessUrl || "",
         reviewSummary: appointment.reviewSummary || null,
         activeDeal: appointment.activeDeal || null,
         publicProfile: appointment.publicProfile || null,
@@ -2282,6 +2173,7 @@ async function loadNormalizedAppointments(query, options = {}) {
     appointments,
     totalAppointmentsBeforeTimingEvaluation,
     timingBreakdown,
+    timingBreakdownBeforeFilters,
     cacheBusinessesLoaded: 0
   };
 }
@@ -2630,7 +2522,7 @@ async function runLiveSearchIfRequested(query) {
       for (const target of targets) {
         const result = await runLiveScrapeTarget(target);
 
-        console.log("[LIVE SEARCH] Target completed:", {
+        console.log("[LIVE SEARCH] Progressive PostgreSQL inventory refresh finished:", {
           businessName: result.businessName,
           serviceName: result.serviceName,
           integrationType: result.integrationType || "",
@@ -2684,7 +2576,7 @@ app.get("/api/search", async (req, res) => {
     if (missingResultsFile) {
       return res.status(404).json({
         success: false,
-        error: "results.json or appointment cache not found"
+        error: "PostgreSQL appointment inventory is not available"
       });
     }
 
@@ -2768,7 +2660,7 @@ app.get("/api/search", async (req, res) => {
     if (missingResultsFile) {
       return res.status(404).json({
         success: false,
-        error: "results.json not found"
+        error: "PostgreSQL appointment inventory is not available"
       });
     }
 
@@ -2881,7 +2773,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(" Massage Aggregator Running");
   console.log(` http://localhost:${PORT}`);
   console.log(" Timezone: America/Chicago");
-  console.log(" Metadata: businesses.json merged into results");
+  console.log(" Metadata: PostgreSQL business metadata merged into inventory");
   console.log(" Admin Portal: /admin");
   console.log(" Search API: /api/search");
   console.log(" On-Demand Search: /api/search?search=swedish&onDemand=true");
