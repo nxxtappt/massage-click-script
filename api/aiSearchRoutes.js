@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const OpenAI = require("openai");
 
+const businessManager = require("../businessManager");
+
 const router = express.Router();
 const TIME_ZONE = "America/Chicago";
 const MAX_RETURNED_APPOINTMENTS = 30;
