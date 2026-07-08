@@ -1,7 +1,4 @@
-const fs = require("fs");
-const path = require("path");
-
-const RESULTS_FILE = path.join(__dirname, "results.json");
+const inventoryRepository = require("./database/InventoryRepository");
 
 function normalizeText(value) {
   return String(value || "")
@@ -10,30 +7,12 @@ function normalizeText(value) {
     .trim();
 }
 
-function readResults() {
-  if (!fs.existsSync(RESULTS_FILE)) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(fs.readFileSync(RESULTS_FILE, "utf8"));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    console.error("[RESULT STORE] Failed to read results.json:", error.message);
-    return [];
-  }
-}
-
-function writeResults(results = []) {
-  fs.writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2));
-}
-
 function getResultKey(result = {}) {
   return [
     result.businessName || "",
     result.platform || "",
     result.serviceName || result.service || "",
-    result.serviceType || "",
+    result.serviceType || result.serviceCategory || "",
     result.durationMinutes || "",
     result.platformServiceId || result.serviceId || result.serviceButtonId || "",
     result.provider || result.providerText || ""
@@ -52,18 +31,37 @@ function mergeResults(existingResults = [], incomingResults = []) {
   return [...preserved, ...incomingResults];
 }
 
-function upsertBusinessResult(result = {}) {
+async function readResults(limit = 500) {
+  return inventoryRepository.getRawResults(limit);
+}
+
+async function writeResults(results = []) {
+  if (!Array.isArray(results)) {
+    throw new Error("[RESULT STORE] writeResults expects an array.");
+  }
+
+  const saved = [];
+
+  for (const result of results) {
+    saved.push(await upsertBusinessResult(result));
+  }
+
+  return saved;
+}
+
+async function upsertBusinessResult(result = {}) {
   if (!result.businessName) {
     throw new Error("[RESULT STORE] Cannot save result without businessName.");
   }
 
-  const existingResults = readResults();
-  const mergedResults = mergeResults(existingResults, [result]);
-
-  writeResults(mergedResults);
+  const saved = await inventoryRepository.saveBusinessResult(result, {
+    triggerType: result.triggerType || "manual"
+  });
 
   console.log(
-    `[RESULT STORE] Saved result for ${result.businessName} | ${result.serviceName || result.service || "service"}`
+    `[RESULT STORE] Saved Postgres inventory for ${result.businessName} | ${
+      result.serviceName || result.service || "service"
+    } | appointments: ${saved.appointmentsInserted}`
   );
 
   return result;
