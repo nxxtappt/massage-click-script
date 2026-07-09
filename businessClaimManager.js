@@ -6,6 +6,14 @@ const {
   writeJsonAtomic
 } = require("./storagePaths");
 
+let businessManager = null;
+
+try {
+  businessManager = require("./businessManager");
+} catch (error) {
+  console.warn("[BUSINESS CLAIMS] businessManager unavailable:", error.message);
+}
+
 const SECURE_DIR = storagePath("secure");
 const CLAIMS_FILE = storagePath("secure", "business-claims.json");
 
@@ -41,7 +49,7 @@ function loadClaims() {
 
 function saveClaims(claims = []) {
   ensureClaimsFileExists();
-writeJsonAtomic(CLAIMS_FILE, claims);
+  writeJsonAtomic(CLAIMS_FILE, claims);
 }
 
 function normalize(value) {
@@ -49,6 +57,12 @@ function normalize(value) {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function slugify(value) {
+  return normalize(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 function createId(prefix = "claim") {
@@ -117,7 +131,7 @@ function createBusinessClaim(payload = {}) {
 
   const claim = {
     claimId: createId("claim"),
-    businessId: businessId || normalize(businessName).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+    businessId: businessId || slugify(businessName),
     businessName,
     ownerName,
     email,
@@ -143,6 +157,59 @@ function createBusinessClaim(payload = {}) {
   saveClaims(claims);
 
   return claim;
+}
+
+async function persistClaimToBusiness(updatedClaim, options = {}) {
+  if (!businessManager || typeof businessManager.saveBusiness !== "function") {
+    return null;
+  }
+
+  const businessName = updatedClaim.businessName || "";
+  if (!businessName) return null;
+
+  let currentBusiness = null;
+
+  if (typeof businessManager.getBusinessByName === "function") {
+    currentBusiness = await businessManager.getBusinessByName(businessName, {
+      includeDisabled: true,
+      source: options.source
+    }).catch(() => null);
+  }
+
+  if (!currentBusiness && typeof businessManager.getAllBusinesses === "function") {
+    const businesses = await businessManager.getAllBusinesses({
+      includeDisabled: true,
+      source: options.source
+    }).catch(() => []);
+
+    currentBusiness = businesses.find((business) => {
+      return normalize(business.businessName || business.name) === normalize(businessName);
+    }) || null;
+  }
+
+  if (!currentBusiness) {
+    return null;
+  }
+
+  const isVerified = updatedClaim.status === "claimed_verified";
+  const isRejected = updatedClaim.status === "claimed_rejected";
+
+  return businessManager.saveBusiness({
+    ...currentBusiness,
+    businessName: currentBusiness.businessName || businessName,
+    businessId: currentBusiness.businessId || currentBusiness.id || updatedClaim.businessId || slugify(businessName),
+    claimStatus: updatedClaim.status,
+    verificationStatus: isVerified ? "verified" : isRejected ? "rejected" : "pending",
+    claimed: isVerified,
+    claimedByEmail: isVerified ? updatedClaim.email || currentBusiness.claimedByEmail || "" : "",
+    claimId: updatedClaim.claimId,
+    ownerEmail: isVerified ? updatedClaim.email || currentBusiness.ownerEmail || "" : currentBusiness.ownerEmail || "",
+    phone: currentBusiness.phone || updatedClaim.phone || "",
+    website: currentBusiness.website || updatedClaim.website || "",
+    updatedAt: new Date().toISOString()
+  }, {
+    source: options.source
+  });
 }
 
 function updateClaimStatus(claimId, status, options = {}) {
@@ -181,10 +248,16 @@ function updateClaimStatus(claimId, status, options = {}) {
     updatedClaim.verification.rejectedBy = options.reviewedBy || "admin";
     updatedClaim.verification.rejectedAt = now;
     updatedClaim.verification.rejectionReason = options.reason || "";
+    updatedClaim.verification.approvedBy = null;
+    updatedClaim.verification.approvedAt = null;
   }
 
   claims[index] = updatedClaim;
   saveClaims(claims);
+
+  persistClaimToBusiness(updatedClaim, options).catch((error) => {
+    console.error("[BUSINESS CLAIMS] Failed to persist claim status to business:", error.message);
+  });
 
   return updatedClaim;
 }
@@ -233,5 +306,6 @@ module.exports = {
   getPendingClaims,
   getVerifiedClaims,
   getRejectedClaims,
-  getClaimStats
+  getClaimStats,
+  persistClaimToBusiness
 };

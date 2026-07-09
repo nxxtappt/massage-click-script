@@ -4,6 +4,10 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 const {
+  storagePath
+} = require("./storagePaths");
+
+const {
   loadAdminSettings,
   saveAdminSettings
 } = require("./adminSettingsManager");
@@ -23,8 +27,8 @@ const {
 
 const businessManager = require("./businessManager");
 
-const RESULTS_FILE = path.join(__dirname, "results.json");
-const ERROR_LOGS_FILE = path.join(__dirname, "errorLogs.json");
+const RESULTS_FILE = storagePath("results.json");
+const ERROR_LOGS_FILE = storagePath("errorLogs.json");
 
 let schedulerRunInProgress = false;
 let scrapeRunInProgress = false;
@@ -264,27 +268,51 @@ router.post("/business-subscriptions", (req, res) => {
 
 router.post("/businesses/save", async (req, res) => {
   try {
-    const businesses = req.body?.businesses;
+    const body = req.body || {};
+    const businesses = Array.isArray(body.businesses)
+      ? body.businesses
+      : body.business && typeof body.business === "object"
+        ? [body.business]
+        : body.businessName
+          ? [body]
+          : [];
 
-    if (!Array.isArray(businesses)) {
+    if (!Array.isArray(businesses) || businesses.length === 0) {
       return res.status(400).json({
         success: false,
-        error: "businesses must be an array"
+        error: "businesses must be a non-empty array or business must be an object"
       });
     }
 
     const savedBusinesses = [];
 
     for (const business of businesses) {
-      savedBusinesses.push(await businessManager.saveBusiness(business));
+      const normalizedBusiness = {
+        ...business,
+        enabled:
+          business.enabled === false || business.enabled === "false"
+            ? false
+            : business.enabled === true || business.enabled === "true"
+              ? true
+              : business.enabled
+      };
+
+      savedBusinesses.push(await businessManager.saveBusiness(normalizedBusiness));
     }
+
+    const refreshedBusinesses = await businessManager.getAllBusinesses({
+      includeDisabled: true
+    });
 
     res.json({
       success: true,
       count: savedBusinesses.length,
-      businesses: savedBusinesses
+      businesses: refreshedBusinesses,
+      savedBusinesses
     });
   } catch (error) {
+    console.error("[ADMIN BUSINESS SAVE ERROR]", error);
+
     res.status(500).json({
       success: false,
       error: error.message
