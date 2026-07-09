@@ -9,13 +9,25 @@ try {
   console.warn("[BUSINESS MANAGER] PostgreSQL repository unavailable:", error.message);
 }
 
+let loadBusinessSubscriptions = null;
+
+try {
+  ({ loadBusinessSubscriptions } = require("./businessSubscriptionManager"));
+} catch (error) {
+  loadBusinessSubscriptions = null;
+}
+
 const BUSINESS_FILE = path.join(__dirname, "businesses.json");
 
 let businessCache = null;
 let businessCacheLoadedAt = null;
 
 function usePostgres(options = {}) {
-  return process.env.BUSINESS_SOURCE === "postgres" || options.source === "postgres";
+  if (options.source === "json") return false;
+  if (options.source === "postgres") return true;
+  if (process.env.BUSINESS_SOURCE === "json") return false;
+  if (process.env.BUSINESS_SOURCE === "postgres") return true;
+  return Boolean(BusinessRepository && (process.env.DATABASE_URL || process.env.POSTGRES_URL));
 }
 
 function normalize(value) {
@@ -72,7 +84,77 @@ function pick(...values) {
   return undefined;
 }
 
+function getSubscriptionKey(businessName = "") {
+  return String(businessName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function getSubscriptionForBusiness(businessName = "") {
+  if (typeof loadBusinessSubscriptions !== "function") return null;
+
+  try {
+    const subscriptions = loadBusinessSubscriptions() || {};
+    return subscriptions[getSubscriptionKey(businessName)] || null;
+  } catch (error) {
+    console.warn("[BUSINESS MANAGER] Failed to load subscription data:", error.message);
+    return null;
+  }
+}
+
+function mergeSubscriptionData(business = {}) {
+  const businessName = business.businessName || business.business_name || business.name || "";
+  const subscription = getSubscriptionForBusiness(businessName);
+
+  if (!subscription) return business;
+
+  const subscriptionProfile = subscription.businessProfile || {};
+  const subscriptionDeal = subscription.cardPromotion || {};
+  const subscriptionWidget = subscription.bookingWidget || {};
+
+  const publicProfile = {
+    ...(business.publicProfile || {}),
+    shortDescription:
+      (business.publicProfile && business.publicProfile.shortDescription) ||
+      business.shortDescription ||
+      subscriptionProfile.shortDescription ||
+      "",
+    bio:
+      (business.publicProfile && business.publicProfile.bio) ||
+      business.bio ||
+      subscriptionProfile.bio ||
+      "",
+    websiteUrl:
+      (business.publicProfile && business.publicProfile.websiteUrl) ||
+      subscriptionProfile.websiteUrl ||
+      business.website ||
+      ""
+  };
+
+  const activeDeal = {
+    ...(business.activeDeal || {}),
+    ...(subscriptionDeal || {})
+  };
+
+  const bookingIntegration = {
+    ...(business.bookingIntegration || {}),
+    ...(subscriptionWidget || {})
+  };
+
+  return {
+    ...business,
+    subscriptionPlan: subscription.plan || business.subscriptionPlan || "",
+    subscriptionStatus: subscription.subscriptionStatus || business.subscriptionStatus || "",
+    publicProfile,
+    activeDeal,
+    bookingIntegration
+  };
+}
+
 function normalizeBusinessShape(business = {}) {
+  business = mergeSubscriptionData(business || {});
+
   const businessName = business.businessName || business.business_name || business.name || business.displayName || business.display_name || "";
   const businessId = business.businessId || business.business_id || business.id || slugify(businessName);
   const businessSlug = business.businessSlug || business.business_slug || business.slug || slugify(businessName);
@@ -277,14 +359,37 @@ async function updateBusiness(idOrBusinessName, updates = {}, options = {}) {
 async function saveBusiness(business = {}, options = {}) {
   const normalizedBusiness = normalizeBusinessShape(business);
   const idOrName = normalizedBusiness.businessId || normalizedBusiness.id || normalizedBusiness.businessName || normalizedBusiness.name;
-  const existing = await getBusinessByName(idOrName, { ...options, includeDisabled: true });
-  return existing ? updateBusiness(idOrName, normalizedBusiness, options) : createBusiness(normalizedBusiness, options);
+
+  const existing =
+    findBusinessInList(idOrName, await getAllBusinesses({ ...options, includeDisabled: true })) ||
+    findBusinessInList(normalizedBusiness.businessName, await getAllBusinesses({ ...options, includeDisabled: true }));
+
+  return existing
+    ? updateBusiness(existing.businessId || existing.id || existing.businessName, normalizedBusiness, options)
+    : createBusiness(normalizedBusiness, options);
 }
 
 function buildBusinessPageData(business = {}) {
   if (!business) return null;
   const item = normalizeBusinessShape(business);
   const businessName = item.businessName || item.name || "Business";
+
+  const isVerified =
+    item.claimed === true ||
+    item.verificationStatus === "verified" ||
+    item.verificationStatus === "claimed_verified";
+
+  const publicProfile = {
+    ...(item.publicProfile || {}),
+    specialties:
+      (item.publicProfile && Array.isArray(item.publicProfile.specialties)
+        ? item.publicProfile.specialties
+        : item.specialties) || [],
+    amenities:
+      (item.publicProfile && Array.isArray(item.publicProfile.amenities)
+        ? item.publicProfile.amenities
+        : item.amenities) || []
+  };
 
   return {
     businessId: item.businessId,
@@ -305,12 +410,13 @@ function buildBusinessPageData(business = {}) {
     longitude: item.longitude,
     logoUrl: item.logoUrl || "",
     logoAlt: item.logoAlt || `${businessName} logo`,
-    claimed: item.claimed === true,
-    verificationStatus: item.verificationStatus || "unclaimed",
+    claimed: isVerified,
+    isVerified,
+    verificationStatus: isVerified ? "verified" : item.verificationStatus || "unclaimed",
     claimedByEmail: item.claimedByEmail || "",
     claimId: item.claimId || "",
-    publicProfile: item.publicProfile || {},
-    activeDeal: item.activeDeal || {},
+    publicProfile,
+    activeDeal: item.activeDeal && item.activeDeal.enabled === false ? null : item.activeDeal || {},
     bookingIntegration: item.bookingIntegration || {},
     services: Array.isArray(item.services) ? item.services : [],
     amenities: Array.isArray(item.amenities) ? item.amenities : [],

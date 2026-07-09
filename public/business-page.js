@@ -72,7 +72,7 @@ function renderLogo(page, muted = false) {
 }
 
 function renderDeal(deal) {
-  if (!deal) return "";
+  if (!deal || deal.enabled === false || !deal.title) return "";
 
   return `
     <section class="deal-card">
@@ -214,9 +214,17 @@ async function loadBusinessInventory(page) {
     const response = await fetch(`/api/search?${params.toString()}`);
     const data = await response.json();
 
-    const appointments = Array.isArray(data.appointments)
+    const appointments = (Array.isArray(data.appointments)
       ? data.appointments
-      : [];
+      : []).filter((appointment) => {
+        if (appointment.businessEnabled === false || appointment.enabled === false) return false;
+
+        const status = String(
+          appointment.inventoryStatus || appointment.status || ""
+        ).toLowerCase();
+
+        return !["inactive", "expired", "archived", "deleted", "disabled"].includes(status);
+      });
 
     if (!appointments.length) {
       inventory.innerHTML = `<p>No appointment inventory found for this business yet.</p>`;
@@ -290,6 +298,11 @@ async function loadBusinessPage() {
     }
 
     const page = data.businessPage;
+    page.isVerified =
+      page.isVerified === true ||
+      page.claimed === true ||
+      page.verificationStatus === "verified" ||
+      page.verificationStatus === "claimed_verified";
 
     document.title = `${page.businessName} | NextAppt`;
 

@@ -197,7 +197,7 @@ function getBusinessMetadataMap() {
     return cachedBusinessMetadataMap;
   }
 
-  const businesses = businessManager.getAllBusinessesSync();
+  const businesses = businessManager.getAllBusinessesSync({ includeDisabled: true });
   const map = new Map();
 
   if (Array.isArray(businesses)) {
@@ -222,6 +222,10 @@ function getBusinessMetadataMap() {
         claimId: business.claimId || "",
         businessSlug: slug,
         businessUrl: business.businessUrl || `/business/${slug}`,
+        enabled: business.enabled !== false,
+        businessEnabled: business.enabled !== false,
+        subscriptionPlan: business.subscriptionPlan || "",
+        subscriptionStatus: business.subscriptionStatus || "",
         reviewSummary: business.reviewSummary || null,
         activeDeal: business.activeDeal || null,
         publicProfile: business.publicProfile || null,
@@ -390,6 +394,15 @@ function normalizeInventoryRow(row = {}) {
 
     status: row.status || row.inventoryStatus || row.inventory_status || "active",
 
+    enabled:
+      row.enabled !== undefined && row.enabled !== null
+        ? row.enabled !== false
+        : metadata.enabled !== false,
+    businessEnabled:
+      row.businessEnabled !== undefined && row.businessEnabled !== null
+        ? row.businessEnabled !== false
+        : metadata.businessEnabled !== false,
+
     latitude,
     longitude,
     address: row.address || row.businessAddress || row.business_address || metadata.address || "",
@@ -413,6 +426,8 @@ function normalizeInventoryRow(row = {}) {
     reviewSummary: row.reviewSummary || row.review_summary || metadata.reviewSummary || null,
     activeDeal: row.activeDeal || row.active_deal || metadata.activeDeal || null,
     publicProfile: row.publicProfile || row.public_profile || metadata.publicProfile || null,
+    subscriptionPlan: row.subscriptionPlan || row.subscription_plan || metadata.subscriptionPlan || "",
+    subscriptionStatus: row.subscriptionStatus || row.subscription_status || metadata.subscriptionStatus || "",
 
     price: row.price || row.servicePrice || row.service_price || metadata.price || null,
 
@@ -445,6 +460,9 @@ function normalizeFilters(filters = {}) {
       filters.includeInactive === true || String(filters.includeInactive) === "true",
     showPast:
       filters.showPast === true || String(filters.showPast) === "true",
+    includeDisabledBusinesses:
+      filters.includeDisabledBusinesses === true ||
+      String(filters.includeDisabledBusinesses) === "true",
     includeInferred:
       filters.includeInferred !== false && String(filters.includeInferred) !== "false",
     includeConfirmed:
@@ -621,6 +639,10 @@ function filterInventory(appointments = [], filters = {}) {
       normalized.localTimeKey &&
       normalized.localTimeKey > normalizedFilters.endTimeKey
     ) {
+      return false;
+    }
+
+    if (!normalizedFilters.includeDisabledBusinesses && normalized.businessEnabled === false) {
       return false;
     }
 

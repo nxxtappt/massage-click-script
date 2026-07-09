@@ -44,7 +44,7 @@ const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
 const {
-  getBusinessPageData
+  getBusinessPageDataAsync
 } = require("./businessManager");
 const {
   mergeConfirmedAndInferredAppointments
@@ -185,9 +185,12 @@ app.get("/business", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "business.html"));
 });
 
-app.get("/api/business-pages/:slug", (req, res) => {
+app.get("/api/business-pages/:slug", async (req, res) => {
   try {
-    const businessPage = getBusinessPageData(req.params.slug);
+    const businessPage = await getBusinessPageDataAsync(req.params.slug, {
+      includeDisabled: true,
+      source: "postgres"
+    });
 
     if (!businessPage) {
       return res.status(404).json({
@@ -697,7 +700,7 @@ function businessMatchesSearch(business = {}, businessSearch = "") {
   return targetWords.some((word) => searchableText.includes(word));
 }
 function buildBusinessMetadataMap() {
-  const businessConfig = businessManager.getAllBusinessesSync();
+  const businessConfig = businessManager.getAllBusinessesSync({ includeDisabled: true });
   const map = {};
 
   if (!Array.isArray(businessConfig)) {
@@ -737,6 +740,11 @@ function buildBusinessMetadataMap() {
     business.businessSlug ||
     business.slug ||
     slugifyBusinessName(business.businessName || business.name || ""),
+
+  enabled: business.enabled !== false,
+  businessEnabled: business.enabled !== false,
+  subscriptionPlan: business.subscriptionPlan || "",
+  subscriptionStatus: business.subscriptionStatus || "",
 
   businessUrl:
     business.businessUrl ||
@@ -1009,7 +1017,16 @@ activeDeal:
   business.activeDeal || metadata.activeDeal || null,
 
 publicProfile:
-  business.publicProfile || metadata.publicProfile || null
+  business.publicProfile || metadata.publicProfile || null,
+
+enabled:
+  business.enabled !== undefined ? business.enabled !== false : metadata.enabled !== false,
+businessEnabled:
+  business.businessEnabled !== undefined ? business.businessEnabled !== false : metadata.businessEnabled !== false,
+subscriptionPlan:
+  business.subscriptionPlan || metadata.subscriptionPlan || "",
+subscriptionStatus:
+  business.subscriptionStatus || metadata.subscriptionStatus || ""
   };
 }
 
@@ -1103,7 +1120,16 @@ function normalizeExistingAppointment(business, appointment = {}) {
     publicProfile:
       appointment.publicProfile ||
       business.publicProfile ||
-      null
+      null,
+
+    enabled:
+      appointment.enabled !== undefined ? appointment.enabled !== false : business.enabled !== false,
+    businessEnabled:
+      appointment.businessEnabled !== undefined ? appointment.businessEnabled !== false : business.businessEnabled !== false,
+    subscriptionPlan:
+      appointment.subscriptionPlan || business.subscriptionPlan || "",
+    subscriptionStatus:
+      appointment.subscriptionStatus || business.subscriptionStatus || ""
   };
 }
 
@@ -2766,6 +2792,21 @@ app.post("/api/chatbot-feedback", (req, res) => {
     });
   }
 });
+
+
+async function warmBusinessCache() {
+  try {
+    await businessManager.getAllBusinesses({
+      includeDisabled: true,
+      source: "postgres"
+    });
+    console.log("[BUSINESS MANAGER] Business cache warmed from PostgreSQL.");
+  } catch (error) {
+    console.warn("[BUSINESS MANAGER] Business cache warm-up failed:", error.message);
+  }
+}
+
+warmBusinessCache();
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("");

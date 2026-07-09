@@ -54,6 +54,33 @@ function countBusinesses(appointments) {
   ).size;
 }
 
+function isDisplayableAppointment(appointment = {}) {
+  if (appointment.businessEnabled === false || appointment.enabled === false) {
+    return false;
+  }
+
+  const status = String(
+    appointment.inventoryStatus || appointment.status || ""
+  ).toLowerCase();
+
+  if (["inactive", "expired", "archived", "deleted", "disabled"].includes(status)) {
+    return false;
+  }
+
+  return true;
+}
+
+function isUsableCoordinate(latitude, longitude) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat === 0 && lng === 0) return false;
+  if (Math.abs(lat) < 1 && Math.abs(lng) < 1) return false;
+
+  return true;
+}
+
 function setAssistantMessage(message, type = "") {
   assistantResponse.innerHTML = `
     <div class="assistant-bubble ${type}">
@@ -62,11 +89,11 @@ function setAssistantMessage(message, type = "") {
 
     <div class="chat-feedback-box">
       <button type="button" class="chat-feedback-btn" data-chat-rating="good">
-        👍 Good result
+        ðŸ‘ Good result
       </button>
 
       <button type="button" class="chat-feedback-btn" data-chat-rating="bad">
-        👎 Bad result
+        ðŸ‘Ž Bad result
       </button>
 
       <div class="chat-feedback-form" style="display:none;">
@@ -263,13 +290,13 @@ function triggerLiveSearchInBackground() {
 
       if (lastGoodAppointments.length > 0) {
         setAssistantMessage(
-          "I’m still checking live availability. For now, I kept the latest fresh appointment results visible."
+          "Iâ€™m still checking live availability. For now, I kept the latest fresh appointment results visible."
         );
         return;
       }
 
       setAssistantMessage(
-        "I’m still checking availability. Try a broader search if nothing appears.",
+        "Iâ€™m still checking availability. Try a broader search if nothing appears.",
         "error"
       );
     })
@@ -293,7 +320,7 @@ function requestUserLocation() {
       setAssistantMessage("Location enabled. Search results will now prioritize nearby appointments.");
     },
     () => {
-      setAssistantMessage("Location permission was not enabled. I’ll keep searching without distance sorting.");
+      setAssistantMessage("Location permission was not enabled. Iâ€™ll keep searching without distance sorting.");
     },
     {
       enableHighAccuracy: true,
@@ -326,7 +353,7 @@ if (
   renderThinkingCard();
 
   setAssistantMessage(
-    `Searching for "${promptText}". I’ll show cached results first, then live results as they come in.`
+    `Searching for "${promptText}". Iâ€™ll show cached results first, then live results as they come in.`
   );
 
   resultsSummary.textContent = "Checking cache and live availability...";
@@ -364,9 +391,11 @@ async function loadAppointments(options = {}) {
       throw new Error(data.error || "Failed to load appointments");
     }
 
-    const incomingAppointments = Array.isArray(data.appointments)
+    let incomingAppointments = Array.isArray(data.appointments)
       ? data.appointments
       : [];
+
+    incomingAppointments = incomingAppointments.filter(isDisplayableAppointment);
 
     if (promptText) {
       if (incomingAppointments.length > 0) {
@@ -424,7 +453,7 @@ async function loadAppointments(options = {}) {
 
     const businessCount = countBusinesses(allAppointments);
 
-    resultsSummary.textContent = `${businessCount} business${businessCount === 1 ? "" : "es"} • ${allAppointments.length} appointment${allAppointments.length === 1 ? "" : "s"}`;
+    resultsSummary.textContent = `${businessCount} business${businessCount === 1 ? "" : "es"} â€¢ ${allAppointments.length} appointment${allAppointments.length === 1 ? "" : "s"}`;
 
     return data;
   } catch (error) {
@@ -447,7 +476,7 @@ async function loadAppointments(options = {}) {
         "The search had an issue, so I kept the latest visible appointment results.",
         "error"
       );
-      resultsSummary.textContent = `${countBusinesses(allAppointments)} businesses • ${allAppointments.length} appointments`;
+      resultsSummary.textContent = `${countBusinesses(allAppointments)} businesses â€¢ ${allAppointments.length} appointments`;
       return null;
     }
 
@@ -501,7 +530,7 @@ function renderLiveSearchResults(appointments) {
                   <p>${escapeHtml(address)}</p>
                   <p>
   ${escapeHtml(serviceSummary)}
-  ${firstAppointment.price ? ` · ${escapeHtml(firstAppointment.price)}` : ""}
+  ${firstAppointment.price ? ` Â· ${escapeHtml(firstAppointment.price)}` : ""}
 </p>
                 </div>
 
@@ -574,6 +603,8 @@ function applyFilters() {
 
 function renderBusinessCards(appointments) {
   appointmentsGrid.innerHTML = "";
+
+  appointments = (Array.isArray(appointments) ? appointments : []).filter(isDisplayableAppointment);
 
   const groupedBusinesses = groupAppointmentsByBusiness(appointments);
   const businessGroups = Object.values(groupedBusinesses);
@@ -672,7 +703,7 @@ const businessUrl =
 
             ${
               shouldShowReviews
-                ? `<p class="business-review-summary">★★★★★ ${escapeHtml(reviewSummary.rating)} (${escapeHtml(reviewSummary.count)})</p>`
+                ? `<p class="business-review-summary">â˜…â˜…â˜…â˜…â˜… ${escapeHtml(reviewSummary.rating)} (${escapeHtml(reviewSummary.count)})</p>`
                 : ""
             }
 
@@ -686,7 +717,7 @@ const businessUrl =
               shouldShowDeal
                 ? `
                   <div class="business-deal-preview">
-                    <strong>🔥 ${escapeHtml(activeDeal.title)}</strong>
+                    <strong>ðŸ”¥ ${escapeHtml(activeDeal.title)}</strong>
                     ${
                       activeDeal.body
                         ? `<span>${escapeHtml(activeDeal.body)}</span>`
@@ -720,7 +751,7 @@ const businessUrl =
 
         <p class="business-service">
           ${escapeHtml(getServiceSummary(group.appointments))}
-          ${firstAppointment.price ? ` · ${escapeHtml(firstAppointment.price)}` : ""}
+          ${firstAppointment.price ? ` Â· ${escapeHtml(firstAppointment.price)}` : ""}
         </p>
 
         <p class="next-label">Fresh appointment times:</p>
@@ -866,7 +897,7 @@ function renderMapMarkers(appointments) {
       };
     })
     .filter((business) => {
-      return Number.isFinite(business.latitude) && Number.isFinite(business.longitude);
+      return isUsableCoordinate(business.latitude, business.longitude);
     });
 
   if (!businessesWithCoordinates.length) {
@@ -1179,7 +1210,7 @@ function submitEmailCapture(form) {
     .then((data) => {
       if (!data.success) throw new Error(data.error || "Email capture failed.");
 
-      if (status) status.textContent = "Thanks — you’re on the list.";
+      if (status) status.textContent = "Thanks â€” youâ€™re on the list.";
       form.reset();
 
       localStorage.setItem("nextappt_email_captured", "true");
@@ -1211,7 +1242,7 @@ function showSearchEmailPopup() {
   popup.className = "email-capture-popup";
 
   popup.innerHTML = `
-    <button class="email-capture-close" type="button" aria-label="Close">×</button>
+    <button class="email-capture-close" type="button" aria-label="Close">Ã—</button>
 
     <p class="email-capture-title">Want appointment alerts?</p>
 
