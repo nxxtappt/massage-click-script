@@ -8,6 +8,32 @@ function getQuery() {
 
 const query = getQuery();
 
+function cleanObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value
+    : {};
+}
+
+function normalizeSubscriptionInput(input = {}) {
+  return {
+    plan: input.plan || "verified_basic",
+    subscriptionStatus:
+      input.subscriptionStatus || input.subscription_status || "active",
+    billingProvider:
+      input.billingProvider || input.billing_provider || "manual_admin",
+    stripeCustomerId:
+      input.stripeCustomerId || input.stripe_customer_id || null,
+    stripeSubscriptionId:
+      input.stripeSubscriptionId || input.stripe_subscription_id || null,
+    notes: input.notes || "",
+    publicProfile: cleanObject(input.publicProfile || input.businessProfile),
+    activeDeal: cleanObject(input.activeDeal || input.cardPromotion),
+    bookingIntegration: cleanObject(
+      input.bookingIntegration || input.bookingWidget
+    )
+  };
+}
+
 function slugify(value = "") {
   return String(value || "business")
     .toLowerCase()
@@ -162,6 +188,226 @@ async function getBusinessByName(businessName) {
   );
 
   return result.rows[0] || null;
+}
+
+async function getBusinessBySlug(slugOrName) {
+  const value = String(slugOrName || "");
+
+  const result = await query(
+    `
+      SELECT *
+      FROM businesses
+      WHERE lower(business_id) = lower($1)
+         OR lower(business_name) = lower($1)
+         OR lower(display_name) = lower($1)
+         OR lower(
+              regexp_replace(
+                regexp_replace(business_name, '&', ' and ', 'g'),
+                '[^a-zA-Z0-9]+',
+                '-',
+                'g'
+              )
+            ) = lower($1)
+      LIMIT 1
+    `,
+    [value]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function resolveBusiness(idOrBusinessName) {
+  if (!idOrBusinessName) return null;
+
+  let business = await getBusinessById(idOrBusinessName);
+  if (!business) business = await getBusinessByName(String(idOrBusinessName));
+  if (!business) business = await getBusinessBySlug(String(idOrBusinessName));
+
+  return business || null;
+}
+
+async function getBusinessSubscription(idOrBusinessName) {
+  const business = await resolveBusiness(idOrBusinessName);
+  if (!business) return null;
+
+  const result = await query(
+    `
+      SELECT
+        bs.*,
+        b.business_id AS public_business_id,
+        b.business_name
+      FROM business_subscriptions bs
+      INNER JOIN businesses b ON b.id = bs.business_id
+      WHERE bs.business_id = $1
+      LIMIT 1
+    `,
+    [business.id]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function getAllBusinessSubscriptions() {
+  const result = await query(
+    `
+      SELECT
+        bs.*,
+        b.business_id AS public_business_id,
+        b.business_name,
+        b.enabled,
+        b.verification_status,
+        b.claimed
+      FROM business_subscriptions bs
+      INNER JOIN businesses b ON b.id = bs.business_id
+      ORDER BY b.business_name ASC
+    `
+  );
+
+  return result.rows;
+}
+
+async function upsertBusinessSubscription(
+  idOrBusinessName,
+  input = {}
+) {
+  const business = await resolveBusiness(idOrBusinessName);
+
+  if (!business) {
+    throw new Error("Business not found.");
+  }
+
+  const normalized = normalizeSubscriptionInput(input);
+
+  const legacyRawJson = {
+    plan: normalized.plan,
+    subscriptionStatus: normalized.subscriptionStatus,
+    billingProvider: normalized.billingProvider,
+    stripeCustomerId: normalized.stripeCustomerId,
+    stripeSubscriptionId: normalized.stripeSubscriptionId,
+    notes: normalized.notes,
+
+    publicProfile: normalized.publicProfile,
+    businessProfile: normalized.publicProfile,
+
+    activeDeal: normalized.activeDeal,
+    cardPromotion: normalized.activeDeal,
+
+    bookingIntegration: normalized.bookingIntegration,
+    bookingWidget: normalized.bookingIntegration
+  };
+
+  const result = await query(
+    `
+      INSERT INTO business_subscriptions (
+        business_id,
+        business_name,
+        plan,
+        status,
+        subscription_status,
+        billing_provider,
+        stripe_customer_id,
+        stripe_subscription_id,
+        notes,
+        public_profile,
+        active_deal,
+        booking_integration,
+        raw_json,
+        updated_at
+      )
+      VALUES (
+        $1, $2, $3, $4, $5,
+        $6, $7, $8, $9, $10,
+        $11, $12, $13, NOW()
+      )
+      ON CONFLICT (business_id)
+      DO UPDATE SET
+        business_name = EXCLUDED.business_name,
+
+        plan = EXCLUDED.plan,
+
+        status = EXCLUDED.subscription_status,
+
+        subscription_status =
+          EXCLUDED.subscription_status,
+
+        billing_provider =
+          EXCLUDED.billing_provider,
+
+        stripe_customer_id =
+          EXCLUDED.stripe_customer_id,
+
+        stripe_subscription_id =
+          EXCLUDED.stripe_subscription_id,
+
+        notes =
+          EXCLUDED.notes,
+
+        public_profile =
+          COALESCE(
+            business_subscriptions.public_profile,
+            '{}'::jsonb
+          ) || EXCLUDED.public_profile,
+
+        active_deal =
+          COALESCE(
+            business_subscriptions.active_deal,
+            '{}'::jsonb
+          ) || EXCLUDED.active_deal,
+
+        booking_integration =
+          COALESCE(
+            business_subscriptions.booking_integration,
+            '{}'::jsonb
+          ) || EXCLUDED.booking_integration,
+
+        raw_json =
+          COALESCE(
+            business_subscriptions.raw_json,
+            '{}'::jsonb
+          ) || EXCLUDED.raw_json,
+
+        updated_at = NOW()
+
+      RETURNING *
+    `,
+    [
+      business.id,
+      business.business_name,
+      normalized.plan,
+      normalized.subscriptionStatus,
+      normalized.subscriptionStatus,
+      normalized.billingProvider,
+      normalized.stripeCustomerId,
+      normalized.stripeSubscriptionId,
+      normalized.notes,
+      normalized.publicProfile,
+      normalized.activeDeal,
+      normalized.bookingIntegration,
+      legacyRawJson
+    ]
+  );
+
+  return result.rows[0];
+}
+
+async function getBusinessWithSubscription(idOrBusinessName) {
+  const business = await resolveBusiness(idOrBusinessName);
+  if (!business) return null;
+
+  const [locations, services, integrations, subscription] = await Promise.all([
+    getLocations(business.id),
+    getServices(business.id),
+    getIntegrations(business.id),
+    getBusinessSubscription(business.id)
+  ]);
+
+  return {
+    ...business,
+    locations,
+    services,
+    integrations,
+    subscription
+  };
 }
 
 async function getBusinessWithChildren(idOrBusinessId) {
@@ -382,8 +628,15 @@ module.exports = {
   getAllBusinesses,
   getBusinessById,
   getBusinessByName,
+  getBusinessBySlug,
+  resolveBusiness,
   getBusinessWithChildren,
+  getBusinessWithSubscription,
   getBusinessCount,
+
+  getBusinessSubscription,
+  getAllBusinessSubscriptions,
+  upsertBusinessSubscription,
 
   createBusiness,
   updateBusiness,

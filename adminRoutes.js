@@ -20,11 +20,6 @@ const {
 
 const router = express.Router();
 
-const {
-  loadBusinessSubscriptions,
-  setBusinessSubscription
-} = require("./businessSubscriptionManager");
-
 const businessManager = require("./businessManager");
 
 const RESULTS_FILE = storagePath("results.json");
@@ -222,13 +217,19 @@ router.get("/businesses", async (req, res) => {
   }
 });
 
-router.get("/business-subscriptions", (req, res) => {
+router.get("/business-subscriptions", async (req, res) => {
   try {
+    const subscriptions =
+      await businessManager.getBusinessSubscriptionMap();
+
     res.json({
       success: true,
-      subscriptions: loadBusinessSubscriptions()
+      source: "postgres",
+      subscriptions
     });
   } catch (error) {
+    console.error("[ADMIN SUBSCRIPTIONS GET ERROR]", error);
+
     res.status(500).json({
       success: false,
       error: error.message
@@ -236,7 +237,7 @@ router.get("/business-subscriptions", (req, res) => {
   }
 });
 
-router.post("/business-subscriptions", (req, res) => {
+router.post("/business-subscriptions", async (req, res) => {
   try {
     const { businessName } = req.body || {};
 
@@ -247,18 +248,67 @@ router.post("/business-subscriptions", (req, res) => {
       });
     }
 
-    const subscription = setBusinessSubscription(
-      businessName,
-      cleanSubscriptionPayload(req.body || {})
-    );
+    const payload = cleanSubscriptionPayload(req.body || {});
+
+    const business = await businessManager.getBusinessByName(businessName);
+
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found."
+      });
+    }
+
+    const bookingWidget = payload.bookingWidget || {};
+
+    const bookingIntegration = {
+      ...bookingWidget,
+      widgetType: bookingWidget.type || "url",
+      bookingUrl:
+        bookingWidget.type === "url" || bookingWidget.type === "link"
+          ? bookingWidget.url || ""
+          : "",
+      iframeUrl:
+        bookingWidget.type === "iframe"
+          ? bookingWidget.url || ""
+          : "",
+      embedCode:
+        bookingWidget.type === "html"
+          ? bookingWidget.html || ""
+          : ""
+    };
+
+    const subscription =
+      await businessManager.saveBusinessSubscription(
+        business.businessId || business.id || businessName,
+        {
+          plan: payload.plan,
+          subscriptionStatus: payload.subscriptionStatus,
+          billingProvider:
+            payload.billingProvider || "manual_admin",
+          notes: payload.notes || "",
+          publicProfile: payload.businessProfile || {},
+          activeDeal: payload.cardPromotion || {},
+          bookingIntegration
+        }
+      );
 
     res.json({
       success: true,
-      message: "Business subscription updated.",
-      businessName,
-      subscription
+      source: "postgres",
+      message:
+        "Business subscription and premium features saved.",
+      businessName: business.businessName,
+      subscription: {
+        ...subscription,
+        businessProfile: subscription.publicProfile,
+        cardPromotion: subscription.activeDeal,
+        bookingWidget: subscription.bookingIntegration
+      }
     });
   } catch (error) {
+    console.error("[ADMIN SUBSCRIPTION SAVE ERROR]", error);
+
     res.status(500).json({
       success: false,
       error: error.message
