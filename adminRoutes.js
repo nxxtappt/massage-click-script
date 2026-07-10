@@ -1,11 +1,5 @@
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 const { spawn } = require("child_process");
-
-const {
-  storagePath
-} = require("./storagePaths");
 
 const {
   loadAdminSettings,
@@ -21,27 +15,11 @@ const {
 const router = express.Router();
 
 const businessManager = require("./businessManager");
-
-const RESULTS_FILE = storagePath("results.json");
-const ERROR_LOGS_FILE = storagePath("errorLogs.json");
+const inventoryRepository = require("./database/inventoryRepository");
+const runtimeStateRepository = require("./database/runtimeStateRepository");
 
 let schedulerRunInProgress = false;
 let scrapeRunInProgress = false;
-
-function readJsonFile(filePath, fallback) {
-  if (!fs.existsSync(filePath)) return fallback;
-
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
-    console.error(`[ADMIN ROUTES] Failed to read ${filePath}:`, error.message);
-    return fallback;
-  }
-}
-
-function writeJsonFile(filePath, data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
 
 function addArg(args, key, value) {
   const cleaned = String(value ?? "").trim();
@@ -84,7 +62,6 @@ function buildScrapeArgsFromBody(body = {}) {
 
   if (body.forceRefresh === true) args.push("--forceRefresh=true");
   if (body.manual === true) args.push("--manual=true");
-  if (body.onDemand === true) args.push("--onDemand=true");
   if (body.ignoreServiceRules === true) args.push("--ignoreServiceRules=true");
   if (body.skipVagaroDiscovery === true) args.push("--skipVagaroDiscovery=true");
 
@@ -370,18 +347,22 @@ router.post("/businesses/save", async (req, res) => {
   }
 });
 
-router.get("/results", (req, res) => {
-  res.json({
-    success: true,
-    results: readJsonFile(RESULTS_FILE, [])
-  });
+router.get("/results", async (req, res) => {
+  try {
+    const results = await inventoryRepository.getInventory({ showPast: true, includeInactive: true, limit: 2000 });
+    res.json({ success: true, source: "postgres", results });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-router.get("/errors", (req, res) => {
-  res.json({
-    success: true,
-    errors: readJsonFile(ERROR_LOGS_FILE, [])
-  });
+router.get("/errors", async (req, res) => {
+  try {
+    const errors = await runtimeStateRepository.getScrapeErrors(500);
+    res.json({ success: true, source: "postgres", errors });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 router.get("/settings", (req, res) => {
@@ -391,7 +372,7 @@ router.get("/settings", (req, res) => {
   });
 });
 
-router.post("/settings/save", (req, res) => {
+router.post("/settings/save", async (req, res) => {
   const settings = req.body?.settings;
 
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
@@ -403,7 +384,7 @@ router.post("/settings/save", (req, res) => {
 
   res.json({
     success: true,
-    settings: saveAdminSettings(settings)
+    settings: await saveAdminSettings(settings)
   });
 });
 
@@ -424,8 +405,8 @@ router.get("/cache/items", (req, res) => {
   });
 });
 
-router.post("/cache/clear", (req, res) => {
-  clearAppointmentCache();
+router.post("/cache/clear", async (req, res) => {
+  await clearAppointmentCache();
 
   res.json({
     success: true,

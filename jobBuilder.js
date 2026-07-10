@@ -578,10 +578,6 @@ function getScrapeMode(filters = {}) {
     return "manual";
   }
 
-  if (filters.onDemand === true || filters.onDemand === "true") {
-    return "onDemand";
-  }
-
   return "scheduled";
 }
 
@@ -615,13 +611,6 @@ function servicePassesServiceRules(service, business, filters = {}, adminSetting
   if (mode === "scheduled") {
     allowedPriorities = normalizeList(rules.scheduledPriorities || ["high"]);
     allowedDiscoveryStatuses = normalizeList(rules.scheduledDiscoveryStatuses || ["approved"]);
-  }
-
-  if (mode === "onDemand") {
-    allowedPriorities = normalizeList(rules.onDemandPriorities || ["high", "medium", "normal"]);
-    allowedDiscoveryStatuses = normalizeList(
-      rules.onDemandDiscoveryStatuses || ["approved", "manual"]
-    );
   }
 
   if (mode === "manual") {
@@ -749,10 +738,6 @@ function limitServicesPerBusiness(jobs, filters = {}, adminSettings = null) {
 
   if (mode === "scheduled") {
     limit = Number(rules.maxServicesPerBusinessPerScheduledRun || 0);
-  }
-
-  if (mode === "onDemand") {
-    limit = Number(rules.maxServicesPerBusinessPerOnDemandRun || 0);
   }
 
   if (mode === "manual") {

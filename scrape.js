@@ -1,19 +1,13 @@
 require("dotenv").config();
 
 const { chromium } = require("playwright");
-const fs = require("fs");
-
-const {
-  storagePath,
-  writeJsonAtomic,
-  readJson
-} = require("./storagePaths");
 
 const { parseCliFilters, buildScrapeJobs } = require("./jobBuilder");
-const { upsertAppointmentResult, getCacheStats } = require("./cacheManager");
+const { initializeAppointmentCache, upsertAppointmentResult, getCacheStats } = require("./cacheManager");
 const { shouldSkipScrapeForFreshCache } = require("./staleChecker");
 
 const {
+  initializeAdminSettings,
   loadAdminSettings,
   isPlatformEnabled,
   getTtlMinutesForStatus,
@@ -36,29 +30,22 @@ const { syncBusinessViaApi } = require("./apiSyncRouter");
 const businessManager = require("./businessManager");
 
 const MAX_ATTEMPTS = 2;
-const RESULTS_FILE = storagePath("results.json");
 const {
   mergeConfirmedAndInferredAppointments
 } = require("./availabilityInferenceEngine");
-const ERROR_LOGS_FILE = storagePath("errorLogs.json");
 const {
   createScrapeRun,
   finishScrapeRun,
   insertRawScrapeResult,
   insertConfirmedAppointmentsFromResult
 } = require("./database/inventoryRepository");
-const VAGARO_DISCOVERY_FILE = storagePath("vagaro-marketplace-results.json");
+
+const { logScrapeError } = require("./database/runtimeStateRepository");
 
 const scrapeVagaroMarketplace =
   vagaroModule.scrapeVagaroMarketplace ||
   vagaroModule.scrapeVagaroMarketplaceSearch ||
   vagaroModule;
-
-function saveResults(results) {
-  console.log(
-    `[RESULTS] Legacy results.json write disabled. ${results.length} result(s) kept in memory only.`
-  );
-}
 
 function normalizeResultKeyValue(value) {
   return String(value || "")
@@ -99,28 +86,15 @@ function upsertResult(results = [], incomingResult = {}) {
   return [...filtered, incomingResult];
 }
 
-function appendErrorLog(entry) {
-  const file = ERROR_LOGS_FILE;
-  let existing = [];
-
-  if (fs.existsSync(file)) {
-    try {
-      existing = JSON.parse(fs.readFileSync(file, "utf8"));
-      if (!Array.isArray(existing)) existing = [];
-    } catch {
-      existing = [];
-    }
+async function appendErrorLog(entry) {
+  try {
+    await logScrapeError(entry);
+  } catch (error) {
+    console.error("[SCRAPE ERROR LOG] Failed:", error.message);
   }
-
-  existing.unshift({
-    ...entry,
-    loggedAt: new Date().toISOString()
-  });
-
-  writeJsonAtomic(file, existing.slice(0, 500));
 }
 
-function cacheResult(result) {
+async function cacheResult(result) {
   try {
     const ttlMinutes = getTtlMinutesForStatus(result.status);
 
@@ -129,7 +103,7 @@ function cacheResult(result) {
       return;
     }
 
-    upsertAppointmentResult(result, { ttlMinutes });
+    await upsertAppointmentResult(result, { ttlMinutes });
   } catch (error) {
     console.error("[CACHE] Failed to save scrape result:", error.message);
   }
@@ -833,7 +807,7 @@ async function scrapeWithRetries(browser, business) {
           ...buildScrapeWindowPayload(scrapeTarget)
         };
 
-        appendErrorLog(errorResult);
+        await appendErrorLog(errorResult);
 
         return errorResult;
       }
@@ -870,14 +844,11 @@ async function runVagaroDiscoveryOnly(filters = {}) {
       inspectBusinessPages: filters.inspectBusinessPages !== "false"
     });
 
-    fs.writeFileSync(VAGARO_DISCOVERY_FILE, JSON.stringify(vagaroResults, null, 2));
+    console.log(`[VAGARO] Discovery produced ${vagaroResults.length} result(s); raw output is retained in PostgreSQL scrape records only.`);
 
-    console.log(
-      `Saved ${vagaroResults.length} Vagaro discovery result(s) to ${VAGARO_DISCOVERY_FILE}`
-    );
   } catch (error) {
     console.error("Vagaro discovery failed:", error.message);
-    appendErrorLog({
+    await appendErrorLog({
       platform: "vagaro",
       status: "error",
       error: error.message
@@ -885,32 +856,11 @@ async function runVagaroDiscoveryOnly(filters = {}) {
   }
 }
 
-function enforceOnDemandLimits(scrapeJobs, filters, adminSettings) {
-  const isOnDemand = filters.onDemand === true || filters.onDemand === "true";
-
-  if (!isOnDemand) {
-    return scrapeJobs;
-  }
-
-  if (adminSettings.onDemand.enabled === false) {
-    console.log("[ON-DEMAND] Disabled in admin settings.");
-    return [];
-  }
-
-  if (
-    adminSettings.onDemand.requireGeoFilter === true &&
-    (!filters.latitude || !filters.longitude)
-  ) {
-    console.log("[ON-DEMAND] Geo filter required but missing.");
-    return [];
-  }
-
-  const maxJobs = Number(adminSettings.onDemand.maxJobsPerSearch || 10);
-
-  return scrapeJobs.slice(0, maxJobs);
-}
-
 async function run() {
+  await initializeAdminSettings();
+  await initializeAppointmentCache();
+  await businessManager.getAllBusinesses({ includeDisabled: true });
+
   const adminSettings = loadAdminSettings();
   const filters = parseCliFilters(process.argv);
 
@@ -923,8 +873,7 @@ async function run() {
     adminSettings.scraping.skipFreshCache !== false && !forceRefresh;
 
   if (adminSettings.scraping.enabled === false) {
-    console.log("[ADMIN] Scraping is disabled in admin-settings.json.");
-    console.log("[ADMIN] Leaving existing results.json untouched.");
+    console.log("[ADMIN] Scraping is disabled in PostgreSQL admin settings.");
     return;
   }
 
@@ -952,7 +901,6 @@ async function run() {
   });
 
   let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, filters);
-  scrapeJobs = enforceOnDemandLimits(scrapeJobs, filters, adminSettings);
 
   console.log(`Loaded ${businesses.length} businesses from businessManager`);
   console.log(`Built ${scrapeJobs.length} service-level scrape job(s)`);
@@ -989,7 +937,6 @@ async function run() {
 
   if (scrapeJobs.length === 0) {
     console.log("No scrape jobs matched the filters or enabled platforms.");
-    console.log("[RESULTS] Leaving existing results.json untouched.");
     return;
   }
 
@@ -1000,7 +947,7 @@ async function run() {
 let results = [];
 
   console.log(
-    "[RESULTS] Legacy results.json loading disabled. Starting with empty in-memory run results."
+    "[INVENTORY] Starting a new PostgreSQL-backed scrape run."
   );
 
   try {
@@ -1020,18 +967,13 @@ let results = [];
           const filteredCachedResult = filterResultToScrapeWindow(cachedResult, job);
 
           results = upsertResult(results, filteredCachedResult);
-          saveResults(results);
           continue;
         }
       }
 
       const scrapeRun = await createScrapeRun({
         triggerType:
-          filters.onDemand === true || filters.onDemand === "true"
-            ? "on_demand"
-            : filters.manual === true || filters.manual === "true"
-              ? "manual"
-              : "scheduled",
+          filters.manual === true || filters.manual === "true" ? "manual" : "scheduled",
         businessName: job.businessName,
         platform: job.platform,
         serviceName: job.serviceName || job.service || "",
@@ -1164,8 +1106,7 @@ if (inferredCount > 0) {
 }
 
 results = upsertResult(results, resultWithInference);
-cacheResult(resultWithInference);
-saveResults(results);
+await cacheResult(resultWithInference);
 
       console.log("----- RESULT -----");
       console.log(JSON.stringify(result, null, 2));
@@ -1184,9 +1125,9 @@ saveResults(results);
 }
 
 if (require.main === module) {
-  run().catch((error) => {
+  run().catch(async (error) => {
     console.error("Fatal scrape error:", error);
-    appendErrorLog({
+    await appendErrorLog({
       status: "fatal_error",
       error: error.message,
       stack: error.stack

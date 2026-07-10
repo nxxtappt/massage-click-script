@@ -21,8 +21,8 @@ const views = {
   },
 
   results: {
-    title: "Latest Results",
-    subtitle: "View the most recent appointment results from results.json."
+    title: "Inventory Results",
+    subtitle: "View the most recent PostgreSQL appointment inventory."
   },
 
   errors: {
@@ -465,7 +465,7 @@ function renderBusinessesFromCache() {
 
 async function saveBusinesses() {
   try {
-    setStatus("Saving businesses.json...", "info");
+    setStatus("Saving businesses to PostgreSQL...", "info");
 
     const data = await fetchJson("/api/admin/businesses/save", {
       method: "POST",
@@ -473,7 +473,7 @@ async function saveBusinesses() {
       body: JSON.stringify({ businesses: businessesCache })
     });
 
-    setStatus(`Saved ${data.count} businesses to businesses.json.`, "success");
+    setStatus(`Saved ${data.count} businesses to PostgreSQL.`, "success");
     await loadBusinesses();
   } catch (error) {
     setStatus(`Save failed: ${error.message}`, "error");
@@ -782,7 +782,7 @@ async function loadBusinesses() {
       : [];
 
     renderBusinessesFromCache();
-    setStatus(`Loaded ${businessesCache.length} businesses from businesses.json.`, "success");
+    setStatus(`Loaded ${businessesCache.length} businesses from PostgreSQL.`, "success");
   } catch (error) {
     content.innerHTML = `<h3>Could Not Load Businesses</h3><p>${escapeHtml(error.message)}</p>`;
     setStatus("Failed to load businesses.", "error");
@@ -800,10 +800,10 @@ async function loadResults() {
     pageSubtitle.textContent = views.results.subtitle;
 
     content.innerHTML = `
-      <h3>Latest Results JSON</h3>
-      <p>This is the raw data currently coming from <code>results.json</code>.</p>
+      <h3>PostgreSQL Inventory Results</h3>
+      <p>This is the current appointment inventory stored in PostgreSQL.</p>
       <details class="raw-json-box" open>
-        <summary>View results.json</summary>
+        <summary>View PostgreSQL inventory</summary>
         <pre>${escapeHtml(JSON.stringify(data.results, null, 2))}</pre>
       </details>
     `;
@@ -830,7 +830,7 @@ async function loadErrors() {
       <h3>Error Logs</h3>
       <p>${errors.length} error log entries found.</p>
       <details class="raw-json-box" open>
-        <summary>View errorLogs.json</summary>
+        <summary>View PostgreSQL scrape errors</summary>
         <pre>${escapeHtml(JSON.stringify(errors, null, 2))}</pre>
       </details>
     `;
@@ -909,7 +909,7 @@ function renderTargetedScrapePanel() {
     <div class="settings-panel settings-panel-full">
       <h3>Run Targeted Scrape</h3>
       <p class="settings-help">
-        Choose from real businesses and services in businesses.json. This avoids typos and bad commands.
+        Choose from businesses and services stored in PostgreSQL. This avoids typos and bad commands.
       </p>
 
       <div class="targeted-scrape-grid">
@@ -925,7 +925,7 @@ function renderTargetedScrapePanel() {
       <div class="targeted-options">
         ${renderTargetedCheckbox("Force refresh", "targetForceRefresh", true)}
         ${renderTargetedCheckbox("Manual mode", "targetManual", true)}
-        ${renderTargetedCheckbox("On-demand mode", "targetOnDemand", false)}
+        
         ${renderTargetedCheckbox("Ignore service rules", "targetIgnoreServiceRules", false)}
         ${renderTargetedCheckbox("Skip Vagaro discovery", "targetSkipVagaroDiscovery", true)}
       </div>
@@ -963,7 +963,6 @@ async function loadSettings() {
     const serviceRules = settings.serviceRules || {};
     const platforms = settings.platforms || {};
     const clusters = settings.clusters || {};
-    const onDemand = settings.onDemand || {};
 
     content.innerHTML = `
       <div class="settings-grid">
@@ -974,7 +973,6 @@ async function loadSettings() {
           ${renderSettingsCheckbox("Scraping Enabled", "scraping.enabled", scraping.enabled !== false)}
           ${renderSettingsCheckbox("Search Enabled", "searchEnabled", settings.searchEnabled !== false)}
           ${renderSettingsCheckbox("Scheduled Scraping Enabled", "scraping.scheduledScrapingEnabled", scraping.scheduledScrapingEnabled !== false)}
-          ${renderSettingsCheckbox("On-Demand Scraping Enabled", "scraping.onDemandEnabled", scraping.onDemandEnabled !== false)}
           ${renderSettingsCheckbox("Skip Fresh Cache", "scraping.skipFreshCache", scraping.skipFreshCache !== false)}
           ${renderSettingsCheckbox("Skip Vagaro Discovery By Default", "scraping.skipVagaroDiscoveryByDefault", scraping.skipVagaroDiscoveryByDefault !== false)}
           ${renderSettingsInput("Default Lookahead Hours", "scraping.defaultLookaheadHours", scraping.defaultLookaheadHours || 48, "number")}
@@ -1000,12 +998,9 @@ async function loadSettings() {
           <div class="service-rules-grid">
             ${renderSettingsArrayInput("Scheduled Priorities", "serviceRules.scheduledPriorities", serviceRules.scheduledPriorities || ["high"])}
             ${renderSettingsArrayInput("Scheduled Discovery Statuses", "serviceRules.scheduledDiscoveryStatuses", serviceRules.scheduledDiscoveryStatuses || ["approved"])}
-            ${renderSettingsArrayInput("On-Demand Priorities", "serviceRules.onDemandPriorities", serviceRules.onDemandPriorities || ["high", "medium", "normal"])}
-            ${renderSettingsArrayInput("On-Demand Discovery Statuses", "serviceRules.onDemandDiscoveryStatuses", serviceRules.onDemandDiscoveryStatuses || ["approved", "manual"])}
             ${renderSettingsArrayInput("Manual Priorities", "serviceRules.manualPriorities", serviceRules.manualPriorities || ["high", "medium", "normal", "low"])}
             ${renderSettingsArrayInput("Manual Discovery Statuses", "serviceRules.manualDiscoveryStatuses", serviceRules.manualDiscoveryStatuses || ["approved", "manual", "test", "pending"])}
             ${renderSettingsInput("Max Services Per Business / Scheduled Run", "serviceRules.maxServicesPerBusinessPerScheduledRun", serviceRules.maxServicesPerBusinessPerScheduledRun || 2, "number")}
-            ${renderSettingsInput("Max Services Per Business / On-Demand Run", "serviceRules.maxServicesPerBusinessPerOnDemandRun", serviceRules.maxServicesPerBusinessPerOnDemandRun || 4, "number")}
             ${renderSettingsCheckbox("Allow Services Without Priority", "serviceRules.allowServicesWithoutPriority", serviceRules.allowServicesWithoutPriority === true)}
             ${renderSettingsCheckbox("Allow Services Without Discovery Status", "serviceRules.allowServicesWithoutDiscoveryStatus", serviceRules.allowServicesWithoutDiscoveryStatus === true)}
           </div>
@@ -1016,14 +1011,6 @@ async function loadSettings() {
           ${Object.keys(platforms).map((platform) =>
             renderSettingsCheckbox(platform, `platforms.${platform}`, platforms[platform] !== false)
           ).join("")}
-        </div>
-
-        <div class="settings-panel">
-          <h3>On-Demand Rules</h3>
-          ${renderSettingsCheckbox("On-Demand Enabled", "onDemand.enabled", onDemand.enabled !== false)}
-          ${renderSettingsCheckbox("Require Geo Filter", "onDemand.requireGeoFilter", onDemand.requireGeoFilter === true)}
-          ${renderSettingsInput("Max Jobs Per Search", "onDemand.maxJobsPerSearch", onDemand.maxJobsPerSearch || 10, "number")}
-          ${renderSettingsInput("On-Demand TTL Minutes", "onDemand.ttlMinutes", onDemand.ttlMinutes || 10, "number")}
         </div>
 
         <div class="settings-panel settings-panel-full">
@@ -1056,7 +1043,7 @@ async function loadSettings() {
           </div>
 
           <details class="raw-json-box">
-            <summary>Raw admin-settings.json</summary>
+            <summary>Raw PostgreSQL admin settings</summary>
             <pre>${escapeHtml(JSON.stringify(settings, null, 2))}</pre>
           </details>
         </div>
@@ -1294,7 +1281,6 @@ function buildTargetedPayload() {
     discoveryStatus: getSelectValue("targetDiscoveryStatus"),
     forceRefresh: getCheckboxValue("targetForceRefresh"),
     manual: getCheckboxValue("targetManual"),
-    onDemand: getCheckboxValue("targetOnDemand"),
     ignoreServiceRules: getCheckboxValue("targetIgnoreServiceRules"),
     skipVagaroDiscovery: getCheckboxValue("targetSkipVagaroDiscovery")
   };

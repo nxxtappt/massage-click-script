@@ -1,0 +1,179 @@
+require("dotenv").config();
+
+const fs = require("fs");
+const path = require("path");
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+function slugify(value) {
+  return String(value || "business")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 80);
+}
+
+async function main() {
+  const businessesPath = path.join(__dirname, "..", "businesses.json");
+  const businesses = JSON.parse(fs.readFileSync(businessesPath, "utf8"));
+
+  for (const business of businesses) {
+    const businessName = business.businessName || business.name;
+    if (!businessName) continue;
+
+    const slug = business.slug || slugify(businessName);
+
+    const result = await pool.query(
+      `
+      INSERT INTO businesses (
+        legacy_business_id,
+        business_name,
+        slug,
+        business_category,
+        platform,
+        integration_type,
+        api_provider,
+        credential_id,
+        booking_url,
+        enabled,
+        claimed,
+        verification_status,
+        priority,
+        discovery_status,
+        raw_data
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      ON CONFLICT (slug)
+      DO UPDATE SET
+        business_name = EXCLUDED.business_name,
+        platform = EXCLUDED.platform,
+        integration_type = EXCLUDED.integration_type,
+        api_provider = EXCLUDED.api_provider,
+        credential_id = EXCLUDED.credential_id,
+        booking_url = EXCLUDED.booking_url,
+        enabled = EXCLUDED.enabled,
+        claimed = EXCLUDED.claimed,
+        verification_status = EXCLUDED.verification_status,
+        priority = EXCLUDED.priority,
+        discovery_status = EXCLUDED.discovery_status,
+        raw_data = EXCLUDED.raw_data,
+        updated_at = now()
+      RETURNING id
+      `,
+      [
+        business.businessId || business.id || slug,
+        businessName,
+        slug,
+        business.businessCategory || "wellness",
+        business.platform || null,
+        business.integrationType || "scrape",
+        business.apiProvider || null,
+        business.credentialId || null,
+        business.bookingUrl || null,
+        business.enabled !== false,
+        business.claimed === true,
+        business.verificationStatus || "unclaimed",
+        business.priority || "medium",
+        business.discoveryStatus || "manual",
+        business
+      ]
+    );
+
+    const businessId = result.rows[0].id;
+
+    await pool.query(
+      `
+      INSERT INTO business_locations (
+        business_id,
+        address,
+        latitude,
+        longitude,
+        is_primary,
+        raw_data
+      )
+      VALUES ($1,$2,$3,$4,true,$5)
+      `,
+      [
+        businessId,
+        business.address || null,
+        business.latitude || null,
+        business.longitude || null,
+        business
+      ]
+    );
+
+    const services = Array.isArray(business.services)
+      ? business.services
+      : [business];
+
+    for (const service of services) {
+      const serviceName = service.serviceName || business.serviceName;
+      if (!serviceName) continue;
+
+      await pool.query(
+        `
+        INSERT INTO business_services (
+          business_id,
+          service_name,
+          service_type,
+          duration_minutes,
+          price_text,
+          platform_service_id,
+          service_button_id,
+          service_id,
+          category_text,
+          category_name,
+          parent_service_text,
+          provider_text,
+          skip_provider,
+          enabled,
+          priority,
+          discovery_status,
+          days_forward,
+          lookahead_hours,
+          service_interval_minutes,
+          raw_data
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+        `,
+        [
+          businessId,
+          serviceName,
+          service.serviceType || business.serviceType || null,
+          service.durationMinutes || business.durationMinutes || null,
+          service.price || service.servicePrice || business.price || null,
+          service.platformServiceId || business.platformServiceId || null,
+          service.serviceButtonId || business.serviceButtonId || null,
+          service.serviceId || business.serviceId || null,
+          service.categoryText || business.categoryText || null,
+          service.categoryName || business.categoryName || null,
+          service.parentServiceText || business.parentServiceText || null,
+          service.providerText || business.providerText || "First Available",
+          service.skipProvider === true || business.skipProvider === true,
+          service.enabled !== false,
+          service.priority || business.priority || "medium",
+          service.discoveryStatus || business.discoveryStatus || "manual",
+          service.daysForward || business.daysForward || null,
+          service.lookaheadHours || business.lookaheadHours || null,
+          service.serviceIntervalMinutes || business.serviceIntervalMinutes || null,
+          service
+        ]
+      );
+    }
+
+    console.log(`Imported: ${businessName}`);
+  }
+
+  await pool.end();
+  console.log("Business import complete.");
+}
+
+main().catch(async (error) => {
+  console.error("Import failed:", error);
+  await pool.end();
+  process.exit(1);
+});

@@ -1,16 +1,11 @@
 require("dotenv").config();
 const aiSearchRoutes = require("./api/aiSearchRoutes");
-const { loadAdminSettings } = require("./adminSettingsManager");
+const { initializeAdminSettings, loadAdminSettings } = require("./adminSettingsManager");
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
 const businessManager = require("./businessManager");
 const { spawn } = require("child_process");
-const {
-  storagePath,
-  readJson,
-  writeJsonAtomic
-} = require("./storagePaths");
+const { storagePath } = require("./storagePaths");
 const adminRoutes = require("./adminRoutes");
 const businessPortalRoutes = require("./businessPortalRoutes");
 const businessDashboardRoutes = require("./businessDashboardRoutes");
@@ -28,18 +23,15 @@ const {
   buildSearchIntent
 } = require("./searchIntentEngine");
 
-// Optional orchestration modules created in the newer cache/search architecture.
-// These are loaded defensively so the older results.json flow keeps working
-// even if one of the new files is not present yet.
-const searchExecutionManager = safeRequire("./searchExecutionManager");
+const searchExecutionManager = null;
 const {
   syncBusinessViaApi
 } = safeRequire("./apiSyncRouter") || {};
-const {
-  upsertBusinessResult
-} = require("./resultStore");
 
 const inventoryManager = require("./inventoryManager");
+const { initializeAppointmentCache } = require("./cacheManager");
+const { initializeSearchLocks } = require("./searchLockManager");
+const { saveEmailCapture } = require("./database/runtimeStateRepository");
 const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
@@ -110,66 +102,17 @@ app.get("/ai", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "ai.html"));
 });
 
-const EMAIL_CAPTURE_FILE = path.join(__dirname, "secure", "email-captures.json");
-
-function ensureEmailCaptureFile() {
-  const secureDir = path.join(__dirname, "secure");
-
-  if (!fs.existsSync(secureDir)) {
-    fs.mkdirSync(secureDir, { recursive: true });
-  }
-
-  if (!fs.existsSync(EMAIL_CAPTURE_FILE)) {
-    fs.writeFileSync(EMAIL_CAPTURE_FILE, JSON.stringify([], null, 2));
-  }
-}
-
-function loadEmailCaptures() {
-  ensureEmailCaptureFile();
-
-  try {
-    const parsed = JSON.parse(fs.readFileSync(EMAIL_CAPTURE_FILE, "utf8"));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-app.post("/api/email-capture", (req, res) => {
+app.post("/api/email-capture", async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const source = String(req.body?.source || "unknown").trim();
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: "Please enter a valid email."
-      });
+      return res.status(400).json({ success: false, error: "Please enter a valid email." });
     }
-
-    const captures = loadEmailCaptures();
-
-    const existing = captures.find((item) => item.email === email);
-
-    if (!existing) {
-      captures.unshift({
-        email,
-        source,
-        createdAt: new Date().toISOString()
-      });
-
-      fs.writeFileSync(EMAIL_CAPTURE_FILE, JSON.stringify(captures, null, 2));
-    }
-
-    res.json({
-      success: true,
-      message: "Email saved."
-    });
+    await saveEmailCapture(email, source);
+    res.json({ success: true, message: "Email saved." });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -230,50 +173,6 @@ function pad2(value) {
   return String(value).padStart(2, "0");
 }
 
-function readJsonFile(fileName, fallback) {
-  const persistentFiles = new Set([
-  "results.json",
-  "errorLogs.json",
-  "search-locks.json",
-  path.join("cache", "appointment-cache.json")
-]);
-
-const filePath = persistentFiles.has(fileName)
-  ? storagePath(fileName)
-  : path.join(__dirname, fileName);
-
-  if (!fs.existsSync(filePath)) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
-    console.error(`Failed to read ${fileName}:`, error.message);
-    return fallback;
-  }
-}
-
-function writeJsonFile(fileName, data) {
-  const persistentFiles = new Set([
-    "results.json",
-    "errorLogs.json",
-    "search-locks.json",
-    path.join("cache", "appointment-cache.json")
-  ]);
-
-  const filePath = persistentFiles.has(fileName)
-    ? storagePath(fileName)
-    : path.join(__dirname, fileName);
-
-  if (persistentFiles.has(fileName)) {
-    writeJsonAtomic(filePath, data);
-    return;
-  }
-
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
-
 function safeRequire(modulePath) {
   try {
     return require(modulePath);
@@ -310,156 +209,6 @@ function getExecuteSearchFunction() {
   return null;
 }
 
-function readJsonPath(filePath, fallback) {
-  if (!fs.existsSync(filePath)) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
-    console.error(`Failed to read ${filePath}:`, error.message);
-    return fallback;
-  }
-}
-
-function findExistingCacheFiles() {
-  const candidates = [
-    "appointment-cache.json",
-    "appointmentCache.json",
-    path.join("cache", "appointment-cache.json"),
-    path.join("cache", "appointmentCache.json"),
-    path.join("data", "appointment-cache.json"),
-    path.join("data", "appointmentCache.json")
-  ];
-
-  return candidates
-    .map((fileName) => path.join(__dirname, fileName))
-    .filter((filePath) => fs.existsSync(filePath));
-}
-
-function looksLikeAppointmentRecord(item) {
-  if (!item || typeof item !== "object") return false;
-
-  return Boolean(
-    item.businessName ||
-      item.name ||
-      item.time ||
-      item.startTime ||
-      item.appointmentTime ||
-      item.date ||
-      item.appointmentDate ||
-      item.serviceName ||
-      item.service
-  );
-}
-
-function extractBusinessesFromCachePayload(payload) {
-  if (!payload) return [];
-
-  if (Array.isArray(payload)) {
-    if (
-      payload.some(
-        (item) =>
-          item &&
-          (item.openings ||
-            item.appointments ||
-            item.results ||
-            item.availability ||
-            item.times)
-      )
-    ) {
-      return payload;
-    }
-
-    if (payload.some(looksLikeAppointmentRecord)) {
-      return [
-        {
-          businessName: "Cached Appointments",
-          platform: "cache",
-          status: "success",
-          appointments: payload
-        }
-      ];
-    }
-
-    return [];
-  }
-
-  const directBusinessArrays = [
-    payload.businesses,
-    payload.results,
-    payload.data && payload.data.businesses,
-    payload.data && payload.data.results
-  ];
-
-  for (const value of directBusinessArrays) {
-    if (Array.isArray(value)) {
-      return value;
-    }
-  }
-
-  const directAppointmentArrays = [
-    payload.appointments,
-    payload.openings,
-    payload.availability,
-    payload.data && payload.data.appointments,
-    payload.data && payload.data.openings,
-    payload.data && payload.data.availability
-  ];
-
-  for (const value of directAppointmentArrays) {
-    if (Array.isArray(value)) {
-      return [
-        {
-          businessName: "Cached Appointments",
-          platform: "cache",
-          status: "success",
-          appointments: value
-        }
-      ];
-    }
-  }
-
-  if (typeof payload === "object") {
-    const values = Object.values(payload).filter(Boolean);
-    const businesses = [];
-
-    values.forEach((entry) => {
-      if (!entry || typeof entry !== "object") return;
-
-      if (Array.isArray(entry.businesses) || Array.isArray(entry.results)) {
-        businesses.push(...extractBusinessesFromCachePayload(entry));
-        return;
-      }
-
-      if (
-        Array.isArray(entry.appointments) ||
-        Array.isArray(entry.openings) ||
-        Array.isArray(entry.availability) ||
-        Array.isArray(entry.times)
-      ) {
-        businesses.push(entry);
-      }
-    });
-
-    return businesses;
-  }
-
-  return [];
-}
-
-function loadCacheBusinesses() {
-  const cacheFiles = findExistingCacheFiles();
-  let businesses = [];
-
-  cacheFiles.forEach((filePath) => {
-    const payload = readJsonPath(filePath, null);
-    businesses.push(...extractBusinessesFromCachePayload(payload));
-  });
-
-  return businesses;
-}
 function getBusinessConfigByName(businessName) {
   const businesses = businessManager.getAllBusinessesSync();
 
@@ -536,71 +285,6 @@ function mergeBusinessesForNormalization(primaryBusinesses, cacheBusinesses) {
   (Array.isArray(cacheBusinesses) ? cacheBusinesses : []).forEach(pushBusiness);
 
   return combined;
-}
-
-async function runOrchestratedSearchIfAvailable(query) {
-  const settings = loadAdminSettings();
-
-  const onDemand = String(query.onDemand || "") === "true";
-  const searchEnabled = settings.searchEnabled !== false;
-  const onDemandEnabled =
-    settings.scraping?.onDemandEnabled !== false &&
-    settings.onDemand?.enabled !== false;
-  const useOrchestration =
-    onDemand ||
-    String(query.useOrchestration || "") === "true" ||
-    String(query.orchestrated || "") === "true";
-
-  const summary = {
-    onDemand,
-    useOrchestration,
-    orchestrationAvailable: false,
-    usedOrchestration: false,
-    fallbackUsed: false,
-    error: null,
-    result: null
-  };
-
-  if (!useOrchestration) {
-    return summary;
-  }
-  if (!searchEnabled || !onDemandEnabled) {
-    summary.skippedBecauseSearchDisabled = !searchEnabled;
-    summary.skippedBecauseOnDemandDisabled = !onDemandEnabled;
-    summary.error = "Live search skipped by admin settings.";
-    return summary;
-  }
-  const executeSearch = getExecuteSearchFunction();
-
-  if (!executeSearch) {
-    summary.fallbackUsed = true;
-    summary.error = "searchExecutionManager executeSearch function not available";
-    return summary;
-  }
-
-  summary.orchestrationAvailable = true;
-
-  try {
-    const intent = inferSearchIntent(query);
-
-    const result = await executeSearch({
-      ...query,
-      ...intent,
-      rawSearch: intent.rawSearch || query.search || "",
-      search: query.search || intent.search || "",
-      onDemand: true
-    });
-
-    summary.usedOrchestration = true;
-    summary.result = result || null;
-
-    return summary;
-  } catch (error) {
-    console.error("[ORCHESTRATED SEARCH] Failed:", error);
-    summary.error = error.message;
-    summary.fallbackUsed = true;
-    return summary;
-  }
 }
 
 function normalizeBusinessKey(name) {
@@ -2285,287 +1969,6 @@ function serviceMatchesIntent(service, query) {
   return true;
 }
 
-function buildLiveSearchTargets(query) {
-  const businesses = businessManager.getAllBusinessesSync();
-
-  if (!Array.isArray(businesses)) {
-    return [];
-  }
-
-  const businessFilter = normalizeSearchText(query.business || "");
-  const platformFilter = normalizeSearchText(query.platform || "");
-  const targets = [];
-
-  businesses
-    .filter((business) => business.enabled !== false)
-    .forEach((business) => {
-      const businessName = business.businessName || business.name || "";
-
-  if (businessFilter && !businessMatchesSearch(business, businessFilter)) {
-  return;
-}
-
-      if (platformFilter && normalizeSearchText(business.platform) !== platformFilter) {
-        return;
-      }
-
-      const services =
-        Array.isArray(business.services) && business.services.length
-          ? business.services
-          : [
-              {
-                serviceName: business.serviceName || business.service || "",
-                serviceType: business.serviceType || "",
-                durationMinutes:
-                  business.durationMinutes ||
-                  extractDurationMinutes(
-                    business.serviceName || business.service || ""
-                  ),
-                platformServiceId:
-                  business.platformServiceId ||
-                  business.serviceId ||
-                  business.serviceButtonId ||
-                  "",
-                serviceButtonId: business.serviceButtonId || "",
-                enabled: true
-              }
-            ];
-
-      const matchingServices = services.filter((service) =>
-        serviceMatchesIntent(service, query)
-      );
-
-      matchingServices.forEach((service) => {
-        targets.push({
-          business,
-          service,
-          businessName,
-          platform: business.platform || "",
-          serviceName: service.serviceName || business.serviceName || "",
-          serviceType: service.serviceType || business.serviceType || "",
-          durationMinutes:
-            service.durationMinutes ||
-            business.durationMinutes ||
-            extractDurationMinutes(service.serviceName || business.serviceName || "")
-        });
-      });
-    });
-
-  return targets.slice(0, 8);
-}
-
-function getResultKey(result = {}) {
-  return [
-    result.businessName || "",
-    result.platform || "",
-    result.serviceName || result.service || "",
-    result.serviceType || "",
-    result.durationMinutes || "",
-    result.platformServiceId || result.serviceId || result.serviceButtonId || "",
-    result.provider || ""
-  ]
-    .map((value) => normalizeSearchText(value))
-    .join("||");
-}
-
-function mergeResultsByKey(existingResults, incomingResults) {
-  const existing = Array.isArray(existingResults) ? existingResults : [];
-  const incoming = Array.isArray(incomingResults) ? incomingResults : [];
-
-  const incomingKeys = new Set(incoming.map(getResultKey));
-
-  const preserved = existing.filter((item) => !incomingKeys.has(getResultKey(item)));
-
-  return [...preserved, ...incoming];
-}
-
-async function runLiveScrapeTarget(target) {
-  return new Promise(async (resolve) => {
-    const businessName = target.businessName;
-    const integrationType = target.business?.integrationType || "";
-    const platform = target.platform || "";
-    const serviceName = target.serviceName || "";
-    const serviceType = target.serviceType || "";
-    const durationMinutes = target.durationMinutes || "";
-
-    if (!businessName) {
-      return resolve({
-        businessName: "",
-        platform,
-        serviceName,
-        success: false,
-        error: "Missing business name"
-      });
-    }
-
-    if (integrationType === "api") {
-  console.log("");
-  console.log("[LIVE SEARCH API]");
-  console.log(
-    `Using API integration for ${businessName}`
-  );
-
-  try {
-    const appointments =
-      await syncBusinessViaApi(target);
-
-    const normalizedBusinessResult = {
-      businessName,
-      platform:
-        target.platform || "api",
-      status: "success",
-      integrationType: "api",
-      appointments
-    };
-
-upsertBusinessResult(
-  normalizedBusinessResult
-);
-
-    return resolve({
-  businessName,
-  platform: target.platform,
-  integrationType: "api",
-  success: true,
-  appointmentsReturned: appointments.length
-});
-  } catch (error) {
-    console.error(
-      "[LIVE SEARCH API ERROR]",
-      error
-    );
-
-   return resolve({
-  businessName,
-  platform: target.platform,
-  integrationType: "api",
-  success: false,
-  error: error.message
-});
-  }
-}
-    const args = [
-      "scrape.js",
-      `--business=${businessName}`,
-      "--manual=true",
-      "--forceRefresh=true"
-    ];
-
-    if (platform) {
-      args.push(`--platform=${platform}`);
-    }
-
-    if (serviceName) {
-      args.push(`--service=${serviceName}`);
-    } else if (serviceType) {
-      args.push(`--service=${serviceType}`);
-    }
-
-    if (durationMinutes) {
-      args.push(`--duration=${durationMinutes}`);
-    }
-
-    console.log("");
-    console.log("[LIVE SEARCH] Starting service-level on-demand scrape");
-    console.log("[LIVE SEARCH] Business:", businessName);
-    console.log("[LIVE SEARCH] Platform:", platform || "any");
-    console.log("[LIVE SEARCH] Service:", serviceName || serviceType || "any");
-    console.log("[LIVE SEARCH] Duration:", durationMinutes || "any");
-    console.log("[LIVE SEARCH] Command:", `node ${args.join(" ")}`);
-
-    const child = spawn("node", args, {
-      cwd: __dirname,
-      stdio: "inherit",
-      shell: false
-    });
-
-    child.on("error", (error) => {
-      console.error("[LIVE SEARCH] Failed to start scrape:", error.message);
-
-      resolve({
-        businessName,
-        platform,
-        serviceName,
-        durationMinutes,
-        success: false,
-        error: error.message
-      });
-    });
-
-    child.on("close", (code) => {
-      console.log(
-        `[LIVE SEARCH] Finished ${businessName} | ${serviceName} with exit code ${code}`
-      );
-
-      resolve({
-        businessName,
-        platform,
-        serviceName,
-        durationMinutes,
-        success: code === 0,
-        exitCode: code
-      });
-    });
-  });
-}
-
-async function runLiveSearchIfRequested(query) {
-  const settings = loadAdminSettings();
-
-  const onDemand = String(query.onDemand || "") === "true";
-  const searchEnabled = settings.searchEnabled !== false;
-  const onDemandEnabled =
-    settings.scraping?.onDemandEnabled !== false &&
-    settings.onDemand?.enabled !== false;
-
-  const summary = {
-    onDemand,
-    skippedBecauseAlreadyRunning: false,
-    startedInBackground: false,
-    targetsAttempted: 0,
-    targets: []
-  };
-
-  if (!onDemand) {
-    return summary;
-  }
-  if (!searchEnabled || !onDemandEnabled) {
-    summary.skippedBecauseSearchDisabled = !searchEnabled;
-    summary.skippedBecauseOnDemandDisabled = !onDemandEnabled;
-    return summary;
-  }
-  if (liveSearchRunning) {
-    summary.skippedBecauseAlreadyRunning = true;
-    return summary;
-  }
-
-  const targets = buildLiveSearchTargets(query);
-  summary.targetsAttempted = targets.length;
-  summary.startedInBackground = true;
-
-  liveSearchRunning = true;
-
-  (async () => {
-    try {
-      for (const target of targets) {
-        const result = await runLiveScrapeTarget(target);
-
-        console.log("[LIVE SEARCH] Progressive PostgreSQL inventory refresh finished:", {
-          businessName: result.businessName,
-          serviceName: result.serviceName,
-          integrationType: result.integrationType || "",
-          success: result.success
-        });
-      }
-    } catch (error) {
-      console.error("[LIVE SEARCH BACKGROUND ERROR]", error);
-    } finally {
-      liveSearchRunning = false;
-    }
-  })();
-
-  return summary;
-}
 app.get("/api/settings/public", (req, res) => {
   const settings = loadAdminSettings();
 
@@ -2576,19 +1979,18 @@ app.get("/api/settings/public", (req, res) => {
 });
 app.get("/api/search", async (req, res) => {
   try {
-    const orchestrationSummary = await runOrchestratedSearchIfAvailable(req.query);
+    const orchestrationSummary = {
+      databaseOnly: true,
+      usedOrchestration: false,
+      reason: "Public searches read PostgreSQL inventory only."
+    };
 
-    let scrapeSummary = {
-      onDemand: req.query.onDemand === "true",
-      skippedBecauseOrchestrationHandled: orchestrationSummary.usedOrchestration,
-      skippedBecauseAlreadyRunning: false,
+    const scrapeSummary = {
+      databaseOnly: true,
+      publicScrapingDisabled: true,
       targetsAttempted: 0,
       targets: []
     };
-
-    if (!orchestrationSummary.usedOrchestration) {
-      scrapeSummary = await runLiveSearchIfRequested(req.query);
-    }
 
     const {
       missingResultsFile,
@@ -2598,7 +2000,7 @@ app.get("/api/search", async (req, res) => {
       timingBreakdown,
       cacheBusinessesLoaded
     } = await loadNormalizedAppointments(req.query, {
-  includeAppointmentCache: true
+  includeAppointmentCache: false
 });
 
     if (missingResultsFile) {
@@ -2640,7 +2042,7 @@ app.get("/api/search", async (req, res) => {
         limitPerBusiness: req.query.limitPerBusiness || 999,
         showInvalidDates: req.query.showInvalidDates === "true",
         showPast: req.query.showPast === "true",
-        onDemand: req.query.onDemand === "true"
+        databaseOnly: true
       },
       businessesFound: businesses.map((business) => {
         const businessAppointments =
@@ -2808,9 +2210,14 @@ async function warmBusinessCache() {
   }
 }
 
-warmBusinessCache();
+async function initializeRuntime() {
+  await initializeAdminSettings();
+  await initializeAppointmentCache();
+  await initializeSearchLocks();
+  await warmBusinessCache();
+}
 
-app.listen(PORT, "0.0.0.0", () => {
+initializeRuntime().then(() => app.listen(PORT, "0.0.0.0", () => {
   console.log("");
   console.log("=================================");
   console.log(" Massage Aggregator Running");
@@ -2819,7 +2226,10 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(" Metadata: PostgreSQL business metadata merged into inventory");
   console.log(" Admin Portal: /admin");
   console.log(" Search API: /api/search");
-  console.log(" On-Demand Search: /api/search?search=swedish&onDemand=true");
+  console.log(" Search source: PostgreSQL inventory only");
   console.log("=================================");
   console.log("");
+})).catch((error) => {
+  console.error("[STARTUP] Failed:", error);
+  process.exit(1);
 });
