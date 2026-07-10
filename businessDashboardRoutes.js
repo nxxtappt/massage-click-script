@@ -653,10 +653,25 @@ router.post("/profile", requireBusinessSession, async (req, res) => {
       });
     }
 
-    const logoUrl = String(req.body?.logoUrl || "").trim();
-    const logoAlt = String(req.body?.logoAlt || "").trim();
-    const phone = String(req.body?.phone || "").trim();
-    const website = String(req.body?.website || "").trim();
+    const requestedLogoUrl = String(req.body?.logoUrl || "").trim();
+    const requestedLogoAlt = String(req.body?.logoAlt || "").trim();
+
+    const logoUrl =
+      requestedLogoUrl ||
+      currentBusiness.logoUrl ||
+      "";
+
+    const phone =
+      String(req.body?.phone || "").trim() ||
+      currentBusiness.phone ||
+      currentBusiness.businessPhone ||
+      "";
+
+    const website =
+      String(req.body?.website || "").trim() ||
+      currentBusiness.website ||
+      currentBusiness.businessWebsite ||
+      "";
     const shortDescription = String(req.body?.shortDescription || "").trim();
     const bio = String(req.body?.bio || "").trim();
 
@@ -687,11 +702,16 @@ router.post("/profile", requireBusinessSession, async (req, res) => {
       req.businessSession.businessName ||
       "Business";
 
+    const resolvedLogoAlt =
+      requestedLogoAlt ||
+      currentBusiness.logoAlt ||
+      `${businessName} logo`;
+
     const updatedBusiness = await businessManager.saveBusiness(
       {
         ...currentBusiness,
         logoUrl,
-        logoAlt: logoAlt || `${businessName} logo`,
+        logoAlt: resolvedLogoAlt,
         phone,
         website,
         updatedAt: new Date().toISOString()
@@ -727,8 +747,7 @@ router.post("/profile", requireBusinessSession, async (req, res) => {
         logoUrl: updatedBusiness.logoUrl || logoUrl || "",
         logoAlt:
           updatedBusiness.logoAlt ||
-          logoAlt ||
-          `${businessName} logo`,
+          resolvedLogoAlt,
         phone: updatedBusiness.phone || phone || "",
         website: updatedBusiness.website || website || "",
         publicProfile:

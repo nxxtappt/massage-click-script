@@ -187,12 +187,12 @@ app.get("/business", (req, res) => {
 
 app.get("/api/business-pages/:slug", async (req, res) => {
   try {
-    const businessPage = await getBusinessPageData(
-      req.params.slug,
-      {
-        source: "postgres"
-      }
-    );
+const businessPage = await businessManager.getBusinessPageData(
+  req.params.slug,
+  {
+    source: "postgres"
+  }
+);
 
     if (!businessPage) {
       return res.status(404).json({

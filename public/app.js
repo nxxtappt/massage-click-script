@@ -89,11 +89,11 @@ function setAssistantMessage(message, type = "") {
 
     <div class="chat-feedback-box">
       <button type="button" class="chat-feedback-btn" data-chat-rating="good">
-        ðŸ‘ Good result
+         Good result
       </button>
 
       <button type="button" class="chat-feedback-btn" data-chat-rating="bad">
-        ðŸ‘Ž Bad result
+         Bad result
       </button>
 
       <div class="chat-feedback-form" style="display:none;">
@@ -717,7 +717,7 @@ const businessUrl =
               shouldShowDeal
                 ? `
                   <div class="business-deal-preview">
-                    <strong>ðŸ”¥ ${escapeHtml(activeDeal.title)}</strong>
+                    <strong> ${escapeHtml(activeDeal.title)}</strong>
                     ${
                       activeDeal.body
                         ? `<span>${escapeHtml(activeDeal.body)}</span>`
