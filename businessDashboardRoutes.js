@@ -27,6 +27,8 @@ const {
   getBusinessPlan
 } = require("./businessPlanManager");
 
+const businessManager = require("./businessManager");
+
 const LOGO_UPLOAD_DIR = storagePath(
   "public",
   "uploads",
@@ -107,8 +109,11 @@ function requireBusinessSession(req, res, next) {
   }
 }
 
-function findBusinessForSession(session) {
-  const businesses = readJsonFile("businesses.json", []);
+async function findBusinessForSession(session) {
+  const businesses = await businessManager.getAllBusinesses({
+    includeDisabled: true,
+    source: "postgres"
+  });
 
   if (!Array.isArray(businesses)) {
     return null;
@@ -120,7 +125,31 @@ function findBusinessForSession(session) {
     return null;
   }
 
-  return businesses[businessIndex];
+  const matchedBusiness = businesses[businessIndex];
+  const businessName =
+    matchedBusiness.businessName ||
+    matchedBusiness.name ||
+    session.businessName ||
+    "";
+
+  if (!businessName) {
+    return matchedBusiness;
+  }
+
+  try {
+    return (
+      (await businessManager.getBusinessByName(businessName, {
+        includeDisabled: true,
+        source: "postgres"
+      })) || matchedBusiness
+    );
+  } catch (error) {
+    console.warn(
+      "[BUSINESS DASHBOARD] Failed to load subscription-aware business:",
+      error.message
+    );
+    return matchedBusiness;
+  }
 }
 
 function findBusinessIndexForSession(session, businesses = []) {
@@ -233,8 +262,30 @@ function getIntegrationStatus(business) {
   return "Needs setup";
 }
 
-function buildDashboard(session) {
-  const business = findBusinessForSession(session);
+function getBusinessIdentity(business = {}, session = {}) {
+  return (
+    business.businessId ||
+    business.id ||
+    business.businessName ||
+    business.name ||
+    session.businessId ||
+    session.businessName ||
+    ""
+  );
+}
+
+function getSubscriptionWriteBase(business = {}) {
+  const planInfo = getBusinessPlan(business);
+
+  return {
+    plan: planInfo.plan || "verified_basic",
+    subscriptionStatus: planInfo.subscriptionStatus || "active",
+    billingProvider: planInfo.billingProvider || "manual_admin"
+  };
+}
+
+async function buildDashboard(session) {
+  const business = await findBusinessForSession(session);
 
   const businessName =
     business?.businessName ||
@@ -245,6 +296,32 @@ function buildDashboard(session) {
   const latestResult = findLatestResultForBusiness(businessName);
   const latestCache = findLatestCacheForBusiness(businessName);
   const planInfo = getBusinessPlan(business || {});
+
+  const publicProfile = {
+    ...(planInfo.publicProfile || {}),
+    ...(business?.publicProfile || {}),
+    shortDescription:
+      business?.publicProfile?.shortDescription ||
+      planInfo.publicProfile?.shortDescription ||
+      business?.shortDescription ||
+      "",
+    bio:
+      business?.publicProfile?.bio ||
+      planInfo.publicProfile?.bio ||
+      business?.bio ||
+      business?.businessBio ||
+      ""
+  };
+
+  const activeDeal = {
+    ...(planInfo.activeDeal || {}),
+    ...(business?.activeDeal || {})
+  };
+
+  const bookingIntegration = {
+    ...(planInfo.bookingIntegration || {}),
+    ...(business?.bookingIntegration || {})
+  };
 
   const lastScrape =
     latestResult?.lastChecked ||
@@ -264,7 +341,10 @@ function buildDashboard(session) {
     "Not synced yet";
 
   return {
-    businessId: session.businessId,
+    businessId:
+      business?.businessId ||
+      business?.id ||
+      session.businessId,
     businessName,
     email: session.email,
     sessionExpiresAt: session.expiresAt,
@@ -284,36 +364,39 @@ function buildDashboard(session) {
       logoAlt: business?.logoAlt || `${businessName} logo`,
       phone: business?.phone || business?.businessPhone || "",
       website: business?.website || business?.businessWebsite || "",
-      publicProfile: {
-        ...(business?.publicProfile || {}),
-        shortDescription:
-          business?.publicProfile?.shortDescription || business?.shortDescription || "",
-        bio:
-          business?.publicProfile?.bio || business?.bio || business?.businessBio || ""
-      },
-      activeDeal: {
-        ...(business?.activeDeal || {})
-      },
+      publicProfile,
+      activeDeal,
       bookingIntegration: {
-        enabled: business?.bookingIntegration?.enabled === true,
-        provider: business?.bookingIntegration?.provider || business?.platform || "other",
+        enabled: bookingIntegration.enabled === true,
+        provider:
+          bookingIntegration.provider ||
+          business?.platform ||
+          "other",
         widgetType:
-          business?.bookingIntegration?.widgetType ||
-          business?.bookingIntegration?.type ||
-          (business?.bookingIntegration?.widgetUrl ? "iframe" : "url"),
+          bookingIntegration.widgetType ||
+          bookingIntegration.type ||
+          (bookingIntegration.widgetUrl ? "iframe" : "url"),
         embedCode:
-          business?.bookingIntegration?.embedCode ||
-          business?.bookingIntegration?.code ||
+          bookingIntegration.embedCode ||
+          bookingIntegration.code ||
+          bookingIntegration.html ||
           "",
         iframeUrl:
-          business?.bookingIntegration?.iframeUrl ||
-          business?.bookingIntegration?.widgetUrl ||
+          bookingIntegration.iframeUrl ||
+          bookingIntegration.widgetUrl ||
           "",
         bookingUrl:
-          business?.bookingIntegration?.bookingUrl || business?.bookingUrl || ""
+          bookingIntegration.bookingUrl ||
+          bookingIntegration.url ||
+          business?.bookingUrl ||
+          ""
       },
-      bookingWidgetUrl: business?.bookingIntegration?.widgetUrl || business?.bookingIntegration?.iframeUrl || "",
-      bookingWidgetEnabled: business?.bookingIntegration?.enabled === true
+      bookingWidgetUrl:
+        bookingIntegration.widgetUrl ||
+        bookingIntegration.iframeUrl ||
+        bookingIntegration.url ||
+        "",
+      bookingWidgetEnabled: bookingIntegration.enabled === true
     },
 
     inventoryHealth: {
@@ -559,30 +642,17 @@ router.post("/auth/logout", (req, res) => {
   }
 });
 
-router.post("/profile", requireBusinessSession, (req, res) => {
+router.post("/profile", requireBusinessSession, async (req, res) => {
   try {
-    const businesses = readJsonFile("businesses.json", []);
+    const currentBusiness = await findBusinessForSession(req.businessSession);
 
-    if (!Array.isArray(businesses)) {
-      return res.status(500).json({
-        success: false,
-        error: "businesses.json is not a valid array."
-      });
-    }
-
-    const businessIndex = findBusinessIndexForSession(
-      req.businessSession,
-      businesses
-    );
-
-    if (businessIndex < 0) {
+    if (!currentBusiness) {
       return res.status(404).json({
         success: false,
         error: "Business not found for this session."
       });
     }
 
-    const currentBusiness = businesses[businessIndex] || {};
     const logoUrl = String(req.body?.logoUrl || "").trim();
     const logoAlt = String(req.body?.logoAlt || "").trim();
     const phone = String(req.body?.phone || "").trim();
@@ -617,32 +687,53 @@ router.post("/profile", requireBusinessSession, (req, res) => {
       req.businessSession.businessName ||
       "Business";
 
-    businesses[businessIndex] = {
-      ...currentBusiness,
-      logoUrl,
-      logoAlt: logoAlt || `${businessName} logo`,
-      phone,
-      website,
-      publicProfile: {
-        ...(currentBusiness.publicProfile || {}),
-        shortDescription,
-        bio
+    const updatedBusiness = await businessManager.saveBusiness(
+      {
+        ...currentBusiness,
+        logoUrl,
+        logoAlt: logoAlt || `${businessName} logo`,
+        phone,
+        website,
+        updatedAt: new Date().toISOString()
       },
-      updatedAt: new Date().toISOString()
+      {
+        source: "postgres"
+      }
+    );
+
+    const publicProfile = {
+      ...(currentBusiness.publicProfile || {}),
+      shortDescription,
+      bio
     };
 
-    writeJsonFile("businesses.json", businesses);
+    const savedSubscription =
+      await businessManager.saveBusinessSubscription(
+        getBusinessIdentity(currentBusiness, req.businessSession),
+        {
+          ...getSubscriptionWriteBase(currentBusiness),
+          publicProfile
+        },
+        {
+          source: "postgres"
+        }
+      );
 
     res.json({
       success: true,
       message: "Business profile saved.",
       profile: {
         businessName,
-        logoUrl: businesses[businessIndex].logoUrl || "",
-        logoAlt: businesses[businessIndex].logoAlt || "",
-        phone: businesses[businessIndex].phone || "",
-        website: businesses[businessIndex].website || "",
-        publicProfile: businesses[businessIndex].publicProfile || {}
+        logoUrl: updatedBusiness.logoUrl || logoUrl || "",
+        logoAlt:
+          updatedBusiness.logoAlt ||
+          logoAlt ||
+          `${businessName} logo`,
+        phone: updatedBusiness.phone || phone || "",
+        website: updatedBusiness.website || website || "",
+        publicProfile:
+          savedSubscription.publicProfile ||
+          publicProfile
       }
     });
   } catch (error) {
@@ -655,30 +746,17 @@ router.post("/profile", requireBusinessSession, (req, res) => {
   }
 });
 
-router.post("/booking-widget", requireBusinessSession, (req, res) => {
+router.post("/booking-widget", requireBusinessSession, async (req, res) => {
   try {
-    const businesses = readJsonFile("businesses.json", []);
+    const currentBusiness = await findBusinessForSession(req.businessSession);
 
-    if (!Array.isArray(businesses)) {
-      return res.status(500).json({
-        success: false,
-        error: "businesses.json is not a valid array."
-      });
-    }
-
-    const businessIndex = findBusinessIndexForSession(
-      req.businessSession,
-      businesses
-    );
-
-    if (businessIndex < 0) {
+    if (!currentBusiness) {
       return res.status(404).json({
         success: false,
         error: "Business not found for this session."
       });
     }
 
-    const currentBusiness = businesses[businessIndex] || {};
     const previousIntegration = currentBusiness.bookingIntegration || {};
 
     const enabled = req.body?.enabled === true || req.body?.bookingWidgetEnabled === true;
@@ -746,30 +824,35 @@ router.post("/booking-widget", requireBusinessSession, (req, res) => {
       });
     }
 
-    businesses[businessIndex] = {
-      ...currentBusiness,
-      bookingIntegration: {
-        ...previousIntegration,
-        mode: "widget",
-        enabled,
-        provider,
-        widgetType,
-        type: widgetType,
-        embedCode,
-        code: embedCode,
-        iframeUrl,
-        widgetUrl: iframeUrl,
-        bookingUrl
-      },
-      updatedAt: new Date().toISOString()
+    const bookingIntegration = {
+      ...previousIntegration,
+      mode: "widget",
+      enabled,
+      provider,
+      widgetType,
+      type: widgetType,
+      embedCode,
+      code: embedCode,
+      iframeUrl,
+      widgetUrl: iframeUrl,
+      bookingUrl
     };
 
-    writeJsonFile("businesses.json", businesses);
+    await businessManager.saveBusinessSubscription(
+      getBusinessIdentity(currentBusiness, req.businessSession),
+      {
+        ...getSubscriptionWriteBase(currentBusiness),
+        bookingIntegration
+      },
+      {
+        source: "postgres"
+      }
+    );
 
     res.json({
       success: true,
       message: "Booking widget saved.",
-      bookingIntegration: businesses[businessIndex].bookingIntegration
+      bookingIntegration
     });
   } catch (error) {
     console.error("[BOOKING WIDGET SAVE ERROR]", error);
@@ -781,30 +864,17 @@ router.post("/booking-widget", requireBusinessSession, (req, res) => {
   }
 });
 
-router.post("/deal", requireBusinessSession, (req, res) => {
+router.post("/deal", requireBusinessSession, async (req, res) => {
   try {
-    const businesses = readJsonFile("businesses.json", []);
+    const currentBusiness = await findBusinessForSession(req.businessSession);
 
-    if (!Array.isArray(businesses)) {
-      return res.status(500).json({
-        success: false,
-        error: "businesses.json is not a valid array."
-      });
-    }
-
-    const businessIndex = findBusinessIndexForSession(
-      req.businessSession,
-      businesses
-    );
-
-    if (businessIndex < 0) {
+    if (!currentBusiness) {
       return res.status(404).json({
         success: false,
         error: "Business not found for this session."
       });
     }
 
-    const currentBusiness = businesses[businessIndex] || {};
     const enabled = req.body?.enabled === true;
     const title = String(req.body?.title || "").trim();
     const body = String(req.body?.body || "").trim();
@@ -825,26 +895,31 @@ router.post("/deal", requireBusinessSession, (req, res) => {
       });
     }
 
-    businesses[businessIndex] = {
-      ...currentBusiness,
-      activeDeal: {
-        ...(currentBusiness.activeDeal || {}),
-        enabled,
-        title,
-        body,
-        promoCode,
-        expiresAt,
-        updatedAt: new Date().toISOString()
-      },
+    const activeDeal = {
+      ...(currentBusiness.activeDeal || {}),
+      enabled,
+      title,
+      body,
+      promoCode,
+      expiresAt,
       updatedAt: new Date().toISOString()
     };
 
-    writeJsonFile("businesses.json", businesses);
+    await businessManager.saveBusinessSubscription(
+      getBusinessIdentity(currentBusiness, req.businessSession),
+      {
+        ...getSubscriptionWriteBase(currentBusiness),
+        activeDeal
+      },
+      {
+        source: "postgres"
+      }
+    );
 
     res.json({
       success: true,
       message: "Deal saved.",
-      activeDeal: businesses[businessIndex].activeDeal
+      activeDeal
     });
   } catch (error) {
     console.error("[BUSINESS DEAL SAVE ERROR]", error);
@@ -860,21 +935,9 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
   try {
     ensureLogoUploadDir();
 
-    const businesses = readJsonFile("businesses.json", []);
+    const currentBusiness = await findBusinessForSession(req.businessSession);
 
-    if (!Array.isArray(businesses)) {
-      return res.status(500).json({
-        success: false,
-        error: "businesses.json is not a valid array."
-      });
-    }
-
-    const businessIndex = findBusinessIndexForSession(
-      req.businessSession,
-      businesses
-    );
-
-    if (businessIndex < 0) {
+    if (!currentBusiness) {
       return res.status(404).json({
         success: false,
         error: "Business not found for this session."
@@ -910,8 +973,8 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
     }
 
     const businessName =
-      businesses[businessIndex].businessName ||
-      businesses[businessIndex].name ||
+      currentBusiness.businessName ||
+      currentBusiness.name ||
       req.businessSession.businessName ||
       "Business";
 
@@ -923,17 +986,20 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
 
     const logoUrl = `/uploads/business-logos/${fileName}`;
     const logoAlt =
-      businesses[businessIndex].logoAlt ||
+      currentBusiness.logoAlt ||
       `${businessName} logo`;
 
-    businesses[businessIndex] = {
-      ...businesses[businessIndex],
-      logoUrl,
-      logoAlt,
-      updatedAt: new Date().toISOString()
-    };
-
-    writeJsonFile("businesses.json", businesses);
+    await businessManager.saveBusiness(
+      {
+        ...currentBusiness,
+        logoUrl,
+        logoAlt,
+        updatedAt: new Date().toISOString()
+      },
+      {
+        source: "postgres"
+      }
+    );
 
     res.json({
       success: true,
@@ -954,11 +1020,20 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
   }
 });
 
-router.get("/dashboard", requireBusinessSession, (req, res) => {
-  res.json({
-    success: true,
-    dashboard: buildDashboard(req.businessSession)
-  });
+router.get("/dashboard", requireBusinessSession, async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      dashboard: await buildDashboard(req.businessSession)
+    });
+  } catch (error) {
+    console.error("[BUSINESS DASHBOARD LOAD ERROR]", error);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 module.exports = router;
