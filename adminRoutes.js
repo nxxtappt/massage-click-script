@@ -396,6 +396,28 @@ router.post("/businesses/create", async (req, res) => {
   }
 });
 
+
+router.post("/businesses/:id/save", async (req, res) => {
+  try {
+    const normalizedBusiness = normalizeAdminBusiness(req.body?.business || req.body || {});
+    const routeId = String(req.params.id || "").trim();
+
+    if (!normalizedBusiness.businessName) {
+      return res.status(400).json({ success: false, error: "businessName is required." });
+    }
+
+    if (!normalizedBusiness.businessId && routeId && routeId !== "new") {
+      normalizedBusiness.businessId = routeId;
+    }
+
+    const business = await businessManager.saveBusiness(normalizedBusiness);
+    res.json({ success: true, source: "postgres", business });
+  } catch (error) {
+    console.error("[ADMIN SINGLE BUSINESS SAVE ERROR]", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.post("/businesses/save", async (req, res) => {
   try {
     const body = req.body || {};
@@ -451,7 +473,18 @@ router.post("/businesses/save", async (req, res) => {
 
 router.get("/results", async (req, res) => {
   try {
-    const results = await inventoryRepository.getInventory({ showPast: true, includeInactive: true, limit: 2000 });
+    const results = await inventoryRepository.getInventory({
+      businessName: req.query.business || req.query.businessName || "",
+      platform: req.query.platform || "",
+      serviceName: req.query.service || req.query.serviceName || "",
+      serviceCategory: req.query.serviceType || req.query.serviceCategory || "",
+      targetLocalDateKey: req.query.date || "",
+      includeConfirmed: String(req.query.sourceType || "") !== "inferred",
+      includeInferred: String(req.query.sourceType || "") !== "confirmed",
+      showPast: String(req.query.showPast || "true") === "true",
+      includeInactive: String(req.query.includeInactive || "true") === "true",
+      limit: Number(req.query.limit || 2000)
+    });
     res.json({ success: true, source: "postgres", results });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

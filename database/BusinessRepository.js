@@ -8,6 +8,12 @@ function getQuery() {
 
 const query = getQuery();
 
+function getExecutor(client) {
+  return client && typeof client.query === "function"
+    ? client.query.bind(client)
+    : query;
+}
+
 function cleanObject(value) {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value
@@ -519,12 +525,13 @@ async function getBusinessWithChildren(idOrBusinessId) {
   };
 }
 
-async function upsertBusiness(business) {
+async function upsertBusiness(business, client = null) {
+  const execute = getExecutor(client);
   const row = normalizeBusiness(business);
   const keys = Object.keys(row);
   const updateKeys = keys.filter((key) => key !== "business_id");
 
-  const result = await query(
+  const result = await execute(
     `
       INSERT INTO businesses (${keys.join(", ")})
       VALUES (${keys.map((_, i) => `$${i + 1}`).join(", ")})
@@ -541,7 +548,7 @@ async function upsertBusiness(business) {
 }
 
 async function createBusiness(business) {
-  return upsertBusiness(business);
+  return saveBusinessFull(business);
 }
 
 async function updateBusiness(idOrBusinessId, updates = {}) {
@@ -586,8 +593,9 @@ async function getLocations(numericBusinessId) {
   return result.rows;
 }
 
-async function saveLocations(numericBusinessId, locations = []) {
-  await query("DELETE FROM business_locations WHERE business_id = $1", [numericBusinessId]);
+async function saveLocations(numericBusinessId, locations = [], client = null) {
+  const execute = getExecutor(client);
+  await execute("DELETE FROM business_locations WHERE business_id = $1", [numericBusinessId]);
 
   const saved = [];
 
@@ -595,7 +603,7 @@ async function saveLocations(numericBusinessId, locations = []) {
     const row = normalizeLocation(location, numericBusinessId);
     const keys = Object.keys(row);
 
-    const result = await query(
+    const result = await execute(
       `
         INSERT INTO business_locations (${keys.join(", ")})
         VALUES (${keys.map((_, i) => `$${i + 1}`).join(", ")})
@@ -624,7 +632,8 @@ async function getServices(numericBusinessId) {
   return result.rows;
 }
 
-async function saveServices(numericBusinessId, businessOrServices = []) {
+async function saveServices(numericBusinessId, businessOrServices = [], client = null) {
+  const execute = getExecutor(client);
   const business = Array.isArray(businessOrServices) ? {} : businessOrServices;
   const services = Array.isArray(businessOrServices)
     ? businessOrServices
@@ -642,12 +651,12 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
 
     canonicalKeys.push(row.canonical_key);
 
-    const result = await query(
+    const result = await execute(
       `
         INSERT INTO business_services (
           business_id, canonical_key, service_name, service_type,
           duration_minutes, price, platform_service_id, service_button_id,
-          service_id, category_text, provider_text, enabled, priority,
+          service_id, category_text, parent_service_text, session_type_id, provider_text, enabled, priority,
           discovery_status, days_forward, lookahead_hours, scrape_directly,
           inference_enabled, inference_role, anchor_service_id,
           anchor_service_key, infer_shorter_durations, infer_service_types,
@@ -655,8 +664,8 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
           booking_interval_minutes, raw_json, updated_at
         )
         VALUES (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
-          $17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,NOW()
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+          $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,NOW()
         )
         ON CONFLICT (business_id, canonical_key)
         DO UPDATE SET
@@ -668,6 +677,8 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
           service_button_id = EXCLUDED.service_button_id,
           service_id = EXCLUDED.service_id,
           category_text = EXCLUDED.category_text,
+          parent_service_text = EXCLUDED.parent_service_text,
+          session_type_id = EXCLUDED.session_type_id,
           provider_text = EXCLUDED.provider_text,
           enabled = EXCLUDED.enabled,
           priority = EXCLUDED.priority,
@@ -692,7 +703,7 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
         row.business_id, row.canonical_key, row.service_name, row.service_type,
         row.duration_minutes, row.price, row.platform_service_id,
         row.service_button_id, row.service_id, row.category_text,
-        row.provider_text, row.enabled, row.priority, row.discovery_status,
+        row.parent_service_text, row.session_type_id, row.provider_text, row.enabled, row.priority, row.discovery_status,
         row.days_forward, row.lookahead_hours, row.scrape_directly,
         row.inference_enabled, row.inference_role, row.anchor_service_id,
         row.anchor_service_key, row.infer_shorter_durations, row.infer_service_types,
@@ -705,7 +716,7 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
   }
 
   if (canonicalKeys.length) {
-    await query(
+    await execute(
       `
         DELETE FROM business_services
         WHERE business_id = $1
@@ -714,7 +725,7 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
       [numericBusinessId, canonicalKeys]
     );
   } else {
-    await query("DELETE FROM business_services WHERE business_id = $1", [numericBusinessId]);
+    await execute("DELETE FROM business_services WHERE business_id = $1", [numericBusinessId]);
   }
 
   return saved;
@@ -734,13 +745,14 @@ async function getIntegrations(numericBusinessId) {
   return result.rows;
 }
 
-async function saveIntegration(numericBusinessId, integration = {}) {
-  await query("DELETE FROM business_integrations WHERE business_id = $1", [numericBusinessId]);
+async function saveIntegration(numericBusinessId, integration = {}, client = null) {
+  const execute = getExecutor(client);
+  await execute("DELETE FROM business_integrations WHERE business_id = $1", [numericBusinessId]);
 
   const row = normalizeIntegration(integration, numericBusinessId);
   const keys = Object.keys(row);
 
-  const result = await query(
+  const result = await execute(
     `
       INSERT INTO business_integrations (${keys.join(", ")})
       VALUES (${keys.map((_, i) => `$${i + 1}`).join(", ")})
@@ -753,21 +765,38 @@ async function saveIntegration(numericBusinessId, integration = {}) {
 }
 
 async function saveBusinessFull(business) {
-  await query("BEGIN");
+  if (!db.pool || typeof db.pool.connect !== "function") {
+    throw new Error("db.js must export pool.connect() for transactional business saves.");
+  }
+
+  const client = await db.pool.connect();
 
   try {
-    const savedBusiness = await upsertBusiness(business);
+    await client.query("BEGIN");
+
+    const savedBusiness = await upsertBusiness(business, client);
     const numericBusinessId = savedBusiness.id;
 
-    await saveLocations(numericBusinessId, [business]);
-    await saveServices(numericBusinessId, business);
-    await saveIntegration(numericBusinessId, business);
+    const locations = Array.isArray(business.locations) && business.locations.length
+      ? business.locations
+      : [business];
 
-    await query("COMMIT");
-    return savedBusiness;
+    const integration = Array.isArray(business.integrations) && business.integrations.length
+      ? business.integrations[0]
+      : business;
+
+    await saveLocations(numericBusinessId, locations, client);
+    await saveServices(numericBusinessId, business, client);
+    await saveIntegration(numericBusinessId, integration, client);
+
+    await client.query("COMMIT");
+
+    return getBusinessWithChildren(savedBusiness.business_id);
   } catch (error) {
-    await query("ROLLBACK");
+    await client.query("ROLLBACK");
     throw error;
+  } finally {
+    client.release();
   }
 }
 

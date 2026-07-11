@@ -635,20 +635,40 @@ function renderBusinessesFromCache() {
 
 async function saveBusinesses() {
   try {
-    setStatus("Saving businesses to PostgreSQL...", "info");
+    const validBusinesses = businessesCache.filter((business) =>
+      String(business.businessName || "").trim()
+    );
 
-    const data = await fetchJson("/api/admin/businesses/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ businesses: businessesCache })
-    });
+    if (!validBusinesses.length) {
+      throw new Error("Add at least one business name before saving.");
+    }
 
-    setStatus(`Saved ${data.count} businesses to PostgreSQL.`, "success");
+    let savedCount = 0;
+
+    for (const business of validBusinesses) {
+      setStatus(
+        `Saving ${business.businessName} (${savedCount + 1} of ${validBusinesses.length})...`,
+        "info"
+      );
+
+      const identifier = business.businessId || business.id || "new";
+
+      await fetchJson(`/api/admin/businesses/${encodeURIComponent(identifier)}/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ business })
+      });
+
+      savedCount += 1;
+    }
+
+    setStatus(`Saved ${savedCount} businesses and their services to PostgreSQL.`, "success");
     await loadBusinesses();
   } catch (error) {
     setStatus(`Save failed: ${error.message}`, "error");
   }
 }
+
 function getBusinessSubscriptionKey(businessName) {
   return String(businessName || "")
     .toLowerCase()
@@ -960,29 +980,70 @@ async function loadBusinesses() {
 }
 
 async function loadResults() {
-  currentView = "results";
-  setLoading("Loading latest results...");
+  currentView = "inventory";
+  setLoading("Loading appointment inventory...");
 
-  try {
-    const data = await fetchJson("/api/admin/results");
+  pageTitle.textContent = views.inventory.title;
+  pageSubtitle.textContent = views.inventory.subtitle;
 
-    pageTitle.textContent = views.results.title;
-    pageSubtitle.textContent = views.results.subtitle;
+  content.innerHTML = `
+    <div class="settings-panel settings-panel-full">
+      <h3>Appointment Inventory</h3>
+      <div class="targeted-scrape-grid">
+        ${renderSubscriptionTextInput("Business", "inventoryBusiness", "", "Business name")}
+        ${renderSubscriptionTextInput("Service", "inventoryService", "", "Service name")}
+        ${renderSubscriptionTextInput("Service Type", "inventoryServiceType", "", "massage, swedish...")}
+        ${renderSubscriptionTextInput("Date", "inventoryDate", "", "YYYY-MM-DD")}
+        <label class="admin-field">
+          <span>Source</span>
+          <select id="inventorySourceType">
+            <option value="">Confirmed + Inferred</option>
+            <option value="confirmed">Confirmed only</option>
+            <option value="inferred">Inferred only</option>
+          </select>
+        </label>
+      </div>
+      <div class="settings-actions">
+        <button id="inventorySearchBtn" class="primary-btn">Search Inventory</button>
+      </div>
+      <div id="inventoryResults"><p>Loading...</p></div>
+    </div>
+  `;
 
-    content.innerHTML = `
-      <h3>PostgreSQL Inventory Results</h3>
-      <p>This is the current appointment inventory stored in PostgreSQL.</p>
-      <details class="raw-json-box" open>
-        <summary>View PostgreSQL inventory</summary>
-        <pre>${escapeHtml(JSON.stringify(data.results, null, 2))}</pre>
-      </details>
-    `;
+  const runInventorySearch = async () => {
+    try {
+      const params = new URLSearchParams({
+        business: getInputValue("inventoryBusiness"),
+        service: getInputValue("inventoryService"),
+        serviceType: getInputValue("inventoryServiceType"),
+        date: getInputValue("inventoryDate"),
+        sourceType: getInputValue("inventorySourceType"),
+        showPast: "true",
+        includeInactive: "true",
+        limit: "2000"
+      });
 
-    setStatus("Loaded latest results.", "success");
-  } catch (error) {
-    content.innerHTML = `<h3>Could Not Load Results</h3><p>${escapeHtml(error.message)}</p>`;
-    setStatus("Failed to load results.", "error");
-  }
+      const data = await fetchJson(`/api/admin/results?${params.toString()}`);
+      const results = Array.isArray(data.results) ? data.results : [];
+      const target = document.getElementById("inventoryResults");
+
+      target.innerHTML = `
+        <p>${results.length} inventory record${results.length === 1 ? "" : "s"} found.</p>
+        <details class="raw-json-box" open>
+          <summary>View PostgreSQL inventory</summary>
+          <pre>${escapeHtml(JSON.stringify(results, null, 2))}</pre>
+        </details>
+      `;
+
+      setStatus(`Loaded ${results.length} appointment inventory records.`, "success");
+    } catch (error) {
+      document.getElementById("inventoryResults").innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+      setStatus("Failed to load appointment inventory.", "error");
+    }
+  };
+
+  document.getElementById("inventorySearchBtn").addEventListener("click", runInventorySearch);
+  await runInventorySearch();
 }
 
 async function loadErrors() {
@@ -1744,7 +1805,7 @@ function loadView(viewName) {
 
   if (viewName === "businesses") return loadBusinesses();
   if (viewName === "claims") return loadClaims();
-  if (viewName === "results") return loadResults();
+  if (viewName === "results" || viewName === "inventory") return loadResults();
   if (viewName === "errors") return loadErrors();
   if (viewName === "settings") return loadSettings();
   if (viewName === "subscriptions") return loadBusinessSubscriptionsView();

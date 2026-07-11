@@ -171,6 +171,8 @@ function normalizeServiceRow(service = {}) {
     serviceId: service.service_id || raw.serviceId || "",
     categoryText: service.category_text || raw.categoryText || "",
     categoryName: service.category_text || raw.categoryText || "",
+    parentServiceText: service.parent_service_text || raw.parentServiceText || "",
+    sessionTypeId: service.session_type_id || raw.sessionTypeId || null,
     providerText: service.provider_text || raw.providerText || "",
     enabled: service.enabled !== false,
     priority: service.priority || raw.priority || "",

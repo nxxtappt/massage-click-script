@@ -1,53 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<nav class="nav">
+  <button class="nav-btn active" data-view="businesses">
+    Businesses
+  </button>
 
-  <title>NextAppt Admin Portal</title>
+  <button class="nav-btn" data-view="inventory">
+    Appointment Inventory
+  </button>
 
-  <link rel="stylesheet" href="/admin.css" />
-</head>
-<body>
-  <div class="admin-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">N</div>
-        <div>
-          <h1>NextAppt</h1>
-          <p>Admin Portal</p>
-        </div>
-      </div>
+  <button class="nav-btn" data-view="claims">
+    Business Claims
+  </button>
 
-      <nav class="nav">
-  <button class="nav-btn active" data-view="businesses">Businesses</button>
-  <button class="nav-btn" data-view="claims">Business Claims</button>
-  <button class="nav-btn" data-view="results">Latest Results</button>
-  <button class="nav-btn" data-view="errors">Error Logs</button>
-  <button class="nav-btn" data-view="settings">Settings</button>
+  <button class="nav-btn" data-view="results">
+    Latest Results
+  </button>
+
+  <button class="nav-btn" data-view="errors">
+    Error Logs
+  </button>
+
+  <button class="nav-btn" data-view="settings">
+    Settings
+  </button>
 </nav>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <h2 id="pageTitle">Businesses</h2>
-          <p id="pageSubtitle">Manage businesses and service mappings.</p>
-        </div>
-
-        <button id="refreshBtn" class="primary-btn">Refresh</button>
-      </header>
-
-      <section id="statusBox" class="status-box">
-        Admin portal loaded.
-      </section>
-
-      <section id="content" class="content-card">
-        <p>Loading...</p>
-      </section>
-    </main>
-  </div>
-
-  <script src="/admin.js"></script>
-</body>
-</html>
