@@ -54,6 +54,8 @@ function buildScrapeArgsFromBody(body = {}) {
   addArg(args, "service", body.service);
   addArg(args, "serviceType", body.serviceType);
   addArg(args, "durationMinutes", body.durationMinutes);
+  addArg(args, "businessServiceId", body.businessServiceId || body.serviceRowId);
+  addArg(args, "platformServiceId", body.platformServiceId);
   addArg(args, "priority", body.priority);
   addArg(args, "discoveryStatus", body.discoveryStatus);
   addArg(args, "latitude", body.latitude);
@@ -61,11 +63,80 @@ function buildScrapeArgsFromBody(body = {}) {
   addArg(args, "maxDistanceMiles", body.maxDistanceMiles);
 
   if (body.forceRefresh === true) args.push("--forceRefresh=true");
+  if (body.forceDirectScrape === true) args.push("--forceDirectScrape=true");
   if (body.manual === true) args.push("--manual=true");
   if (body.ignoreServiceRules === true) args.push("--ignoreServiceRules=true");
   if (body.skipVagaroDiscovery === true) args.push("--skipVagaroDiscovery=true");
 
   return args;
+}
+
+
+function cleanNumberOrNull(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function cleanStringArray(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => cleanText(item, 120)).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value.split(",").map((item) => cleanText(item, 120)).filter(Boolean);
+  }
+
+  return [];
+}
+
+function normalizeAdminService(service = {}) {
+  const inferenceRole = cleanEnum(
+    service.inferenceRole,
+    ["", "anchor", "inferred"],
+    ""
+  );
+
+  return {
+    ...service,
+    serviceName: cleanText(service.serviceName, 300),
+    serviceType: cleanText(service.serviceType || service.serviceCategory, 120),
+    durationMinutes: cleanNumberOrNull(service.durationMinutes),
+    price: cleanNumberOrNull(service.price),
+    enabled: service.enabled !== false && service.enabled !== "false",
+    scrapeDirectly:
+      service.scrapeDirectly !== false && service.scrapeDirectly !== "false",
+    inferenceEnabled:
+      cleanBoolean(service.inferenceEnabled) || Boolean(inferenceRole),
+    inferenceRole: inferenceRole || null,
+    anchorServiceId: cleanNumberOrNull(service.anchorServiceId),
+    anchorServiceKey: cleanText(service.anchorServiceKey, 500),
+    inferShorterDurations: cleanBoolean(service.inferShorterDurations),
+    inferServiceTypes: cleanStringArray(service.inferServiceTypes),
+    inferStartIntervalMinutes: cleanNumberOrNull(service.inferStartIntervalMinutes),
+    inferenceConfidence: cleanNumberOrNull(service.inferenceConfidence),
+    bookingIntervalMinutes: cleanNumberOrNull(service.bookingIntervalMinutes),
+    daysForward: cleanNumberOrNull(service.daysForward),
+    lookaheadHours: cleanNumberOrNull(service.lookaheadHours)
+  };
+}
+
+function normalizeAdminBusiness(business = {}) {
+  const services = Array.isArray(business.services)
+    ? business.services.map(normalizeAdminService)
+    : [];
+
+  return {
+    ...business,
+    businessName: cleanText(business.businessName || business.name, 300),
+    enabled:
+      business.enabled === false || business.enabled === "false"
+        ? false
+        : true,
+    latitude: cleanNumberOrNull(business.latitude),
+    longitude: cleanNumberOrNull(business.longitude),
+    services
+  };
 }
 
 function cleanText(value, maxLength = 5000) {
@@ -159,6 +230,7 @@ router.get("/debug/routes", (req, res) => {
     file: __filename,
     routes: [
       "GET /api/admin/businesses",
+      "POST /api/admin/businesses/create",
       "POST /api/admin/businesses/save",
       "GET /api/admin/business-subscriptions",
       "POST /api/admin/business-subscriptions",
@@ -293,6 +365,37 @@ router.post("/business-subscriptions", async (req, res) => {
   }
 });
 
+router.post("/businesses/create", async (req, res) => {
+  try {
+    const business = normalizeAdminBusiness(req.body?.business || req.body || {});
+
+    if (!business.businessName) {
+      return res.status(400).json({ success: false, error: "businessName is required." });
+    }
+
+    const existing = await businessManager.getBusinessByName(business.businessName);
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: "A business with this name already exists. Use Save Businesses to edit it."
+      });
+    }
+
+    const savedBusiness = await businessManager.saveBusiness(business);
+    const businesses = await businessManager.getAllBusinesses({ includeDisabled: true });
+
+    res.status(201).json({
+      success: true,
+      source: "postgres",
+      business: savedBusiness,
+      businesses
+    });
+  } catch (error) {
+    console.error("[ADMIN BUSINESS CREATE ERROR]", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.post("/businesses/save", async (req, res) => {
   try {
     const body = req.body || {};
@@ -314,15 +417,14 @@ router.post("/businesses/save", async (req, res) => {
     const savedBusinesses = [];
 
     for (const business of businesses) {
-      const normalizedBusiness = {
-        ...business,
-        enabled:
-          business.enabled === false || business.enabled === "false"
-            ? false
-            : business.enabled === true || business.enabled === "true"
-              ? true
-              : business.enabled
-      };
+      const normalizedBusiness = normalizeAdminBusiness(business);
+
+      if (!normalizedBusiness.businessName) {
+        return res.status(400).json({
+          success: false,
+          error: "Every business must have a businessName."
+        });
+      }
 
       savedBusinesses.push(await businessManager.saveBusiness(normalizedBusiness));
     }

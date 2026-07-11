@@ -108,6 +108,98 @@ function normalizeSubscriptionShape(row = null) {
   };
 }
 
+function normalizeServiceRow(service = {}) {
+  const raw = cleanObject(service.raw_json);
+  const inferServiceTypes = Array.isArray(service.infer_service_types)
+    ? service.infer_service_types
+    : Array.isArray(raw.inferServiceTypes)
+      ? raw.inferServiceTypes
+      : [];
+
+  const inferenceRole =
+    service.inference_role ||
+    raw.inferenceRole ||
+    null;
+
+  const inferenceEnabled =
+    service.inference_enabled === true ||
+    raw.inferenceEnabled === true ||
+    Boolean(inferenceRole);
+
+  const searchInference = {
+    enabled: inferenceEnabled,
+    isInferenceAnchor: inferenceRole === "anchor",
+    canBeInferred: inferenceRole === "inferred",
+    inferShorterDurations:
+      service.infer_shorter_durations === true ||
+      raw.inferShorterDurations === true,
+    inferServiceTypes,
+    inferStartIntervalMinutes:
+      service.infer_start_interval_minutes ||
+      raw.inferStartIntervalMinutes ||
+      null,
+    confidence:
+      service.inference_confidence === null || service.inference_confidence === undefined
+        ? raw.inferenceConfidence ?? null
+        : Number(service.inference_confidence),
+    anchorServiceId:
+      service.anchor_service_id ||
+      raw.anchorServiceId ||
+      null,
+    anchorServiceKey:
+      service.anchor_service_key ||
+      raw.anchorServiceKey ||
+      null
+  };
+
+  return {
+    id: service.id || raw.id || null,
+    businessServiceId: service.id || raw.id || null,
+    canonicalKey: service.canonical_key || raw.canonicalKey || "",
+    serviceName: service.service_name || raw.serviceName || "",
+    serviceType: service.service_type || raw.serviceType || "",
+    serviceCategory: service.service_type || raw.serviceType || "",
+    durationMinutes:
+      service.duration_minutes === null || service.duration_minutes === undefined
+        ? raw.durationMinutes ?? null
+        : Number(service.duration_minutes),
+    price: service.price ?? raw.price ?? null,
+    platformServiceId:
+      service.platform_service_id || raw.platformServiceId || "",
+    serviceButtonId:
+      service.service_button_id || raw.serviceButtonId || "",
+    serviceId: service.service_id || raw.serviceId || "",
+    categoryText: service.category_text || raw.categoryText || "",
+    categoryName: service.category_text || raw.categoryText || "",
+    providerText: service.provider_text || raw.providerText || "",
+    enabled: service.enabled !== false,
+    priority: service.priority || raw.priority || "",
+    discoveryStatus:
+      service.discovery_status || raw.discoveryStatus || "",
+    daysForward:
+      service.days_forward === null || service.days_forward === undefined
+        ? raw.daysForward ?? null
+        : Number(service.days_forward),
+    lookaheadHours:
+      service.lookahead_hours === null || service.lookahead_hours === undefined
+        ? raw.lookaheadHours ?? null
+        : Number(service.lookahead_hours),
+    scrapeDirectly:
+      service.scrape_directly !== false && raw.scrapeDirectly !== false,
+    inferenceEnabled,
+    inferenceRole,
+    anchorServiceId: searchInference.anchorServiceId,
+    anchorServiceKey: searchInference.anchorServiceKey,
+    inferShorterDurations: searchInference.inferShorterDurations,
+    inferServiceTypes,
+    inferStartIntervalMinutes: searchInference.inferStartIntervalMinutes,
+    inferenceConfidence: searchInference.confidence,
+    bookingIntervalMinutes:
+      service.booking_interval_minutes || raw.bookingIntervalMinutes || null,
+    searchInference
+  };
+}
+
 function normalizeBusinessShape(business = {}) {
   const businessName =
     business.businessName ||
@@ -265,7 +357,7 @@ function toLegacyBusiness(row = {}) {
     longitude: pick(location.longitude, raw.longitude),
     timezone: location.timezone || raw.timezone || "America/Chicago",
     locations: Array.isArray(row.locations) ? row.locations : [],
-    services: Array.isArray(row.services) ? row.services : raw.services || [],
+    services: Array.isArray(row.services) ? row.services.map(normalizeServiceRow) : (raw.services || []).map(normalizeServiceRow),
     integrations: Array.isArray(row.integrations)
       ? row.integrations
       : raw.integrations || [],

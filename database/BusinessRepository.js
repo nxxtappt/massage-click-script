@@ -14,6 +14,14 @@ function cleanObject(value) {
     : {};
 }
 
+function toCleanRawJson(input = {}, allowedKeys = []) {
+  const output = {};
+  for (const key of allowedKeys) {
+    if (input[key] !== undefined) output[key] = input[key];
+  }
+  return output;
+}
+
 function normalizeSubscriptionInput(input = {}) {
   return {
     plan: input.plan || "verified_basic",
@@ -63,7 +71,12 @@ function normalizeBusiness(input = {}) {
     enabled: input.enabled !== false,
     priority: input.priority || null,
     discovery_status: input.discoveryStatus || null,
-    raw_json: input
+    raw_json: toCleanRawJson(input, [
+      "businessId", "businessName", "displayName", "businessCategory",
+      "platform", "bookingUrl", "website", "phone", "email", "ownerEmail",
+      "verificationStatus", "claimed", "claimedByEmail", "claimId",
+      "enabled", "priority", "discoveryStatus", "adminNotes"
+    ])
   };
 }
 
@@ -78,49 +91,123 @@ function normalizeLocation(input = {}, numericBusinessId) {
     latitude: input.latitude ?? null,
     longitude: input.longitude ?? null,
     timezone: input.timezone || "America/Chicago",
-    raw_json: input
+    raw_json: toCleanRawJson(input, [
+      "locationName", "address", "city", "state", "postalCode",
+      "latitude", "longitude", "timezone"
+    ])
   };
 }
 
 function normalizeService(input = {}, business = {}, numericBusinessId) {
-  return {
-    business_id: numericBusinessId,
-    service_name: input.serviceName || business.serviceName || "",
-    service_type:
-      input.serviceType ||
-      input.serviceCategory ||
-      business.serviceType ||
-      business.serviceCategory ||
-      null,
-    duration_minutes: input.durationMinutes || business.durationMinutes || null,
-    price: input.price || input.servicePrice || business.price || business.servicePrice || null,
-    platform_service_id:
-      input.platformServiceId ||
-      business.platformServiceId ||
-      null,
-    service_button_id:
-      input.serviceButtonId ||
-      business.serviceButtonId ||
-      null,
-    service_id:
-      input.serviceId ||
-      business.serviceId ||
-      input.platformServiceId ||
-      input.serviceButtonId ||
-      null,
-    category_text:
-      input.categoryText ||
-      input.categoryName ||
-      business.categoryText ||
-      business.categoryName ||
-      null,
-    provider_text: input.providerText || business.providerText || null,
+  const inference = input.searchInference && typeof input.searchInference === "object"
+    ? input.searchInference
+    : {};
+
+  const serviceName = input.serviceName || business.serviceName || "";
+  const serviceType =
+    input.serviceType ||
+    input.serviceCategory ||
+    business.serviceType ||
+    business.serviceCategory ||
+    null;
+  const durationMinutes = input.durationMinutes ?? business.durationMinutes ?? null;
+  const platformServiceId = input.platformServiceId || business.platformServiceId || null;
+  const serviceButtonId = input.serviceButtonId || business.serviceButtonId || null;
+  const serviceId =
+    input.serviceId || business.serviceId || platformServiceId || serviceButtonId || null;
+
+  const canonicalKey = [
+    String(platformServiceId || serviceId || "").trim().toLowerCase(),
+    String(serviceName || "").trim().toLowerCase(),
+    String(serviceType || "").trim().toLowerCase(),
+    durationMinutes || ""
+  ].join("|");
+
+  const scrapeDirectly =
+    input.scrapeDirectly !== false &&
+    input.inferenceRole !== "inferred" &&
+    inference.canBeInferred !== true;
+  const inferenceRole =
+    input.inferenceRole ||
+    (inference.isInferenceAnchor ? "anchor" : inference.canBeInferred ? "inferred" : null);
+  const inferenceEnabled =
+    input.inferenceEnabled === true ||
+    inference.enabled === true ||
+    Boolean(inferenceRole);
+
+  const rawJson = {
+    serviceName,
+    serviceType,
+    durationMinutes,
+    price: input.price ?? input.servicePrice ?? business.price ?? business.servicePrice ?? null,
+    platformServiceId,
+    serviceButtonId,
+    serviceId,
+    categoryText: input.categoryText || input.categoryName || business.categoryText || business.categoryName || null,
+    providerText: input.providerText || business.providerText || null,
     enabled: input.enabled !== false,
     priority: input.priority || business.priority || null,
-    discovery_status: input.discoveryStatus || business.discoveryStatus || null,
-    days_forward: input.daysForward || business.daysForward || null,
-    lookahead_hours: input.lookaheadHours || business.lookaheadHours || null,
-    raw_json: input
+    discoveryStatus: input.discoveryStatus || business.discoveryStatus || null,
+    daysForward: input.daysForward ?? business.daysForward ?? null,
+    lookaheadHours: input.lookaheadHours ?? business.lookaheadHours ?? null,
+    scrapeDirectly,
+    inferenceEnabled,
+    inferenceRole,
+    anchorServiceId:
+      /^\d+$/.test(String(input.anchorServiceId || inference.anchorServiceId || ""))
+        ? Number(input.anchorServiceId || inference.anchorServiceId)
+        : null,
+    anchorServiceKey:
+      input.anchorServiceKey ||
+      inference.anchorServiceKey ||
+      (!/^\d+$/.test(String(input.anchorServiceId || inference.anchorServiceId || ""))
+        ? String(input.anchorServiceId || inference.anchorServiceId || "").replace(/^key:/, "")
+        : null),
+    inferShorterDurations:
+      input.inferShorterDurations === true || inference.inferShorterDurations === true,
+    inferServiceTypes: Array.isArray(input.inferServiceTypes)
+      ? input.inferServiceTypes
+      : Array.isArray(inference.inferServiceTypes)
+        ? inference.inferServiceTypes
+        : [],
+    inferStartIntervalMinutes:
+      input.inferStartIntervalMinutes ||
+      inference.inferStartIntervalMinutes ||
+      input.bookingIntervalMinutes ||
+      null,
+    inferenceConfidence:
+      input.inferenceConfidence ?? inference.confidence ?? null,
+    bookingIntervalMinutes: input.bookingIntervalMinutes || null
+  };
+
+  return {
+    business_id: numericBusinessId,
+    canonical_key: canonicalKey,
+    service_name: serviceName,
+    service_type: serviceType,
+    duration_minutes: durationMinutes,
+    price: rawJson.price,
+    platform_service_id: platformServiceId,
+    service_button_id: serviceButtonId,
+    service_id: serviceId,
+    category_text: rawJson.categoryText,
+    provider_text: rawJson.providerText,
+    enabled: rawJson.enabled,
+    priority: rawJson.priority,
+    discovery_status: rawJson.discoveryStatus,
+    days_forward: rawJson.daysForward,
+    lookahead_hours: rawJson.lookaheadHours,
+    scrape_directly: rawJson.scrapeDirectly,
+    inference_enabled: rawJson.inferenceEnabled,
+    inference_role: rawJson.inferenceRole,
+    anchor_service_id: rawJson.anchorServiceId,
+    anchor_service_key: rawJson.anchorServiceKey,
+    infer_shorter_durations: rawJson.inferShorterDurations,
+    infer_service_types: rawJson.inferServiceTypes,
+    infer_start_interval_minutes: rawJson.inferStartIntervalMinutes,
+    inference_confidence: rawJson.inferenceConfidence,
+    booking_interval_minutes: rawJson.bookingIntervalMinutes,
+    raw_json: rawJson
   };
 }
 
@@ -132,7 +219,10 @@ function normalizeIntegration(input = {}, numericBusinessId) {
     credential_id: input.credentialId || null,
     platform: input.platform || null,
     status: input.integrationStatus || "active",
-    raw_json: input
+    raw_json: toCleanRawJson(input, [
+      "integrationType", "apiProvider", "credentialId", "platform",
+      "integrationStatus"
+    ])
   };
 }
 
@@ -526,7 +616,7 @@ async function getServices(numericBusinessId) {
       SELECT *
       FROM business_services
       WHERE business_id = $1
-      ORDER BY service_name ASC, duration_minutes ASC NULLS LAST
+      ORDER BY enabled DESC, service_name ASC, duration_minutes ASC NULLS LAST
     `,
     [numericBusinessId]
   );
@@ -540,9 +630,8 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
     ? businessOrServices
     : getServicesFromBusiness(businessOrServices);
 
-  await query("DELETE FROM business_services WHERE business_id = $1", [numericBusinessId]);
-
   const saved = [];
+  const canonicalKeys = [];
 
   for (const service of services) {
     const row = normalizeService(service, business, numericBusinessId);
@@ -551,18 +640,81 @@ async function saveServices(numericBusinessId, businessOrServices = []) {
       continue;
     }
 
-    const keys = Object.keys(row);
+    canonicalKeys.push(row.canonical_key);
 
     const result = await query(
       `
-        INSERT INTO business_services (${keys.join(", ")})
-        VALUES (${keys.map((_, i) => `$${i + 1}`).join(", ")})
+        INSERT INTO business_services (
+          business_id, canonical_key, service_name, service_type,
+          duration_minutes, price, platform_service_id, service_button_id,
+          service_id, category_text, provider_text, enabled, priority,
+          discovery_status, days_forward, lookahead_hours, scrape_directly,
+          inference_enabled, inference_role, anchor_service_id,
+          anchor_service_key, infer_shorter_durations, infer_service_types,
+          infer_start_interval_minutes, inference_confidence,
+          booking_interval_minutes, raw_json, updated_at
+        )
+        VALUES (
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+          $17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,NOW()
+        )
+        ON CONFLICT (business_id, canonical_key)
+        DO UPDATE SET
+          service_name = EXCLUDED.service_name,
+          service_type = EXCLUDED.service_type,
+          duration_minutes = EXCLUDED.duration_minutes,
+          price = EXCLUDED.price,
+          platform_service_id = EXCLUDED.platform_service_id,
+          service_button_id = EXCLUDED.service_button_id,
+          service_id = EXCLUDED.service_id,
+          category_text = EXCLUDED.category_text,
+          provider_text = EXCLUDED.provider_text,
+          enabled = EXCLUDED.enabled,
+          priority = EXCLUDED.priority,
+          discovery_status = EXCLUDED.discovery_status,
+          days_forward = EXCLUDED.days_forward,
+          lookahead_hours = EXCLUDED.lookahead_hours,
+          scrape_directly = EXCLUDED.scrape_directly,
+          inference_enabled = EXCLUDED.inference_enabled,
+          inference_role = EXCLUDED.inference_role,
+          anchor_service_id = EXCLUDED.anchor_service_id,
+          anchor_service_key = EXCLUDED.anchor_service_key,
+          infer_shorter_durations = EXCLUDED.infer_shorter_durations,
+          infer_service_types = EXCLUDED.infer_service_types,
+          infer_start_interval_minutes = EXCLUDED.infer_start_interval_minutes,
+          inference_confidence = EXCLUDED.inference_confidence,
+          booking_interval_minutes = EXCLUDED.booking_interval_minutes,
+          raw_json = EXCLUDED.raw_json,
+          updated_at = NOW()
         RETURNING *
       `,
-      keys.map((key) => row[key])
+      [
+        row.business_id, row.canonical_key, row.service_name, row.service_type,
+        row.duration_minutes, row.price, row.platform_service_id,
+        row.service_button_id, row.service_id, row.category_text,
+        row.provider_text, row.enabled, row.priority, row.discovery_status,
+        row.days_forward, row.lookahead_hours, row.scrape_directly,
+        row.inference_enabled, row.inference_role, row.anchor_service_id,
+        row.anchor_service_key, row.infer_shorter_durations, row.infer_service_types,
+        row.infer_start_interval_minutes, row.inference_confidence,
+        row.booking_interval_minutes, row.raw_json
+      ]
     );
 
     saved.push(result.rows[0]);
+  }
+
+  if (canonicalKeys.length) {
+    await query(
+      `
+        DELETE FROM business_services
+        WHERE business_id = $1
+          AND NOT (canonical_key = ANY($2::text[]))
+      `,
+      [numericBusinessId, canonicalKeys]
+    );
+  } else {
+    await query("DELETE FROM business_services WHERE business_id = $1", [numericBusinessId]);
   }
 
   return saved;

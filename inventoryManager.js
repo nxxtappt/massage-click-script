@@ -20,6 +20,8 @@ function toNumberOrNull(value) {
 
 function getAppointmentIdentityKey(appointment = {}) {
   return [
+    appointment.businessServiceId || appointment.business_service_id || "",
+    appointment.anchorServiceId || appointment.anchor_service_id || "",
     appointment.businessName || appointment.business_name || "",
     appointment.platform || "",
     appointment.serviceName || appointment.service_name || appointment.service || "",
@@ -314,6 +316,14 @@ function normalizeInventoryRow(row = {}) {
 
   return {
     id: row.id || null,
+    businessServiceId:
+      row.businessServiceId || row.business_service_id || null,
+    anchorServiceId:
+      row.anchorServiceId || row.anchor_service_id || null,
+    inferredAppointmentId:
+      row.inferredAppointmentId || row.inferred_id || null,
+    confirmedAppointmentId:
+      row.confirmedAppointmentId || row.confirmed_id || null,
 
     businessName: businessName || metadata.businessName || "",
     businessCategory:
@@ -383,6 +393,13 @@ function normalizeInventoryRow(row = {}) {
       row.appointmentSource ||
       row.appointment_source ||
       "confirmed",
+
+    inferenceReason:
+      row.inferenceReason || row.inference_reason || "",
+    inferenceGeneratedAt:
+      row.inferenceGeneratedAt || row.inference_generated_at || "",
+    inferredFrom:
+      row.inferredFrom || row.inferred_from || row.raw_json?.inferredFrom || null,
 
     confidence:
       row.confidence === undefined || row.confidence === null
@@ -517,14 +534,36 @@ async function insertInferredAppointments(inferredAppointments = [], options = {
   const saved = [];
 
   for (const appointment of inferredAppointments) {
+    const confidenceCandidate =
+      appointment.confidenceScore ??
+      appointment.inferenceConfidence ??
+      (typeof appointment.confidence === "number" ? appointment.confidence : null) ??
+      options.inferenceConfidence ??
+      0.85;
+
+    const confidence = Number(confidenceCandidate);
+
     saved.push(
       await inventoryRepository.insertInferredAppointment({
         ...appointment,
         businessName: appointment.businessName || options.businessName,
         platform: appointment.platform || options.platform,
-        sourceType: appointment.sourceType || "inferred",
-        confidence:
-          appointment.confidence === undefined ? 0.75 : Number(appointment.confidence)
+        businessServiceId:
+          appointment.businessServiceId ||
+          appointment.inferredBusinessServiceId ||
+          options.businessServiceId ||
+          null,
+        anchorServiceId:
+          appointment.anchorServiceId ||
+          appointment.inferenceAnchorServiceId ||
+          appointment.inferredFrom?.businessServiceId ||
+          options.anchorServiceId ||
+          null,
+        sourceType: "inferred",
+        confidence: Number.isFinite(confidence) ? confidence : 0.85,
+        inferenceReason:
+          appointment.inferenceReason || options.inferenceReason || "service_anchor",
+        rawJson: appointment
       })
     );
   }

@@ -28,6 +28,7 @@ const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 const businessManager = require("./businessManager");
+const inventoryManager = require("./inventoryManager");
 
 const MAX_ATTEMPTS = 2;
 const {
@@ -978,6 +979,7 @@ let results = [];
         platform: job.platform,
         serviceName: job.serviceName || job.service || "",
         serviceType: job.serviceType || "",
+        businessServiceId: job.businessServiceId || job.id || null,
         durationMinutes: job.durationMinutes || null,
         scrapeStartDate: job.scrapeStartDate || null,
         scrapeEndDate: job.scrapeEndDate || null,
@@ -995,12 +997,14 @@ let results = [];
         platform: result.platform || job.platform,
         serviceName: result.serviceName || job.serviceName || "",
         serviceType: result.serviceType || job.serviceType || "",
+        businessServiceId: job.businessServiceId || job.id || null,
         durationMinutes: result.durationMinutes || job.durationMinutes || null,
         scrapeStartDate: result.scrapeStartDate || job.scrapeStartDate || null,
         scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null,
         rawResult: result
       });
 
+result.businessServiceId = result.businessServiceId || job.businessServiceId || job.id || null;
 const confirmedAppointments = resultTimesToAppointments(result);
 
 function toDateKey(displayDate) {
@@ -1021,6 +1025,8 @@ function resultTimesToAppointments(result = {}) {
     return result.appointments.map((appointment) => ({
       ...appointment,
       sourceType: appointment.sourceType || "confirmed",
+      businessServiceId:
+        appointment.businessServiceId || result.businessServiceId || job.businessServiceId || null,
       localDateKey: appointment.localDateKey || localDateKey
     }));
   }
@@ -1051,7 +1057,8 @@ function resultTimesToAppointments(result = {}) {
 
     price: result.price || null,
 
-    sourceType: "confirmed"
+    sourceType: "confirmed",
+    businessServiceId: result.businessServiceId || job.businessServiceId || null
   }));
 }
 
@@ -1084,6 +1091,7 @@ await finishScrapeRun(scrapeRun.id, {
 
 const confirmedInventoryResult = {
   ...result,
+  businessServiceId: job.businessServiceId || job.id || null,
   appointments: confirmedAppointments
 };
 
@@ -1097,11 +1105,22 @@ console.log(
   `[INVENTORY] Saved ${insertedInventoryAppointments.length} confirmed appointment(s) to PostgreSQL inventory.`
 );
 
-const inferredCount = mergedAppointments.length - confirmedAppointments.length;
+const inferredAppointments = mergedAppointments.filter(
+  (appointment) => String(appointment.sourceType || "").toLowerCase() === "inferred"
+);
 
-if (inferredCount > 0) {
+if (inferredAppointments.length > 0) {
+  const savedInferred = await inventoryManager.insertInferredAppointments(
+    inferredAppointments,
+    {
+      businessName: result.businessName || job.businessName,
+      platform: result.platform || job.platform,
+      anchorServiceId: job.businessServiceId || job.id || null
+    }
+  );
+
   console.log(
-    `[INVENTORY] ${inferredCount} inferred appointment(s) generated but not written to confirmed inventory yet.`
+    `[INVENTORY] Saved ${savedInferred.length} inferred appointment(s) to PostgreSQL inventory.`
   );
 }
 

@@ -350,54 +350,87 @@ async function insertRawScrapeResult(payload = {}, client = db) {
 }
 
 async function insertConfirmedAppointment(payload = {}, client = db) {
-  const result = await client.query(
-    `
-    INSERT INTO confirmed_appointments (
-      scrape_run_id,
-      raw_scrape_result_id,
-      business_name,
-      platform,
-      service_name,
-      service_category,
-      duration_minutes,
-      provider_name,
-      booking_url,
-      appointment_start,
-      appointment_end,
-      local_date,
-      local_time,
-      timezone,
-      source_type,
-      confidence
-    )
-    VALUES (
-      $1, $2, $3, $4, $5, $6,
-      $7, $8, $9, $10, $11, $12,
-      $13, $14, $15, $16
-    )
-    RETURNING *
-    `,
-    [
-      payload.scrapeRunId || null,
-      payload.rawScrapeResultId || null,
-      payload.businessName || null,
-      payload.platform || null,
-      payload.serviceName || payload.service || null,
-      payload.serviceCategory || payload.serviceType || null,
-      toNumberOrNull(payload.durationMinutes),
-      payload.providerName || payload.therapistName || payload.provider || null,
-      payload.bookingUrl || null,
-      payload.appointmentStart,
-      payload.appointmentEnd || payload.endTime || null,
-      payload.localDate || null,
-      payload.localTime || null,
-      payload.timezone || DEFAULT_TIMEZONE,
-      payload.sourceType || "confirmed",
-      payload.confidence === undefined ? 1.0 : Number(payload.confidence)
-    ]
+  return insertDynamic(
+    "confirmed_appointments",
+    {
+      scrape_run_id: payload.scrapeRunId || null,
+      raw_scrape_result_id: payload.rawScrapeResultId || null,
+      business_service_id: payload.businessServiceId || null,
+      business_name: payload.businessName || null,
+      platform: payload.platform || null,
+      service_name: payload.serviceName || payload.service || null,
+      service_category: payload.serviceCategory || payload.serviceType || null,
+      duration_minutes: toNumberOrNull(payload.durationMinutes),
+      provider_name: payload.providerName || payload.therapistName || payload.provider || null,
+      booking_url: payload.bookingUrl || null,
+      appointment_start: payload.appointmentStart || null,
+      appointment_end: payload.appointmentEnd || payload.endTime || null,
+      local_date: payload.localDate || null,
+      local_time: payload.localTime || null,
+      timezone: payload.timezone || DEFAULT_TIMEZONE,
+      source_type: payload.sourceType || "confirmed",
+      confidence: payload.confidence === undefined ? 1.0 : Number(payload.confidence),
+      raw_json: payload.rawJson || null
+    },
+    client
+  );
+}
+
+async function insertInferredAppointment(payload = {}, client = db) {
+  const inferred = await insertDynamic(
+    "inferred_appointments",
+    {
+      business_service_id:
+        payload.businessServiceId ||
+        payload.inferredBusinessServiceId ||
+        null,
+      anchor_service_id:
+        payload.anchorServiceId ||
+        payload.inferenceAnchorServiceId ||
+        null,
+      business_name: payload.businessName || null,
+      platform: payload.platform || null,
+      service_name: payload.serviceName || payload.service || null,
+      service_category: payload.serviceCategory || payload.serviceType || null,
+      duration_minutes: toNumberOrNull(payload.durationMinutes),
+      provider_name: payload.providerName || payload.therapistName || payload.provider || null,
+      booking_url: payload.bookingUrl || null,
+      appointment_start: payload.appointmentStart || payload.startTime || null,
+      appointment_end: payload.appointmentEnd || payload.endTime || null,
+      local_date: payload.localDate || payload.localDateKey || null,
+      local_time: payload.localTime || payload.localTimeKey || null,
+      timezone: payload.timezone || DEFAULT_TIMEZONE,
+      source_type: "inferred",
+      confidence:
+        payload.confidenceScore ??
+        payload.inferenceConfidence ??
+        payload.confidence ??
+        0.85,
+      inference_reason: payload.inferenceReason || "service_anchor",
+      raw_json: payload.rawJson || payload
+    },
+    client
   );
 
-  return result.rows[0];
+  await insertInventoryAppointment(
+    {
+      ...payload,
+      inferredAppointmentId: inferred.id,
+      businessServiceId:
+        payload.businessServiceId ||
+        payload.inferredBusinessServiceId ||
+        null,
+      anchorServiceId:
+        payload.anchorServiceId ||
+        payload.inferenceAnchorServiceId ||
+        null,
+      sourceType: "inferred",
+      inventoryReason: payload.inferenceReason || "service_anchor"
+    },
+    client
+  );
+
+  return inferred;
 }
 
 async function insertInventoryAppointment(payload = {}, client = db) {
@@ -408,6 +441,14 @@ async function insertInventoryAppointment(payload = {}, client = db) {
 
       confirmed_id: payload.confirmedAppointmentId || payload.confirmedId || null,
       inferred_id: payload.inferredAppointmentId || payload.inferredId || null,
+      business_service_id:
+        payload.businessServiceId ||
+        payload.inferredBusinessServiceId ||
+        null,
+      anchor_service_id:
+        payload.anchorServiceId ||
+        payload.inferenceAnchorServiceId ||
+        null,
 
       business_name: payload.businessName || null,
       platform: payload.platform || null,
@@ -466,6 +507,11 @@ async function insertConfirmedAppointmentsFromResult(result = {}, options = {}, 
       scrapeRunId: options.scrapeRunId || result.scrapeRunId || null,
       rawScrapeResultId: options.rawScrapeResultId || result.rawScrapeResultId || null,
 
+      businessServiceId:
+        appointment.businessServiceId ||
+        result.businessServiceId ||
+        result.serviceConfigId ||
+        null,
       businessName: appointment.businessName || result.businessName,
       platform: appointment.platform || result.platform,
       serviceName: appointment.serviceName || appointment.service || result.serviceName || result.service,
@@ -718,6 +764,7 @@ module.exports = {
   finishScrapeRun,
   insertRawScrapeResult,
   insertConfirmedAppointment,
+  insertInferredAppointment,
   insertConfirmedAppointmentsFromResult,
   insertInventoryAppointment,
   saveBusinessResult,

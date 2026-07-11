@@ -340,6 +340,10 @@ function getEnabledServicesForBusiness(business) {
               : Boolean(business.skipProvider),
 
           enabled: service.enabled !== false,
+          scrapeDirectly:
+            service.scrapeDirectly !== false &&
+            service.inferenceRole !== "inferred" &&
+            service.searchInference?.canBeInferred !== true,
           priority: service.priority || business.priority || "",
           discoveryStatus:
             service.discoveryStatus ||
@@ -421,6 +425,7 @@ inference:
       providerText: business.providerText || "First Available",
       skipProvider: Boolean(business.skipProvider),
       enabled: true,
+      scrapeDirectly: business.scrapeDirectly !== false,
       priority: business.priority || "medium",
       discoveryStatus: business.discoveryStatus || "manual",
       daysForward: business.daysForward || null,
@@ -599,6 +604,14 @@ function servicePassesServiceRules(service, business, filters = {}, adminSetting
   }
 
   if (service.enabled === false) {
+    return false;
+  }
+
+  const forceDirectScrape =
+    filters.forceDirectScrape === true ||
+    filters.forceDirectScrape === "true";
+
+  if (service.scrapeDirectly === false && !forceDirectScrape) {
     return false;
   }
 
@@ -939,6 +952,10 @@ function buildScrapeJobs(businesses, filters = {}) {
         inferenceRole: service.inferenceRole || service.searchInference?.inferenceRole || "",
         canInfer: service.canInfer === true,
         inferredFromAnchor: service.inferredFromAnchor === true,
+        scrapeDirectly: service.scrapeDirectly !== false,
+        businessServiceId: service.id || service.businessServiceId || null,
+        anchorServiceId: service.anchorServiceId || null,
+        inferenceEnabled: service.inferenceEnabled === true,
 
         scrapeStartDate: scrapeWindow.scrapeStartDate,
         scrapeEndDate: scrapeWindow.scrapeEndDate,

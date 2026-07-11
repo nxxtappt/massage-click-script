@@ -128,10 +128,51 @@ function createBlankService() {
     serviceName: "",
     platformServiceId: "",
     serviceButtonId: "",
+    serviceId: "",
     enabled: true,
     priority: "normal",
-    discoveryStatus: "manual"
+    discoveryStatus: "manual",
+    scrapeDirectly: true,
+    inferenceEnabled: false,
+    inferenceRole: "",
+    anchorServiceId: "",
+    inferShorterDurations: false,
+    inferServiceTypes: [],
+    inferStartIntervalMinutes: 15,
+    inferenceConfidence: 0.85,
+    bookingIntervalMinutes: 15
   };
+}
+
+function createBlankBusiness() {
+  return normalizeBusinessDefaults({
+    businessId: "",
+    businessName: "",
+    displayName: "",
+    businessCategory: "wellness",
+    platform: "",
+    bookingUrl: "",
+    website: "",
+    phone: "",
+    email: "",
+    ownerEmail: "",
+    address: "",
+    city: "",
+    state: "TX",
+    postalCode: "",
+    latitude: null,
+    longitude: null,
+    timezone: "America/Chicago",
+    integrationType: "scraper",
+    apiProvider: "",
+    credentialId: "",
+    integrationStatus: "active",
+    enabled: true,
+    priority: "normal",
+    discoveryStatus: "manual",
+    services: [createBlankService()],
+    isNew: true
+  });
 }
 
 function uniqueSorted(values) {
@@ -236,7 +277,45 @@ function renderServiceCheckbox(label, field, checked, businessIndex, serviceInde
   `;
 }
 
+function renderServiceSelect(label, field, value, businessIndex, serviceIndex, options = []) {
+  return `
+    <label class="admin-field">
+      <span>${escapeHtml(label)}</span>
+      <select data-business-index="${businessIndex}" data-service-index="${serviceIndex}" data-service-field="${escapeHtml(field)}">
+        ${options.map((option) => {
+          const optionValue = typeof option === "object" ? option.value : option;
+          const optionLabel = typeof option === "object" ? option.label : option;
+          return `<option value="${escapeHtml(optionValue ?? "")}" ${String(optionValue ?? "") === String(value ?? "") ? "selected" : ""}>${escapeHtml(optionLabel ?? "")}</option>`;
+        }).join("")}
+      </select>
+    </label>
+  `;
+}
+
+function getAdminServiceKey(service = {}) {
+  return [
+    String(service.serviceName || "").trim().toLowerCase(),
+    String(service.serviceType || "").trim().toLowerCase().replace(/\s+/g, "_"),
+    Number(service.durationMinutes || 0) || ""
+  ].join("|");
+}
+
 function renderServiceCard(service, businessIndex, serviceIndex) {
+  const businessServices = businessesCache[businessIndex]?.services || [];
+  const anchorOptions = [
+    { value: "", label: "No anchor selected" },
+    ...businessServices
+      .filter((candidate, candidateIndex) => candidateIndex !== serviceIndex)
+      .filter((candidate) => candidate.inferenceRole === "anchor")
+      .map((candidate) => ({
+        value:
+          candidate.id ||
+          candidate.businessServiceId ||
+          `key:${getAdminServiceKey(candidate)}`,
+        label: `${candidate.serviceName || "Unnamed"} · ${candidate.durationMinutes || "?"} min`
+      }))
+  ];
+
   return `
     <div class="service-card">
       <div class="service-card-header">
@@ -249,7 +328,6 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
           <span class="enabled-pill ${service.enabled === false ? "disabled" : "enabled"}">
             ${service.enabled === false ? "Disabled" : "Enabled"}
           </span>
-
           <button class="danger-btn delete-service-btn" data-delete-business-index="${businessIndex}" data-delete-service-index="${serviceIndex}">
             Delete
           </button>
@@ -257,17 +335,67 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
       </div>
 
       <div class="service-edit-grid">
+        ${renderServiceInput("Service Name", "serviceName", service.serviceName, businessIndex, serviceIndex)}
         ${renderServiceInput("Service Type", "serviceType", service.serviceType, businessIndex, serviceIndex)}
         ${renderServiceInput("Duration", "durationMinutes", service.durationMinutes, businessIndex, serviceIndex, "number")}
-        ${renderServiceInput("Service Name", "serviceName", service.serviceName, businessIndex, serviceIndex)}
         ${renderServiceInput("Platform Service ID", "platformServiceId", service.platformServiceId, businessIndex, serviceIndex)}
         ${renderServiceInput("Service Button ID", "serviceButtonId", service.serviceButtonId, businessIndex, serviceIndex)}
+        ${renderServiceInput("Service ID", "serviceId", service.serviceId, businessIndex, serviceIndex)}
         ${renderServiceInput("Priority", "priority", service.priority, businessIndex, serviceIndex)}
         ${renderServiceInput("Discovery Status", "discoveryStatus", service.discoveryStatus, businessIndex, serviceIndex)}
+        ${renderServiceInput("Booking Interval Minutes", "bookingIntervalMinutes", service.bookingIntervalMinutes, businessIndex, serviceIndex, "number")}
+
         <div class="admin-field checkbox-wrap">
-          <span>Status</span>
+          <span>Service Status</span>
           ${renderServiceCheckbox("Enabled", "enabled", service.enabled !== false, businessIndex, serviceIndex)}
         </div>
+
+        <div class="admin-field checkbox-wrap">
+          <span>Scrape Behavior</span>
+          ${renderServiceCheckbox("Scrape this service directly", "scrapeDirectly", service.scrapeDirectly !== false, businessIndex, serviceIndex)}
+        </div>
+
+        <div class="admin-field checkbox-wrap">
+          <span>Inference</span>
+          ${renderServiceCheckbox("Enable inference", "inferenceEnabled", service.inferenceEnabled === true, businessIndex, serviceIndex)}
+        </div>
+
+        ${renderServiceSelect(
+          "Inference Role",
+          "inferenceRole",
+          service.inferenceRole || "",
+          businessIndex,
+          serviceIndex,
+          [
+            { value: "", label: "No inference role" },
+            { value: "anchor", label: "Anchor — scrape confirmed availability" },
+            { value: "inferred", label: "Inferred — generated from an anchor" }
+          ]
+        )}
+
+        ${renderServiceSelect(
+          "Anchor Service",
+          "anchorServiceId",
+          service.anchorServiceId || "",
+          businessIndex,
+          serviceIndex,
+          anchorOptions
+        )}
+
+        <div class="admin-field checkbox-wrap">
+          <span>Anchor Rules</span>
+          ${renderServiceCheckbox("Infer shorter durations", "inferShorterDurations", service.inferShorterDurations === true, businessIndex, serviceIndex)}
+        </div>
+
+        ${renderServiceInput(
+          "Infer Service Types",
+          "inferServiceTypes",
+          Array.isArray(service.inferServiceTypes) ? service.inferServiceTypes.join(", ") : service.inferServiceTypes || "",
+          businessIndex,
+          serviceIndex
+        )}
+        ${renderServiceInput("Inference Slot Interval", "inferStartIntervalMinutes", service.inferStartIntervalMinutes || 15, businessIndex, serviceIndex, "number")}
+        ${renderServiceInput("Inference Confidence", "inferenceConfidence", service.inferenceConfidence ?? 0.85, businessIndex, serviceIndex, "number")}
       </div>
     </div>
   `;
@@ -321,13 +449,22 @@ function renderBusinessCard(business, index) {
         <summary>Business Details</summary>
 
         <div class="business-edit-grid">
+          ${renderInput("Business ID / Slug", "businessId", business.businessId, index)}
           ${renderInput("Business Name", "businessName", business.businessName, index)}
+          ${renderInput("Display Name", "displayName", business.displayName, index)}
           ${renderInput("Platform", "platform", business.platform, index)}
-          ${renderInput("Top-Level Service", "serviceName", business.serviceName, index)}
           ${renderInput("Booking URL", "bookingUrl", business.bookingUrl, index)}
+          ${renderInput("Website", "website", business.website, index)}
           ${renderInput("Address", "address", business.address, index)}
+          ${renderInput("City", "city", business.city, index)}
+          ${renderInput("State", "state", business.state, index)}
+          ${renderInput("Postal Code", "postalCode", business.postalCode, index)}
           ${renderInput("Latitude", "latitude", business.latitude, index, "number")}
           ${renderInput("Longitude", "longitude", business.longitude, index, "number")}
+          ${renderInput("Timezone", "timezone", business.timezone || "America/Chicago", index)}
+          ${renderInput("Integration Type", "integrationType", business.integrationType || "scraper", index)}
+          ${renderInput("API Provider", "apiProvider", business.apiProvider, index)}
+          ${renderInput("Credential ID", "credentialId", business.credentialId, index)}
           <div class="admin-field checkbox-wrap">
             <span>Status</span>
             ${renderCheckbox("Business enabled", "enabled", business.enabled !== false, index)}
@@ -381,11 +518,36 @@ function attachServiceInputListeners() {
 
       let value = fieldElement.type === "checkbox" ? fieldElement.checked : fieldElement.value;
 
-      if (field === "durationMinutes") {
+      if (
+        [
+          "durationMinutes",
+          "bookingIntervalMinutes",
+          "inferStartIntervalMinutes",
+          "inferenceConfidence"
+        ].includes(field)
+      ) {
         value = value === "" ? null : Number(value);
       }
 
+      if (field === "inferServiceTypes") {
+        value = String(value || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
       business.services[serviceIndex][field] = value;
+
+      if (field === "inferenceRole") {
+        business.services[serviceIndex].inferenceEnabled = Boolean(value);
+        if (value === "inferred") {
+          business.services[serviceIndex].scrapeDirectly = false;
+        }
+        if (value === "anchor") {
+          business.services[serviceIndex].scrapeDirectly = true;
+          business.services[serviceIndex].anchorServiceId = "";
+        }
+      }
       setStatus("Unsaved service changes.", "info");
     };
 
@@ -448,7 +610,10 @@ function renderBusinessesFromCache() {
         <p>Edit businesses and services, then save.</p>
       </div>
 
-      <button id="saveBusinessesBtn" class="primary-btn">Save Businesses</button>
+      <div class="settings-actions">
+        <button id="addBusinessBtn" class="secondary-btn">+ Add Business</button>
+        <button id="saveBusinessesBtn" class="primary-btn">Save Businesses</button>
+      </div>
     </div>
 
     <div class="business-list">
@@ -457,6 +622,11 @@ function renderBusinessesFromCache() {
   `;
 
   document.getElementById("saveBusinessesBtn").addEventListener("click", saveBusinesses);
+  document.getElementById("addBusinessBtn")?.addEventListener("click", () => {
+    businessesCache.unshift(createBlankBusiness());
+    setStatus("New business added. Complete its details and services, then save.", "info");
+    renderBusinessesFromCache();
+  });
   attachBusinessInputListeners();
   attachServiceInputListeners();
   attachAddServiceListeners();

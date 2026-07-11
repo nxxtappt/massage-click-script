@@ -273,7 +273,10 @@ if (
         options.stepMinutes ||
         15,
 
-      confidenceScore: getConfidenceForWindow(window, options),
+      confidenceScore:
+        Number(service.inferenceConfidence) ||
+        Number(plan.anchorService?.inferenceConfidence) ||
+        getConfidenceForWindow(window, options),
       inferenceMode: options.inferenceMode || "window_based",
 
       serviceTemplate: {
@@ -285,6 +288,11 @@ if (
         serviceCategory: service.serviceType,
         durationMinutes: inferredDuration,
 
+        businessServiceId: service.id || service.businessServiceId || null,
+        anchorServiceId:
+          service.anchorServiceId ||
+          plan.anchorService?.id ||
+          null,
         sessionTypeId: service.sessionTypeId || null,
         platformServiceId: service.platformServiceId || null,
         serviceId: service.serviceId || null,
@@ -329,15 +337,25 @@ if (
           localTimeKey: getAppointmentTimeKey(anchorAppointment),
           startTime: anchorAppointment.startTime || "",
           sourceType: anchorAppointment.sourceType || "scraped",
-          sourceAppointmentCount: sourceAppointments.length
+          sourceAppointmentCount: sourceAppointments.length,
+          businessServiceId:
+            anchorAppointment.businessServiceId ||
+            plan.anchorService?.id ||
+            null
         },
 
         inferenceWindow: {
           ...(slot.inferenceWindow || {}),
-          sourceAppointmentCount: sourceAppointments.length
+          sourceAppointmentCount: sourceAppointments.length,
+          businessServiceId:
+            anchorAppointment.businessServiceId ||
+            plan.anchorService?.id ||
+            null
         },
 
         inferenceAnchorDurationMinutes: anchorDuration,
+        inferenceAnchorServiceId: plan.anchorService?.id || null,
+        inferredBusinessServiceId: service.id || service.businessServiceId || null,
         inferenceGeneratedAt: new Date().toISOString()
       });
     }
