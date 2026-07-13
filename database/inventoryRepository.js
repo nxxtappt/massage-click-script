@@ -17,6 +17,24 @@ function toNumberOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function toBigIntOrNull(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const text = String(value).trim();
+
+  if (!/^\d+$/.test(text)) {
+    return null;
+  }
+
+  try {
+    return BigInt(text) > 0n ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 function toJson(value) {
   if (value === undefined) return null;
   return value;
@@ -283,7 +301,8 @@ async function createScrapeRun(payload = {}, client = db) {
 }
 
 async function finishScrapeRun(id, payload = {}, client = db) {
-  if (!id) return null;
+  const safeId = toBigIntOrNull(id);
+  if (!safeId) return null;
 
   const result = await client.query(
     `
@@ -297,7 +316,7 @@ async function finishScrapeRun(id, payload = {}, client = db) {
     RETURNING *
     `,
     [
-      id,
+      safeId,
       payload.runStatus || "success",
       Number(payload.appointmentsFound || 0),
       payload.errorMessage || null
@@ -353,9 +372,9 @@ async function insertConfirmedAppointment(payload = {}, client = db) {
   return insertDynamic(
     "confirmed_appointments",
     {
-      scrape_run_id: payload.scrapeRunId || null,
-      raw_scrape_result_id: payload.rawScrapeResultId || null,
-      business_service_id: payload.businessServiceId || null,
+      scrape_run_id: toBigIntOrNull(payload.scrapeRunId),
+      raw_scrape_result_id: toBigIntOrNull(payload.rawScrapeResultId),
+      business_service_id: toBigIntOrNull(payload.businessServiceId),
       business_name: payload.businessName || null,
       platform: payload.platform || null,
       service_name: payload.serviceName || payload.service || null,
@@ -380,14 +399,12 @@ async function insertInferredAppointment(payload = {}, client = db) {
   const inferred = await insertDynamic(
     "inferred_appointments",
     {
-      business_service_id:
-        payload.businessServiceId ||
-        payload.inferredBusinessServiceId ||
-        null,
-      anchor_service_id:
-        payload.anchorServiceId ||
-        payload.inferenceAnchorServiceId ||
-        null,
+      business_service_id: toBigIntOrNull(
+        payload.businessServiceId || payload.inferredBusinessServiceId
+      ),
+      anchor_service_id: toBigIntOrNull(
+        payload.anchorServiceId || payload.inferenceAnchorServiceId
+      ),
       business_name: payload.businessName || null,
       platform: payload.platform || null,
       service_name: payload.serviceName || payload.service || null,
@@ -439,16 +456,18 @@ async function insertInventoryAppointment(payload = {}, client = db) {
     {
       appointment_source: payload.appointmentSource || payload.sourceType || "confirmed",
 
-      confirmed_id: payload.confirmedAppointmentId || payload.confirmedId || null,
-      inferred_id: payload.inferredAppointmentId || payload.inferredId || null,
-      business_service_id:
-        payload.businessServiceId ||
-        payload.inferredBusinessServiceId ||
-        null,
-      anchor_service_id:
-        payload.anchorServiceId ||
-        payload.inferenceAnchorServiceId ||
-        null,
+      confirmed_id: toBigIntOrNull(
+        payload.confirmedAppointmentId || payload.confirmedId
+      ),
+      inferred_id: toBigIntOrNull(
+        payload.inferredAppointmentId || payload.inferredId
+      ),
+      business_service_id: toBigIntOrNull(
+        payload.businessServiceId || payload.inferredBusinessServiceId
+      ),
+      anchor_service_id: toBigIntOrNull(
+        payload.anchorServiceId || payload.inferenceAnchorServiceId
+      ),
 
       business_name: payload.businessName || null,
       platform: payload.platform || null,
@@ -507,11 +526,11 @@ async function insertConfirmedAppointmentsFromResult(result = {}, options = {}, 
       scrapeRunId: options.scrapeRunId || result.scrapeRunId || null,
       rawScrapeResultId: options.rawScrapeResultId || result.rawScrapeResultId || null,
 
-      businessServiceId:
+      businessServiceId: toBigIntOrNull(
         appointment.businessServiceId ||
-        result.businessServiceId ||
-        result.serviceConfigId ||
-        null,
+          result.businessServiceId ||
+          result.serviceConfigId
+      ),
       businessName: appointment.businessName || result.businessName,
       platform: appointment.platform || result.platform,
       serviceName: appointment.serviceName || appointment.service || result.serviceName || result.service,

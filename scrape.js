@@ -31,6 +31,34 @@ const businessManager = require("./businessManager");
 const inventoryManager = require("./inventoryManager");
 
 const MAX_ATTEMPTS = 2;
+
+function toBigIntIdOrNull(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const text = String(value).trim();
+
+  if (!/^\d+$/.test(text)) {
+    return null;
+  }
+
+  try {
+    return BigInt(text) > 0n ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveBusinessServiceId(...values) {
+  for (const value of values) {
+    const resolved = toBigIntIdOrNull(value);
+    if (resolved) return resolved;
+  }
+
+  return null;
+}
+
 const {
   mergeConfirmedAndInferredAppointments
 } = require("./availabilityInferenceEngine");
@@ -953,6 +981,12 @@ let results = [];
 
   try {
     for (const job of scrapeJobs) {
+      const businessServiceId = resolveBusinessServiceId(
+        job.businessServiceId,
+        job.business_service_id,
+        job.serviceDatabaseId,
+        job.serviceConfigId
+      );
       if (skipFreshCache) {
         const staleCheck = shouldSkipScrapeForFreshCache(job, {
           forceRefresh
@@ -979,7 +1013,7 @@ let results = [];
         platform: job.platform,
         serviceName: job.serviceName || job.service || "",
         serviceType: job.serviceType || "",
-        businessServiceId: job.businessServiceId || job.id || null,
+        businessServiceId,
         durationMinutes: job.durationMinutes || null,
         scrapeStartDate: job.scrapeStartDate || null,
         scrapeEndDate: job.scrapeEndDate || null,
@@ -997,14 +1031,17 @@ let results = [];
         platform: result.platform || job.platform,
         serviceName: result.serviceName || job.serviceName || "",
         serviceType: result.serviceType || job.serviceType || "",
-        businessServiceId: job.businessServiceId || job.id || null,
+        businessServiceId,
         durationMinutes: result.durationMinutes || job.durationMinutes || null,
         scrapeStartDate: result.scrapeStartDate || job.scrapeStartDate || null,
         scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null,
         rawResult: result
       });
 
-result.businessServiceId = result.businessServiceId || job.businessServiceId || job.id || null;
+result.businessServiceId = resolveBusinessServiceId(
+  result.businessServiceId,
+  businessServiceId
+);
 const confirmedAppointments = resultTimesToAppointments(result);
 
 function toDateKey(displayDate) {
@@ -1026,7 +1063,11 @@ function resultTimesToAppointments(result = {}) {
       ...appointment,
       sourceType: appointment.sourceType || "confirmed",
       businessServiceId:
-        appointment.businessServiceId || result.businessServiceId || job.businessServiceId || null,
+        resolveBusinessServiceId(
+          appointment.businessServiceId,
+          result.businessServiceId,
+          businessServiceId
+        ),
       localDateKey: appointment.localDateKey || localDateKey
     }));
   }
@@ -1058,7 +1099,10 @@ function resultTimesToAppointments(result = {}) {
     price: result.price || null,
 
     sourceType: "confirmed",
-    businessServiceId: result.businessServiceId || job.businessServiceId || null
+    businessServiceId: resolveBusinessServiceId(
+      result.businessServiceId,
+      businessServiceId
+    )
   }));
 }
 
@@ -1091,7 +1135,7 @@ await finishScrapeRun(scrapeRun.id, {
 
 const confirmedInventoryResult = {
   ...result,
-  businessServiceId: job.businessServiceId || job.id || null,
+  businessServiceId,
   appointments: confirmedAppointments
 };
 
@@ -1115,7 +1159,7 @@ if (inferredAppointments.length > 0) {
     {
       businessName: result.businessName || job.businessName,
       platform: result.platform || job.platform,
-      anchorServiceId: job.businessServiceId || job.id || null
+      anchorServiceId: businessServiceId
     }
   );
 
