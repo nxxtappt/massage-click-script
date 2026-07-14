@@ -230,6 +230,9 @@ router.get("/debug/routes", (req, res) => {
     file: __filename,
     routes: [
       "GET /api/admin/businesses",
+      "GET /api/admin/businesses/search",
+      "GET /api/admin/businesses/facets",
+      "GET /api/admin/businesses/:id",
       "POST /api/admin/businesses/create",
       "POST /api/admin/businesses/save",
       "GET /api/admin/business-subscriptions",
@@ -263,6 +266,62 @@ router.get("/businesses", async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+
+router.get("/businesses/search", async (req, res) => {
+  try {
+    const enabledValue = String(req.query.enabled || "").trim().toLowerCase();
+    const enabled = enabledValue === "true"
+      ? true
+      : enabledValue === "false"
+        ? false
+        : undefined;
+
+    const result = await businessManager.searchBusinesses({
+      name: req.query.name || req.query.business || "",
+      industry: req.query.industry || req.query.businessCategory || "",
+      metro: req.query.metro || "",
+      platform: req.query.platform || "",
+      enabled,
+      page: req.query.page,
+      limit: req.query.limit
+    });
+
+    res.json({ success: true, source: "postgres", ...result });
+  } catch (error) {
+    console.error("[ADMIN BUSINESS SEARCH ERROR]", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get("/businesses/facets", async (req, res) => {
+  try {
+    const facets = await businessManager.getBusinessSearchFacets();
+    res.json({ success: true, source: "postgres", facets });
+  } catch (error) {
+    console.error("[ADMIN BUSINESS FACETS ERROR]", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get("/businesses/:id", async (req, res, next) => {
+  if (["search", "facets"].includes(String(req.params.id || "").toLowerCase())) {
+    return next();
+  }
+
+  try {
+    const business = await businessManager.getBusinessDetails(req.params.id);
+
+    if (!business) {
+      return res.status(404).json({ success: false, error: "Business not found." });
+    }
+
+    res.json({ success: true, source: "postgres", business });
+  } catch (error) {
+    console.error("[ADMIN BUSINESS DETAIL ERROR]", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

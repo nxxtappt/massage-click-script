@@ -800,6 +800,129 @@ async function saveBusinessFull(business) {
   }
 }
 
+
+async function searchBusinesses(options = {}) {
+  const page = Math.max(1, Number(options.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(options.limit) || 20));
+  const offset = (page - 1) * limit;
+  const values = [];
+  const where = [];
+
+  function addWhere(sql, value) {
+    values.push(value);
+    where.push(sql.replace(/\?/g, `$${values.length}`));
+  }
+
+  if (options.name) {
+    addWhere(
+      `(LOWER(b.business_name) LIKE LOWER(?) OR LOWER(COALESCE(b.display_name, '')) LIKE LOWER(?) OR LOWER(COALESCE(b.business_id, '')) LIKE LOWER(?))`,
+      `%${String(options.name).trim()}%`
+    );
+    // addWhere only supports one placeholder value, so replace the generated predicate.
+    const value = values.pop();
+    where.pop();
+    values.push(value, value, value);
+    const base = values.length - 2;
+    where.push(`(LOWER(b.business_name) LIKE LOWER($${base}) OR LOWER(COALESCE(b.display_name, '')) LIKE LOWER($${base + 1}) OR LOWER(COALESCE(b.business_id, '')) LIKE LOWER($${base + 2}))`);
+  }
+
+  if (options.industry) {
+    addWhere(`LOWER(COALESCE(b.business_category, '')) = LOWER(?)`, String(options.industry).trim());
+  }
+
+  if (options.platform) {
+    addWhere(`LOWER(COALESCE(b.platform, '')) = LOWER(?)`, String(options.platform).trim());
+  }
+
+  if (options.metro) {
+    addWhere(
+      `LOWER(COALESCE(NULLIF(b.raw_json->>'metro', ''), l.city, '')) = LOWER(?)`,
+      String(options.metro).trim()
+    );
+  }
+
+  if (options.enabled === true || options.enabled === false) {
+    addWhere(`b.enabled = ?::boolean`, options.enabled);
+  }
+
+  values.push(limit, offset);
+  const limitParam = `$${values.length - 1}`;
+  const offsetParam = `$${values.length}`;
+
+  const result = await query(
+    `
+      WITH business_rows AS (
+        SELECT
+          b.id,
+          b.business_id,
+          b.business_name,
+          b.display_name,
+          b.business_category,
+          b.platform,
+          b.enabled,
+          b.verification_status,
+          b.updated_at,
+          l.address,
+          l.city,
+          l.state,
+          l.postal_code,
+          COALESCE(NULLIF(b.raw_json->>'metro', ''), l.city, '') AS metro,
+          (SELECT COUNT(*)::int FROM business_services bs WHERE bs.business_id = b.id) AS service_count
+        FROM businesses b
+        LEFT JOIN LATERAL (
+          SELECT address, city, state, postal_code
+          FROM business_locations
+          WHERE business_id = b.id
+          ORDER BY id ASC
+          LIMIT 1
+        ) l ON TRUE
+        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+      )
+      SELECT *, COUNT(*) OVER()::int AS total_count
+      FROM business_rows
+      ORDER BY business_name ASC
+      LIMIT ${limitParam}
+      OFFSET ${offsetParam}
+    `,
+    values
+  );
+
+  const total = result.rows[0]?.total_count || 0;
+
+  return {
+    businesses: result.rows.map(({ total_count, ...row }) => row),
+    page,
+    limit,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / limit))
+  };
+}
+
+async function getBusinessSearchFacets() {
+  const [industries, metros, platforms] = await Promise.all([
+    query(`SELECT DISTINCT business_category AS value FROM businesses WHERE business_category IS NOT NULL AND business_category <> '' ORDER BY value`),
+    query(`
+      SELECT DISTINCT metro AS value
+      FROM (
+        SELECT COALESCE(NULLIF(b.raw_json->>'metro', ''), l.city, '') AS metro
+        FROM businesses b
+        LEFT JOIN LATERAL (
+          SELECT city FROM business_locations WHERE business_id = b.id ORDER BY id ASC LIMIT 1
+        ) l ON TRUE
+      ) x
+      WHERE metro <> ''
+      ORDER BY value
+    `),
+    query(`SELECT DISTINCT platform AS value FROM businesses WHERE platform IS NOT NULL AND platform <> '' ORDER BY value`)
+  ]);
+
+  return {
+    industries: industries.rows.map((row) => row.value),
+    metros: metros.rows.map((row) => row.value),
+    platforms: platforms.rows.map((row) => row.value)
+  };
+}
+
 async function getBusinessCount() {
   const result = await query("SELECT COUNT(*) FROM businesses");
   return Number(result.rows[0].count || 0);
@@ -814,6 +937,8 @@ module.exports = {
   getBusinessWithChildren,
   getBusinessWithSubscription,
   getBusinessCount,
+  searchBusinesses,
+  getBusinessSearchFacets,
 
   getBusinessSubscription,
   getAllBusinessSubscriptions,

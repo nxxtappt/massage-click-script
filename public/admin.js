@@ -8,11 +8,24 @@ let navButtons = document.querySelectorAll(".nav-btn");
 let currentView = "businesses";
 let businessesCache = [];
 let settingsBusinessesCache = [];
+let businessSearchState = {
+  name: "",
+  industry: "",
+  metro: "",
+  platform: "",
+  enabled: "",
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 1
+};
+let businessSearchFacets = { industries: [], metros: [], platforms: [] };
+let businessEditorMode = false;
 
 const views = {
   businesses: {
     title: "Businesses",
-    subtitle: "Manage businesses and service mappings."
+    subtitle: "Search businesses and edit one business at a time."
   },
 
   claims: {
@@ -312,7 +325,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
           candidate.id ||
           candidate.businessServiceId ||
           `key:${getAdminServiceKey(candidate)}`,
-        label: `${candidate.serviceName || "Unnamed"} · ${candidate.durationMinutes || "?"} min`
+        label: `${candidate.serviceName || "Unnamed"} Â· ${candidate.durationMinutes || "?"} min`
       }))
   ];
 
@@ -321,7 +334,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
       <div class="service-card-header">
         <div>
           <h4>${escapeHtml(service.serviceName || "Unnamed Service")}</h4>
-          <p>${escapeHtml(service.serviceType || "unknown")} · ${escapeHtml(service.durationMinutes || "unknown")} min · ${escapeHtml(service.priority || "no priority")} · ${escapeHtml(service.discoveryStatus || "no status")}</p>
+          <p>${escapeHtml(service.serviceType || "unknown")} Â· ${escapeHtml(service.durationMinutes || "unknown")} min Â· ${escapeHtml(service.priority || "no priority")} Â· ${escapeHtml(service.discoveryStatus || "no status")}</p>
         </div>
 
         <div class="service-card-actions">
@@ -368,8 +381,8 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
           serviceIndex,
           [
             { value: "", label: "No inference role" },
-            { value: "anchor", label: "Anchor — scrape confirmed availability" },
-            { value: "inferred", label: "Inferred — generated from an anchor" }
+            { value: "anchor", label: "Anchor â€” scrape confirmed availability" },
+            { value: "inferred", label: "Inferred â€” generated from an anchor" }
           ]
         )}
 
@@ -442,6 +455,9 @@ function renderBusinessCard(business, index) {
           <span class="enabled-pill ${business.enabled === false ? "disabled" : "enabled"}">
             ${business.enabled === false ? "Disabled" : "Enabled"}
           </span>
+          <button class="primary-btn save-one-business-btn" data-save-business-index="${index}">
+            Save Business
+          </button>
         </div>
       </div>
 
@@ -568,7 +584,7 @@ function attachAddServiceListeners() {
       }
 
       businessesCache[businessIndex].services.push(createBlankService());
-      setStatus("New blank service added. Fill it in, then click Save Businesses.", "info");
+      setStatus("New blank service added. Fill it in, then click Save Business.", "info");
       renderBusinessesFromCache();
     });
   });
@@ -593,79 +609,237 @@ function attachDeleteServiceListeners() {
       if (!confirmed) return;
 
       business.services.splice(serviceIndex, 1);
-      setStatus("Service deleted from screen. Click Save Businesses to make it permanent.", "info");
+      setStatus("Service deleted from screen. Click Save Business to make it permanent.", "info");
       renderBusinessesFromCache();
     });
   });
 }
 
-function renderBusinessesFromCache() {
+function renderBusinessSearchOption(value, selectedValue) {
+  const selected = String(value) === String(selectedValue) ? "selected" : "";
+  return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
+}
+
+function renderBusinessSearchResults() {
   pageTitle.textContent = views.businesses.title;
   pageSubtitle.textContent = views.businesses.subtitle;
+
+  const startNumber = businessSearchState.total
+    ? (businessSearchState.page - 1) * businessSearchState.limit + 1
+    : 0;
+  const endNumber = Math.min(
+    businessSearchState.page * businessSearchState.limit,
+    businessSearchState.total
+  );
+
+  content.innerHTML = `
+    <div class="business-search-toolbar">
+      <div class="business-search-heading">
+        <div>
+          <h3>Business Manager</h3>
+          <p>Search first, then open one business to edit its details and services.</p>
+        </div>
+        <button id="addBusinessBtn" class="primary-btn">+ Add New Business</button>
+      </div>
+
+      <form id="businessSearchForm" class="business-search-grid">
+        <label class="admin-field business-name-search">
+          <span>Business Name</span>
+          <input id="businessSearchName" value="${escapeHtml(businessSearchState.name)}" placeholder="Search by name or slug" />
+        </label>
+        <label class="admin-field">
+          <span>Industry</span>
+          <select id="businessSearchIndustry">
+            <option value="">All industries</option>
+            ${businessSearchFacets.industries.map((value) => renderBusinessSearchOption(value, businessSearchState.industry)).join("")}
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>Metro</span>
+          <select id="businessSearchMetro">
+            <option value="">All metros</option>
+            ${businessSearchFacets.metros.map((value) => renderBusinessSearchOption(value, businessSearchState.metro)).join("")}
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>Platform</span>
+          <select id="businessSearchPlatform">
+            <option value="">All platforms</option>
+            ${businessSearchFacets.platforms.map((value) => renderBusinessSearchOption(value, businessSearchState.platform)).join("")}
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>Status</span>
+          <select id="businessSearchEnabled">
+            <option value="" ${businessSearchState.enabled === "" ? "selected" : ""}>Enabled + disabled</option>
+            <option value="true" ${businessSearchState.enabled === "true" ? "selected" : ""}>Enabled only</option>
+            <option value="false" ${businessSearchState.enabled === "false" ? "selected" : ""}>Disabled only</option>
+          </select>
+        </label>
+        <div class="business-search-actions">
+          <button class="primary-btn" type="submit">Search</button>
+          <button id="clearBusinessSearchBtn" class="secondary-btn" type="button">Clear</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="business-search-summary">
+      <strong>${businessSearchState.total} businesses</strong>
+      <span>Showing ${startNumber}-${endNumber}</span>
+    </div>
+
+    <div class="business-summary-list">
+      ${businessesCache.length ? businessesCache.map((business) => `
+        <article class="business-summary-card">
+          <div>
+            <h3>${escapeHtml(business.businessName || business.name || "Unnamed Business")}</h3>
+            <p>${escapeHtml(business.address || business.city || "No address saved")}</p>
+            <div class="business-summary-meta">
+              <span class="platform-pill">${escapeHtml(business.platform || "unknown")}</span>
+              <span>${escapeHtml(business.businessCategory || "wellness")}</span>
+              <span>${escapeHtml(business.metro || business.city || "No metro")}</span>
+              <span>${Number(business.serviceCount || 0)} services</span>
+              <span class="enabled-pill ${business.enabled === false ? "disabled" : "enabled"}">${business.enabled === false ? "Disabled" : "Enabled"}</span>
+            </div>
+          </div>
+          <button class="primary-btn edit-business-btn" data-business-id="${escapeHtml(business.businessId || business.id || "")}">Edit Business</button>
+        </article>
+      `).join("") : `<div class="empty-note">No businesses matched these filters.</div>`}
+    </div>
+
+    <div class="business-pagination">
+      <button id="previousBusinessPageBtn" class="secondary-btn" ${businessSearchState.page <= 1 ? "disabled" : ""}>Previous</button>
+      <span>Page ${businessSearchState.page} of ${businessSearchState.totalPages}</span>
+      <button id="nextBusinessPageBtn" class="secondary-btn" ${businessSearchState.page >= businessSearchState.totalPages ? "disabled" : ""}>Next</button>
+    </div>
+  `;
+
+  document.getElementById("businessSearchForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    businessSearchState.name = document.getElementById("businessSearchName")?.value.trim() || "";
+    businessSearchState.industry = document.getElementById("businessSearchIndustry")?.value || "";
+    businessSearchState.metro = document.getElementById("businessSearchMetro")?.value || "";
+    businessSearchState.platform = document.getElementById("businessSearchPlatform")?.value || "";
+    businessSearchState.enabled = document.getElementById("businessSearchEnabled")?.value || "";
+    businessSearchState.page = 1;
+    await loadBusinesses();
+  });
+
+  document.getElementById("clearBusinessSearchBtn")?.addEventListener("click", async () => {
+    businessSearchState = { ...businessSearchState, name: "", industry: "", metro: "", platform: "", enabled: "", page: 1 };
+    await loadBusinesses();
+  });
+
+  document.getElementById("addBusinessBtn")?.addEventListener("click", () => {
+    businessEditorMode = true;
+    businessesCache = [createBlankBusiness()];
+    renderBusinessesFromCache();
+  });
+
+  document.querySelectorAll(".edit-business-btn").forEach((button) => {
+    button.addEventListener("click", () => loadBusinessEditor(button.dataset.businessId));
+  });
+
+  document.getElementById("previousBusinessPageBtn")?.addEventListener("click", async () => {
+    if (businessSearchState.page > 1) {
+      businessSearchState.page -= 1;
+      await loadBusinesses();
+    }
+  });
+
+  document.getElementById("nextBusinessPageBtn")?.addEventListener("click", async () => {
+    if (businessSearchState.page < businessSearchState.totalPages) {
+      businessSearchState.page += 1;
+      await loadBusinesses();
+    }
+  });
+}
+
+function renderBusinessesFromCache() {
+  businessEditorMode = true;
+  pageTitle.textContent = businessesCache[0]?.isNew ? "Add Business" : "Edit Business";
+  pageSubtitle.textContent = "Save only this business and its service configuration.";
 
   content.innerHTML = `
     <div class="section-heading compact-heading">
       <div>
-        <h3>${businessesCache.length} Businesses</h3>
-        <p>Edit businesses and services, then save.</p>
-      </div>
-
-      <div class="settings-actions">
-        <button id="addBusinessBtn" class="secondary-btn">+ Add Business</button>
-        <button id="saveBusinessesBtn" class="primary-btn">Save Businesses</button>
+        <button id="backToBusinessSearchBtn" class="secondary-btn">â† Back to Business Search</button>
       </div>
     </div>
-
     <div class="business-list">
       ${businessesCache.map(renderBusinessCard).join("")}
     </div>
   `;
 
-  document.getElementById("saveBusinessesBtn").addEventListener("click", saveBusinesses);
-  document.getElementById("addBusinessBtn")?.addEventListener("click", () => {
-    businessesCache.unshift(createBlankBusiness());
-    setStatus("New business added. Complete its details and services, then save.", "info");
-    renderBusinessesFromCache();
+  document.getElementById("backToBusinessSearchBtn")?.addEventListener("click", () => {
+    businessEditorMode = false;
+    loadBusinesses();
   });
+
   attachBusinessInputListeners();
   attachServiceInputListeners();
   attachAddServiceListeners();
   attachDeleteServiceListeners();
+  attachSingleBusinessSaveListeners();
 }
 
-async function saveBusinesses() {
+function attachSingleBusinessSaveListeners() {
+  content.querySelectorAll("[data-save-business-index]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const index = Number(button.dataset.saveBusinessIndex);
+      await saveSingleBusiness(index, button);
+    });
+  });
+}
+
+async function saveSingleBusiness(index, button = null) {
+  const business = businessesCache[index];
+
+  if (!business || !String(business.businessName || "").trim()) {
+    setStatus("Business name is required before saving.", "error");
+    return;
+  }
+
+  const originalText = button?.textContent || "Save Business";
+
   try {
-    const validBusinesses = businessesCache.filter((business) =>
-      String(business.businessName || "").trim()
-    );
-
-    if (!validBusinesses.length) {
-      throw new Error("Add at least one business name before saving.");
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Saving...";
     }
 
-    let savedCount = 0;
+    setStatus(`Saving ${business.businessName}...`, "info");
+    const identifier = business.businessId || business.id || "new";
+    const data = await fetchJson(`/api/admin/businesses/${encodeURIComponent(identifier)}/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ business })
+    });
 
-    for (const business of validBusinesses) {
-      setStatus(
-        `Saving ${business.businessName} (${savedCount + 1} of ${validBusinesses.length})...`,
-        "info"
-      );
-
-      const identifier = business.businessId || business.id || "new";
-
-      await fetchJson(`/api/admin/businesses/${encodeURIComponent(identifier)}/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ business })
-      });
-
-      savedCount += 1;
-    }
-
-    setStatus(`Saved ${savedCount} businesses and their services to PostgreSQL.`, "success");
-    await loadBusinesses();
+    businessesCache[index] = normalizeBusinessDefaults(data.business || business);
+    setStatus(`${business.businessName} saved to PostgreSQL.`, "success");
+    renderBusinessesFromCache();
   } catch (error) {
     setStatus(`Save failed: ${error.message}`, "error");
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+}
+
+async function loadBusinessEditor(businessId) {
+  try {
+    businessEditorMode = true;
+    setLoading("Loading business details and services...");
+    const data = await fetchJson(`/api/admin/businesses/${encodeURIComponent(businessId)}`);
+    businessesCache = [normalizeBusinessDefaults(data.business || {})];
+    renderBusinessesFromCache();
+    setStatus(`Loaded ${businessesCache[0]?.businessName || "business"}.`, "success");
+  } catch (error) {
+    businessEditorMode = false;
+    setStatus(`Could not load business: ${error.message}`, "error");
+    await loadBusinesses();
   }
 }
 
@@ -963,16 +1137,38 @@ function attachSubscriptionSaveHandlers() {
 }
 async function loadBusinesses() {
   currentView = "businesses";
-  setLoading("Loading businesses...");
+  businessEditorMode = false;
+  setLoading("Loading business search...");
 
   try {
-    const data = await fetchJson("/api/admin/businesses");
+    if (!businessSearchFacets.industries.length && !businessSearchFacets.metros.length) {
+      const facetsData = await fetchJson("/api/admin/businesses/facets");
+      businessSearchFacets = facetsData.facets || businessSearchFacets;
+    }
+
+    const params = new URLSearchParams({
+      page: String(businessSearchState.page),
+      limit: String(businessSearchState.limit)
+    });
+
+    if (businessSearchState.name) params.set("name", businessSearchState.name);
+    if (businessSearchState.industry) params.set("industry", businessSearchState.industry);
+    if (businessSearchState.metro) params.set("metro", businessSearchState.metro);
+    if (businessSearchState.platform) params.set("platform", businessSearchState.platform);
+    if (businessSearchState.enabled) params.set("enabled", businessSearchState.enabled);
+
+    const data = await fetchJson(`/api/admin/businesses/search?${params.toString()}`);
     businessesCache = Array.isArray(data.businesses)
       ? data.businesses.map(normalizeBusinessDefaults)
       : [];
 
-    renderBusinessesFromCache();
-    setStatus(`Loaded ${businessesCache.length} businesses from PostgreSQL.`, "success");
+    businessSearchState.page = Number(data.page || 1);
+    businessSearchState.limit = Number(data.limit || 20);
+    businessSearchState.total = Number(data.total || 0);
+    businessSearchState.totalPages = Number(data.totalPages || 1);
+
+    renderBusinessSearchResults();
+    setStatus(`Loaded ${businessesCache.length} of ${businessSearchState.total} matching businesses.`, "success");
   } catch (error) {
     content.innerHTML = `<h3>Could Not Load Businesses</h3><p>${escapeHtml(error.message)}</p>`;
     setStatus("Failed to load businesses.", "error");
@@ -1636,7 +1832,7 @@ function renderClaimCard(claim) {
 
           <p>
             ${escapeHtml(claim.ownerName || "Unknown Owner")}
-            ·
+            Â·
             ${escapeHtml(claim.email || "")}
           </p>
         </div>
@@ -1720,9 +1916,9 @@ async function loadClaims() {
           <p>
             Pending:
             ${escapeHtml(data.stats?.pending || 0)}
-            · Verified:
+            Â· Verified:
             ${escapeHtml(data.stats?.verified || 0)}
-            · Rejected:
+            Â· Rejected:
             ${escapeHtml(data.stats?.rejected || 0)}
           </p>
         </div>

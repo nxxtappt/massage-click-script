@@ -748,3 +748,95 @@ body {
     align-items: flex-start;
   }
 }
+/* Business search and single-record editor additions. */
+.business-search-toolbar {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.business-search-heading,
+.business-search-summary,
+.business-pagination,
+.business-summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.business-search-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) repeat(4, minmax(150px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.business-search-actions {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 1px;
+}
+
+.business-search-summary {
+  padding: 12px 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.business-summary-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.business-summary-card {
+  padding: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.business-summary-card h3 {
+  margin: 0 0 6px;
+}
+
+.business-summary-card p {
+  margin: 0 0 10px;
+}
+
+.business-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 0.9rem;
+}
+
+.business-pagination {
+  padding-top: 14px;
+}
+
+.save-one-business-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .business-search-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .business-search-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .business-search-heading,
+  .business-search-summary,
+  .business-pagination,
+  .business-summary-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

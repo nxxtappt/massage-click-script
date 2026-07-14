@@ -433,6 +433,42 @@ function getAllBusinessesSync(options = {}) {
     : cached.filter((business) => business.enabled !== false);
 }
 
+
+async function searchBusinesses(options = {}) {
+  const result = await requireRepository().searchBusinesses(options);
+
+  return {
+    ...result,
+    businesses: result.businesses.map((row) => normalizeBusinessShape({
+      ...row,
+      businessId: row.business_id,
+      businessName: row.business_name,
+      displayName: row.display_name,
+      businessCategory: row.business_category,
+      verificationStatus: row.verification_status,
+      address: row.address || '',
+      city: row.city || '',
+      state: row.state || '',
+      postalCode: row.postal_code || '',
+      metro: row.metro || row.city || '',
+      serviceCount: Number(row.service_count || 0),
+      services: [],
+      locations: [],
+      integrations: []
+    }))
+  };
+}
+
+async function getBusinessSearchFacets() {
+  return requireRepository().getBusinessSearchFacets();
+}
+
+async function getBusinessDetails(idOrBusinessName) {
+  const repository = requireRepository();
+  const row = await repository.resolveBusiness(idOrBusinessName);
+  return hydrateBusinessRow(row);
+}
+
 async function getBusinessByName(businessName) {
   if (!businessName) return null;
 
@@ -614,6 +650,9 @@ function writeJsonBusinesses() {
 module.exports = {
   getAllBusinesses,
   getAllBusinessesSync,
+  searchBusinesses,
+  getBusinessSearchFacets,
+  getBusinessDetails,
   readJsonBusinesses,
   writeJsonBusinesses,
   toLegacyBusiness,
