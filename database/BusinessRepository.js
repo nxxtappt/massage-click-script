@@ -362,6 +362,28 @@ async function getAllBusinessSubscriptions() {
   return result.rows;
 }
 
+async function searchBusinessSubscriptions(options = {}) {
+  const page = Math.max(1, Number(options.page || 1) || 1);
+  const limit = Math.min(100, Math.max(1, Number(options.limit || 20) || 20));
+  const offset = (page - 1) * limit;
+  const values = [];
+  const where = [];
+  const add = (sql, value) => { values.push(value); where.push(sql.replace("?", `$${values.length}`)); };
+  if (options.name) add("(LOWER(b.business_name) LIKE LOWER(?) OR LOWER(b.business_id) LIKE LOWER(?))", `%${options.name}%`);
+  if (options.name) values.push(`%${options.name}%`), where[where.length-1]=where[where.length-1].replace('?', `$${values.length}`);
+  if (options.industry) add("LOWER(COALESCE(b.business_category,'')) = LOWER(?)", options.industry);
+  if (options.metro) add("LOWER(COALESCE(bl.city,'')) = LOWER(?)", options.metro);
+  if (options.plan) add("LOWER(COALESCE(bs.plan,'verified_basic')) = LOWER(?)", options.plan);
+  if (options.status) add("LOWER(COALESCE(bs.subscription_status, bs.status, 'active')) = LOWER(?)", options.status);
+  const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const baseFrom = `FROM businesses b LEFT JOIN business_subscriptions bs ON bs.business_id=b.id LEFT JOIN LATERAL (SELECT city,address FROM business_locations WHERE business_id=b.id ORDER BY id LIMIT 1) bl ON true`;
+  const count = await query(`SELECT COUNT(DISTINCT b.id)::int AS total ${baseFrom} ${clause}`, values);
+  const dataValues=[...values,limit,offset];
+  const result=await query(`SELECT b.id,b.business_id AS public_business_id,b.business_name,b.business_category,b.platform,b.enabled,bl.city,bl.address,bs.plan,COALESCE(bs.subscription_status,bs.status,'active') AS subscription_status,bs.billing_provider,bs.notes,bs.public_profile,bs.active_deal,bs.booking_integration,bs.raw_json ${baseFrom} ${clause} ORDER BY b.business_name ASC LIMIT $${dataValues.length-1} OFFSET $${dataValues.length}`,dataValues);
+  const total=Number(count.rows[0]?.total||0);
+  return { subscriptions: result.rows, page, limit, total, totalPages: Math.max(1, Math.ceil(total/limit)) };
+}
+
 async function upsertBusinessSubscription(
   idOrBusinessName,
   input = {}
@@ -942,6 +964,7 @@ module.exports = {
 
   getBusinessSubscription,
   getAllBusinessSubscriptions,
+  searchBusinessSubscriptions,
   upsertBusinessSubscription,
 
   createBusiness,

@@ -17,6 +17,7 @@ const router = express.Router();
 const businessManager = require("./businessManager");
 const inventoryRepository = require("./database/inventoryRepository");
 const runtimeStateRepository = require("./database/runtimeStateRepository");
+const { loadClaims, getClaimStats } = require("./businessClaimManager");
 
 let schedulerRunInProgress = false;
 let scrapeRunInProgress = false;
@@ -325,6 +326,41 @@ router.get("/businesses/:id", async (req, res, next) => {
   }
 });
 
+router.get("/business-subscriptions/search", async (req, res) => {
+  try {
+    const result = await businessManager.searchBusinessSubscriptions({
+      name: req.query.name || req.query.business || "", industry: req.query.industry || "",
+      metro: req.query.metro || "", plan: req.query.plan || "", status: req.query.status || "",
+      page: req.query.page, limit: req.query.limit
+    });
+    res.json({ success: true, source: "postgres", ...result });
+  } catch (error) {
+    console.error("[ADMIN SUBSCRIPTION SEARCH ERROR]", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get("/claims/search", (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20) || 20));
+    const name = cleanText(req.query.business || req.query.name, 300).toLowerCase();
+    const owner = cleanText(req.query.owner, 300).toLowerCase();
+    const email = cleanText(req.query.email, 300).toLowerCase();
+    const status = cleanText(req.query.status, 80).toLowerCase();
+    const filtered = loadClaims().filter((claim) => {
+      if (name && !String(claim.businessName || "").toLowerCase().includes(name)) return false;
+      if (owner && !String(claim.ownerName || "").toLowerCase().includes(owner)) return false;
+      if (email && !String(claim.email || claim.ownerEmail || "").toLowerCase().includes(email)) return false;
+      if (status && String(claim.status || "").toLowerCase() !== status) return false;
+      return true;
+    });
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    res.json({ success: true, claims: filtered.slice(start, start + limit), stats: getClaimStats(), page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
 router.get("/business-subscriptions", async (req, res) => {
   try {
     const subscriptions =
@@ -532,22 +568,15 @@ router.post("/businesses/save", async (req, res) => {
 
 router.get("/results", async (req, res) => {
   try {
-    const results = await inventoryRepository.getInventory({
-      businessName: req.query.business || req.query.businessName || "",
-      platform: req.query.platform || "",
-      serviceName: req.query.service || req.query.serviceName || "",
-      serviceCategory: req.query.serviceType || req.query.serviceCategory || "",
-      targetLocalDateKey: req.query.date || "",
-      includeConfirmed: String(req.query.sourceType || "") !== "inferred",
-      includeInferred: String(req.query.sourceType || "") !== "confirmed",
-      showPast: String(req.query.showPast || "true") === "true",
-      includeInactive: String(req.query.includeInactive || "true") === "true",
-      limit: Number(req.query.limit || 2000)
+    const result = await inventoryRepository.searchInventory({
+      businessName: req.query.business || req.query.businessName || "", platform: req.query.platform || "",
+      serviceName: req.query.service || req.query.serviceName || "", serviceCategory: req.query.serviceType || req.query.serviceCategory || "",
+      targetLocalDateKey: req.query.date || "", sourceType: req.query.sourceType || "", status: req.query.status || "",
+      showPast: String(req.query.showPast || "false") === "true", includeInactive: String(req.query.includeInactive || "false") === "true",
+      page: req.query.page, limit: req.query.limit
     });
-    res.json({ success: true, source: "postgres", results });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+    res.json({ success: true, source: "postgres", ...result });
+  } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
 router.get("/errors", async (req, res) => {

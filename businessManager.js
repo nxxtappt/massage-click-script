@@ -542,6 +542,23 @@ async function getBusinessSubscription(idOrBusinessName) {
   return row ? normalizeSubscriptionShape(row) : null;
 }
 
+async function searchBusinessSubscriptions(options = {}) {
+  const result = await requireRepository().searchBusinessSubscriptions(options);
+  return {
+    ...result,
+    subscriptions: (result.subscriptions || []).map((row) => ({
+      businessId: row.public_business_id || row.business_id,
+      businessName: row.business_name,
+      businessCategory: row.business_category || "wellness",
+      platform: row.platform || "",
+      metro: row.city || "",
+      address: row.address || "",
+      enabled: row.enabled !== false,
+      ...normalizeSubscriptionShape(row)
+    }))
+  };
+}
+
 async function saveBusinessSubscription(idOrBusinessName, payload = {}) {
   const row = await requireRepository().upsertBusinessSubscription(
     idOrBusinessName,
@@ -665,6 +682,7 @@ module.exports = {
   getBusinessSubscription,
   saveBusinessSubscription,
   getBusinessSubscriptionMap,
+  searchBusinessSubscriptions,
   getBusinessPageData,
   getBusinessPageDataAsync,
   buildBusinessPageData,

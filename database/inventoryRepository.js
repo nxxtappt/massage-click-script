@@ -778,6 +778,43 @@ async function getInventory(filters = {}) {
   return result.rows;
 }
 
+async function searchInventory(filters = {}) {
+  const page = Math.max(1, Number(filters.page || 1) || 1);
+  const limit = Math.min(100, Math.max(1, Number(filters.limit || 25) || 25));
+  const offset = (page - 1) * limit;
+  const values = [];
+  const where = [];
+  const columns = await getTableColumns("appointment_inventory");
+
+  const showPast = filters.showPast === true || String(filters.showPast) === "true";
+  if (!showPast) {
+    where.push(`(local_date > (NOW() AT TIME ZONE 'America/Chicago')::date OR (local_date = (NOW() AT TIME ZONE 'America/Chicago')::date AND local_time > (NOW() AT TIME ZONE 'America/Chicago')::time))`);
+  }
+  if (columns.has("searchable")) where.push("searchable = true");
+  const add = (sql, value) => { values.push(value); where.push(sql.replace("?", `$${values.length}`)); };
+  if (filters.businessName) add("LOWER(business_name) LIKE LOWER(?)", `%${filters.businessName}%`);
+  if (filters.platform) add("LOWER(platform) = LOWER(?)", filters.platform);
+  if (filters.serviceCategory) add("LOWER(service_category) LIKE LOWER(?)", `%${filters.serviceCategory}%`);
+  if (filters.serviceName) add("LOWER(service_name) LIKE LOWER(?)", `%${filters.serviceName}%`);
+  if (filters.targetLocalDateKey) add("local_date = ?::date", filters.targetLocalDateKey);
+  const sourceColumn = columns.has("appointment_source") ? "appointment_source" : columns.has("source_type") ? "source_type" : null;
+  if (sourceColumn && filters.sourceType) add(`LOWER(${sourceColumn}) = LOWER(?)`, filters.sourceType);
+  const statusColumn = columns.has("inventory_status") ? "inventory_status" : columns.has("status") ? "status" : null;
+  if (statusColumn && filters.status) add(`LOWER(${statusColumn}) = LOWER(?)`, filters.status);
+  if (!filters.includeInactive && statusColumn) where.push(`COALESCE(${statusColumn}, 'active') NOT IN ('inactive','expired','archived','deleted')`);
+  const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const countResult = await db.query(`SELECT COUNT(*)::int AS total FROM appointment_inventory ${clause}`, values);
+  const dataValues = [...values, limit, offset];
+  const result = await db.query(`
+    SELECT * FROM appointment_inventory
+    ${clause}
+    ORDER BY appointment_start ASC NULLS LAST, local_date ASC NULLS LAST, local_time ASC NULLS LAST
+    LIMIT $${dataValues.length-1} OFFSET $${dataValues.length}
+  `, dataValues);
+  const total = Number(countResult.rows[0]?.total || 0);
+  return { results: result.rows, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
+}
+
 module.exports = {
   createScrapeRun,
   finishScrapeRun,
@@ -788,6 +825,7 @@ module.exports = {
   insertInventoryAppointment,
   saveBusinessResult,
   getInventory,
+  searchInventory,
   getRawResults,
   getResultKey,
   extractAppointments

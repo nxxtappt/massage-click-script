@@ -21,6 +21,42 @@ let businessSearchState = {
 };
 let businessSearchFacets = { industries: [], metros: [], platforms: [] };
 let businessEditorMode = false;
+let subscriptionSearchState = {
+  name: "",
+  industry: "",
+  metro: "",
+  plan: "",
+  status: "",
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 1
+};
+let inventorySearchState = {
+  business: "",
+  service: "",
+  serviceType: "",
+  platform: "",
+  date: "",
+  sourceType: "",
+  status: "",
+  showPast: false,
+  includeInactive: false,
+  page: 1,
+  limit: 25,
+  total: 0,
+  totalPages: 1
+};
+let claimSearchState = {
+  business: "",
+  owner: "",
+  email: "",
+  status: "",
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 1
+};
 
 const views = {
   businesses: {
@@ -34,8 +70,13 @@ const views = {
   },
 
   results: {
-    title: "Inventory Results",
-    subtitle: "View the most recent PostgreSQL appointment inventory."
+    title: "Appointment Inventory",
+    subtitle: "Search PostgreSQL appointment inventory without loading every record."
+  },
+
+  inventory: {
+    title: "Appointment Inventory",
+    subtitle: "Search PostgreSQL appointment inventory without loading every record."
   },
 
   errors: {
@@ -325,7 +366,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
           candidate.id ||
           candidate.businessServiceId ||
           `key:${getAdminServiceKey(candidate)}`,
-        label: `${candidate.serviceName || "Unnamed"} Â· ${candidate.durationMinutes || "?"} min`
+        label: `${candidate.serviceName || "Unnamed"} · ${candidate.durationMinutes || "?"} min`
       }))
   ];
 
@@ -334,7 +375,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
       <div class="service-card-header">
         <div>
           <h4>${escapeHtml(service.serviceName || "Unnamed Service")}</h4>
-          <p>${escapeHtml(service.serviceType || "unknown")} Â· ${escapeHtml(service.durationMinutes || "unknown")} min Â· ${escapeHtml(service.priority || "no priority")} Â· ${escapeHtml(service.discoveryStatus || "no status")}</p>
+          <p>${escapeHtml(service.serviceType || "unknown")} · ${escapeHtml(service.durationMinutes || "unknown")} min · ${escapeHtml(service.priority || "no priority")} · ${escapeHtml(service.discoveryStatus || "no status")}</p>
         </div>
 
         <div class="service-card-actions">
@@ -381,8 +422,8 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
           serviceIndex,
           [
             { value: "", label: "No inference role" },
-            { value: "anchor", label: "Anchor â€” scrape confirmed availability" },
-            { value: "inferred", label: "Inferred â€” generated from an anchor" }
+            { value: "anchor", label: "Anchor — scrape confirmed availability" },
+            { value: "inferred", label: "Inferred — generated from an anchor" }
           ]
         )}
 
@@ -763,7 +804,7 @@ function renderBusinessesFromCache() {
   content.innerHTML = `
     <div class="section-heading compact-heading">
       <div>
-        <button id="backToBusinessSearchBtn" class="secondary-btn">â† Back to Business Search</button>
+        <button id="backToBusinessSearchBtn" class="secondary-btn">← Back to Business Search</button>
       </div>
     </div>
     <div class="business-list">
@@ -891,24 +932,95 @@ function renderSubscriptionTextarea(label, id, value, placeholder = "", rows = 4
 
 async function loadBusinessSubscriptionsView() {
   currentView = "subscriptions";
-  setLoading("Loading business subscriptions...");
+  setLoading("Loading subscription search...");
 
   pageTitle.textContent = views.subscriptions.title;
-  pageSubtitle.textContent = "Manage subscription level, booking widgets, business bios, and search-card promos.";
+  pageSubtitle.textContent = "Search businesses and manage one page of subscriptions at a time.";
 
   try {
-    const [businessesData, subscriptionsData] = await Promise.all([
-      fetchJson("/api/admin/businesses"),
-      fetchJson("/api/admin/business-subscriptions")
-    ]);
+    const params = new URLSearchParams({
+      page: String(subscriptionSearchState.page),
+      limit: String(subscriptionSearchState.limit)
+    });
 
-    const businesses = Array.isArray(businessesData.businesses)
-      ? businessesData.businesses
+    if (subscriptionSearchState.name) params.set("name", subscriptionSearchState.name);
+    if (subscriptionSearchState.industry) params.set("industry", subscriptionSearchState.industry);
+    if (subscriptionSearchState.metro) params.set("metro", subscriptionSearchState.metro);
+    if (subscriptionSearchState.plan) params.set("plan", subscriptionSearchState.plan);
+    if (subscriptionSearchState.status) params.set("status", subscriptionSearchState.status);
+
+    const searchData = await fetchJson(`/api/admin/business-subscriptions/search?${params.toString()}`);
+    const subscriptionRows = Array.isArray(searchData.subscriptions)
+      ? searchData.subscriptions
       : [];
 
-    const subscriptions = subscriptionsData.subscriptions || {};
+    subscriptionSearchState.page = Number(searchData.page || 1);
+    subscriptionSearchState.limit = Number(searchData.limit || 20);
+    subscriptionSearchState.total = Number(searchData.total || 0);
+    subscriptionSearchState.totalPages = Number(searchData.totalPages || 1);
+
+    const businesses = subscriptionRows.map((row) => ({
+      ...row,
+      businessName: row.businessName || row.business_name || "",
+      businessCategory: row.businessCategory || row.business_category || "",
+      metro: row.metro || row.city || "",
+      address: row.address || "",
+      website: row.website || "",
+      bookingUrl: row.bookingUrl || row.booking_url || "",
+      platform: row.platform || ""
+    }));
+
+    const subscriptions = Object.fromEntries(
+      subscriptionRows.map((row) => [
+        getBusinessSubscriptionKey(row.businessName || row.business_name || ""),
+        {
+          ...row,
+          subscriptionStatus: row.subscriptionStatus || row.subscription_status || row.status || "active",
+          businessProfile: row.businessProfile || row.publicProfile || row.public_profile || {},
+          bookingWidget: row.bookingWidget || row.bookingIntegration || row.booking_integration || {},
+          cardPromotion: row.cardPromotion || row.activeDeal || row.active_deal || {}
+        }
+      ])
+    );
 
     content.innerHTML = `
+      <form id="subscriptionSearchForm" class="admin-search-grid">
+        ${renderSubscriptionTextInput("Business Name", "subscriptionSearchName", subscriptionSearchState.name, "Search business")}
+        ${renderSubscriptionTextInput("Industry", "subscriptionSearchIndustry", subscriptionSearchState.industry, "wellness")}
+        ${renderSubscriptionTextInput("Metro", "subscriptionSearchMetro", subscriptionSearchState.metro, "Austin")}
+
+        <label class="admin-field">
+          <span>Plan</span>
+          <select id="subscriptionSearchPlan">
+            <option value="">All plans</option>
+            <option value="verified_basic" ${subscriptionSearchState.plan === "verified_basic" ? "selected" : ""}>Verified Basic</option>
+            <option value="premium" ${subscriptionSearchState.plan === "premium" ? "selected" : ""}>Premium</option>
+          </select>
+        </label>
+
+        <label class="admin-field">
+          <span>Status</span>
+          <select id="subscriptionSearchStatus">
+            <option value="">All statuses</option>
+            <option value="active" ${subscriptionSearchState.status === "active" ? "selected" : ""}>Active</option>
+            <option value="trialing" ${subscriptionSearchState.status === "trialing" ? "selected" : ""}>Trialing</option>
+            <option value="inactive" ${subscriptionSearchState.status === "inactive" ? "selected" : ""}>Inactive</option>
+            <option value="past_due" ${subscriptionSearchState.status === "past_due" ? "selected" : ""}>Past Due</option>
+            <option value="canceled" ${subscriptionSearchState.status === "canceled" ? "selected" : ""}>Canceled</option>
+          </select>
+        </label>
+
+        <div class="admin-search-actions">
+          <button class="primary-btn" type="submit">Search</button>
+          <button id="clearSubscriptionSearchBtn" class="secondary-btn" type="button">Clear</button>
+        </div>
+      </form>
+
+      <div class="admin-search-summary">
+        <strong>${subscriptionSearchState.total} matching businesses</strong>
+        <span>Page ${subscriptionSearchState.page} of ${subscriptionSearchState.totalPages}</span>
+      </div>
+
       <div class="section-heading compact-heading">
         <div>
           <h3>Business Subscriptions</h3>
@@ -1052,10 +1164,57 @@ async function loadBusinessSubscriptionsView() {
           })
           .join("")}
       </div>
+
+      <div class="business-pagination">
+        <button id="previousSubscriptionPageBtn" class="secondary-btn" ${subscriptionSearchState.page <= 1 ? "disabled" : ""}>Previous</button>
+        <span>Page ${subscriptionSearchState.page} of ${subscriptionSearchState.totalPages}</span>
+        <button id="nextSubscriptionPageBtn" class="secondary-btn" ${subscriptionSearchState.page >= subscriptionSearchState.totalPages ? "disabled" : ""}>Next</button>
+      </div>
     `;
 
+    document.getElementById("subscriptionSearchForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      subscriptionSearchState.name = getInputValue("subscriptionSearchName").trim();
+      subscriptionSearchState.industry = getInputValue("subscriptionSearchIndustry").trim();
+      subscriptionSearchState.metro = getInputValue("subscriptionSearchMetro").trim();
+      subscriptionSearchState.plan = getInputValue("subscriptionSearchPlan");
+      subscriptionSearchState.status = getInputValue("subscriptionSearchStatus");
+      subscriptionSearchState.page = 1;
+      await loadBusinessSubscriptionsView();
+    });
+
+    document.getElementById("clearSubscriptionSearchBtn")?.addEventListener("click", async () => {
+      subscriptionSearchState = {
+        ...subscriptionSearchState,
+        name: "",
+        industry: "",
+        metro: "",
+        plan: "",
+        status: "",
+        page: 1
+      };
+      await loadBusinessSubscriptionsView();
+    });
+
+    document.getElementById("previousSubscriptionPageBtn")?.addEventListener("click", async () => {
+      if (subscriptionSearchState.page > 1) {
+        subscriptionSearchState.page -= 1;
+        await loadBusinessSubscriptionsView();
+      }
+    });
+
+    document.getElementById("nextSubscriptionPageBtn")?.addEventListener("click", async () => {
+      if (subscriptionSearchState.page < subscriptionSearchState.totalPages) {
+        subscriptionSearchState.page += 1;
+        await loadBusinessSubscriptionsView();
+      }
+    });
+
     attachSubscriptionSaveHandlers();
-    setStatus(`Loaded ${businesses.length} business subscription records.`, "success");
+    setStatus(
+      `Loaded ${businesses.length} of ${subscriptionSearchState.total} matching subscription records.`,
+      "success"
+    );
   } catch (error) {
     content.innerHTML = `
       <h3>Could Not Load Subscriptions</h3>
@@ -1177,7 +1336,7 @@ async function loadBusinesses() {
 
 async function loadResults() {
   currentView = "inventory";
-  setLoading("Loading appointment inventory...");
+  setLoading("Loading appointment inventory search...");
 
   pageTitle.textContent = views.inventory.title;
   pageSubtitle.textContent = views.inventory.subtitle;
@@ -1185,23 +1344,46 @@ async function loadResults() {
   content.innerHTML = `
     <div class="settings-panel settings-panel-full">
       <h3>Appointment Inventory</h3>
-      <div class="targeted-scrape-grid">
-        ${renderSubscriptionTextInput("Business", "inventoryBusiness", "", "Business name")}
-        ${renderSubscriptionTextInput("Service", "inventoryService", "", "Service name")}
-        ${renderSubscriptionTextInput("Service Type", "inventoryServiceType", "", "massage, swedish...")}
-        ${renderSubscriptionTextInput("Date", "inventoryDate", "", "YYYY-MM-DD")}
+      <p class="admin-muted">Search PostgreSQL inventory in small pages instead of loading every appointment.</p>
+
+      <form id="inventorySearchForm" class="admin-search-grid">
+        ${renderSubscriptionTextInput("Business", "inventoryBusiness", inventorySearchState.business, "Business name")}
+        ${renderSubscriptionTextInput("Service", "inventoryService", inventorySearchState.service, "Service name")}
+        ${renderSubscriptionTextInput("Service Type", "inventoryServiceType", inventorySearchState.serviceType, "massage")}
+        ${renderSubscriptionTextInput("Platform", "inventoryPlatform", inventorySearchState.platform, "mindbody")}
+
+        <label class="admin-field">
+          <span>Date</span>
+          <input id="inventoryDate" type="date" value="${escapeHtml(inventorySearchState.date)}" />
+        </label>
+
         <label class="admin-field">
           <span>Source</span>
           <select id="inventorySourceType">
             <option value="">Confirmed + Inferred</option>
-            <option value="confirmed">Confirmed only</option>
-            <option value="inferred">Inferred only</option>
+            <option value="confirmed" ${inventorySearchState.sourceType === "confirmed" ? "selected" : ""}>Confirmed only</option>
+            <option value="inferred" ${inventorySearchState.sourceType === "inferred" ? "selected" : ""}>Inferred only</option>
           </select>
         </label>
-      </div>
-      <div class="settings-actions">
-        <button id="inventorySearchBtn" class="primary-btn">Search Inventory</button>
-      </div>
+
+        ${renderSubscriptionTextInput("Status", "inventoryStatus", inventorySearchState.status, "active")}
+
+        <label class="admin-checkbox">
+          <input id="inventoryShowPast" type="checkbox" ${inventorySearchState.showPast ? "checked" : ""} />
+          <span>Include past appointments</span>
+        </label>
+
+        <label class="admin-checkbox">
+          <input id="inventoryIncludeInactive" type="checkbox" ${inventorySearchState.includeInactive ? "checked" : ""} />
+          <span>Include inactive appointments</span>
+        </label>
+
+        <div class="admin-search-actions">
+          <button class="primary-btn" type="submit">Search Inventory</button>
+          <button id="clearInventorySearchBtn" class="secondary-btn" type="button">Clear</button>
+        </div>
+      </form>
+
       <div id="inventoryResults"><p>Loading...</p></div>
     </div>
   `;
@@ -1209,36 +1391,126 @@ async function loadResults() {
   const runInventorySearch = async () => {
     try {
       const params = new URLSearchParams({
-        business: getInputValue("inventoryBusiness"),
-        service: getInputValue("inventoryService"),
-        serviceType: getInputValue("inventoryServiceType"),
-        date: getInputValue("inventoryDate"),
-        sourceType: getInputValue("inventorySourceType"),
-        showPast: "true",
-        includeInactive: "true",
-        limit: "2000"
+        page: String(inventorySearchState.page),
+        limit: String(inventorySearchState.limit),
+        showPast: String(inventorySearchState.showPast),
+        includeInactive: String(inventorySearchState.includeInactive)
       });
+
+      if (inventorySearchState.business) params.set("business", inventorySearchState.business);
+      if (inventorySearchState.service) params.set("service", inventorySearchState.service);
+      if (inventorySearchState.serviceType) params.set("serviceType", inventorySearchState.serviceType);
+      if (inventorySearchState.platform) params.set("platform", inventorySearchState.platform);
+      if (inventorySearchState.date) params.set("date", inventorySearchState.date);
+      if (inventorySearchState.sourceType) params.set("sourceType", inventorySearchState.sourceType);
+      if (inventorySearchState.status) params.set("status", inventorySearchState.status);
 
       const data = await fetchJson(`/api/admin/results?${params.toString()}`);
       const results = Array.isArray(data.results) ? data.results : [];
+
+      inventorySearchState.page = Number(data.page || 1);
+      inventorySearchState.limit = Number(data.limit || 25);
+      inventorySearchState.total = Number(data.total || 0);
+      inventorySearchState.totalPages = Number(data.totalPages || 1);
+
       const target = document.getElementById("inventoryResults");
+      if (!target) return;
 
       target.innerHTML = `
-        <p>${results.length} inventory record${results.length === 1 ? "" : "s"} found.</p>
-        <details class="raw-json-box" open>
-          <summary>View PostgreSQL inventory</summary>
+        <div class="admin-search-summary">
+          <strong>${inventorySearchState.total} matching appointments</strong>
+          <span>Page ${inventorySearchState.page} of ${inventorySearchState.totalPages}</span>
+        </div>
+
+        <div class="inventory-list">
+          ${results.length
+            ? results.map((row) => `
+                <article class="inventory-card">
+                  <div>
+                    <strong>${escapeHtml(row.business_name || row.businessName || "Unknown business")}</strong>
+                    <p>${escapeHtml(row.service_name || row.serviceName || row.service_category || "Service")} · ${escapeHtml(row.duration_minutes || row.durationMinutes || "?")} min</p>
+                  </div>
+                  <div>
+                    <strong>${escapeHtml(row.local_date || row.localDate || row.target_local_date_key || "")}</strong>
+                    <p>${escapeHtml(row.local_time || row.localTime || "")} · ${escapeHtml(row.platform || "")}</p>
+                  </div>
+                  <span class="platform-pill">${escapeHtml(row.appointment_source || row.source_type || row.sourceType || "confirmed")}</span>
+                </article>
+              `).join("")
+            : `<p class="empty-note">No inventory records matched these filters.</p>`}
+        </div>
+
+        <div class="business-pagination">
+          <button id="previousInventoryPageBtn" class="secondary-btn" ${inventorySearchState.page <= 1 ? "disabled" : ""}>Previous</button>
+          <span>Page ${inventorySearchState.page} of ${inventorySearchState.totalPages}</span>
+          <button id="nextInventoryPageBtn" class="secondary-btn" ${inventorySearchState.page >= inventorySearchState.totalPages ? "disabled" : ""}>Next</button>
+        </div>
+
+        <details class="raw-json-box">
+          <summary>View current page as raw PostgreSQL inventory</summary>
           <pre>${escapeHtml(JSON.stringify(results, null, 2))}</pre>
         </details>
       `;
 
-      setStatus(`Loaded ${results.length} appointment inventory records.`, "success");
+      document.getElementById("previousInventoryPageBtn")?.addEventListener("click", async () => {
+        if (inventorySearchState.page > 1) {
+          inventorySearchState.page -= 1;
+          await runInventorySearch();
+        }
+      });
+
+      document.getElementById("nextInventoryPageBtn")?.addEventListener("click", async () => {
+        if (inventorySearchState.page < inventorySearchState.totalPages) {
+          inventorySearchState.page += 1;
+          await runInventorySearch();
+        }
+      });
+
+      setStatus(
+        `Loaded ${results.length} of ${inventorySearchState.total} matching inventory records.`,
+        "success"
+      );
     } catch (error) {
-      document.getElementById("inventoryResults").innerHTML = `<p>${escapeHtml(error.message)}</p>`;
+      const target = document.getElementById("inventoryResults");
+      if (target) target.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
       setStatus("Failed to load appointment inventory.", "error");
     }
   };
 
-  document.getElementById("inventorySearchBtn").addEventListener("click", runInventorySearch);
+  document.getElementById("inventorySearchForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    inventorySearchState.business = getInputValue("inventoryBusiness").trim();
+    inventorySearchState.service = getInputValue("inventoryService").trim();
+    inventorySearchState.serviceType = getInputValue("inventoryServiceType").trim();
+    inventorySearchState.platform = getInputValue("inventoryPlatform").trim();
+    inventorySearchState.date = getInputValue("inventoryDate");
+    inventorySearchState.sourceType = getInputValue("inventorySourceType");
+    inventorySearchState.status = getInputValue("inventoryStatus").trim();
+    inventorySearchState.showPast = getInputChecked("inventoryShowPast");
+    inventorySearchState.includeInactive = getInputChecked("inventoryIncludeInactive");
+    inventorySearchState.page = 1;
+    await runInventorySearch();
+  });
+
+  document.getElementById("clearInventorySearchBtn")?.addEventListener("click", async () => {
+    inventorySearchState = {
+      business: "",
+      service: "",
+      serviceType: "",
+      platform: "",
+      date: "",
+      sourceType: "",
+      status: "",
+      showPast: false,
+      includeInactive: false,
+      page: 1,
+      limit: 25,
+      total: 0,
+      totalPages: 1
+    };
+    await loadResults();
+  });
+
   await runInventorySearch();
 }
 
@@ -1832,7 +2104,7 @@ function renderClaimCard(claim) {
 
           <p>
             ${escapeHtml(claim.ownerName || "Unknown Owner")}
-            Â·
+            ·
             ${escapeHtml(claim.email || "")}
           </p>
         </div>
@@ -1895,60 +2167,122 @@ function renderClaimCard(claim) {
 
 async function loadClaims() {
   currentView = "claims";
+  setLoading("Loading business claim search...");
 
-  setLoading("Loading business claims...");
+  pageTitle.textContent = views.claims.title;
+  pageSubtitle.textContent = views.claims.subtitle;
 
   try {
-    const data = await fetchJson("/api/business/claims");
+    const params = new URLSearchParams({
+      page: String(claimSearchState.page),
+      limit: String(claimSearchState.limit)
+    });
 
-    const claims = Array.isArray(data.claims)
-      ? data.claims
-      : [];
+    if (claimSearchState.business) params.set("business", claimSearchState.business);
+    if (claimSearchState.owner) params.set("owner", claimSearchState.owner);
+    if (claimSearchState.email) params.set("email", claimSearchState.email);
+    if (claimSearchState.status) params.set("status", claimSearchState.status);
 
-    pageTitle.textContent = views.claims.title;
-    pageSubtitle.textContent = views.claims.subtitle;
+    const data = await fetchJson(`/api/admin/claims/search?${params.toString()}`);
+    const claims = Array.isArray(data.claims) ? data.claims : [];
+
+    claimSearchState.page = Number(data.page || 1);
+    claimSearchState.limit = Number(data.limit || 20);
+    claimSearchState.total = Number(data.total || 0);
+    claimSearchState.totalPages = Number(data.totalPages || 1);
 
     content.innerHTML = `
+      <form id="claimSearchForm" class="admin-search-grid">
+        ${renderSubscriptionTextInput("Business", "claimSearchBusiness", claimSearchState.business, "Business name")}
+        ${renderSubscriptionTextInput("Owner", "claimSearchOwner", claimSearchState.owner, "Owner name")}
+        ${renderSubscriptionTextInput("Email", "claimSearchEmail", claimSearchState.email, "owner@example.com")}
+
+        <label class="admin-field">
+          <span>Status</span>
+          <select id="claimSearchStatus">
+            <option value="">All statuses</option>
+            <option value="claimed_pending" ${claimSearchState.status === "claimed_pending" ? "selected" : ""}>Pending</option>
+            <option value="claimed_verified" ${claimSearchState.status === "claimed_verified" ? "selected" : ""}>Verified</option>
+            <option value="claimed_rejected" ${claimSearchState.status === "claimed_rejected" ? "selected" : ""}>Rejected</option>
+          </select>
+        </label>
+
+        <div class="admin-search-actions">
+          <button class="primary-btn" type="submit">Search Claims</button>
+          <button id="clearClaimSearchBtn" class="secondary-btn" type="button">Clear</button>
+        </div>
+      </form>
+
       <div class="section-heading compact-heading">
         <div>
-          <h3>${claims.length} Claims</h3>
-
+          <h3>${claimSearchState.total} Matching Claims</h3>
           <p>
-            Pending:
-            ${escapeHtml(data.stats?.pending || 0)}
-            Â· Verified:
-            ${escapeHtml(data.stats?.verified || 0)}
-            Â· Rejected:
-            ${escapeHtml(data.stats?.rejected || 0)}
+            Pending: ${escapeHtml(data.stats?.pending || 0)} ·
+            Verified: ${escapeHtml(data.stats?.verified || 0)} ·
+            Rejected: ${escapeHtml(data.stats?.rejected || 0)}
           </p>
         </div>
       </div>
 
       <div class="business-list">
-        ${
-          claims.length
-            ? claims.map(renderClaimCard).join("")
-            : `<p class="empty-note">No business claims found.</p>`
-        }
+        ${claims.length
+          ? claims.map(renderClaimCard).join("")
+          : `<p class="empty-note">No business claims matched these filters.</p>`}
+      </div>
+
+      <div class="business-pagination">
+        <button id="previousClaimPageBtn" class="secondary-btn" ${claimSearchState.page <= 1 ? "disabled" : ""}>Previous</button>
+        <span>Page ${claimSearchState.page} of ${claimSearchState.totalPages}</span>
+        <button id="nextClaimPageBtn" class="secondary-btn" ${claimSearchState.page >= claimSearchState.totalPages ? "disabled" : ""}>Next</button>
       </div>
     `;
 
-    attachClaimActionListeners();
+    document.getElementById("claimSearchForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      claimSearchState.business = getInputValue("claimSearchBusiness").trim();
+      claimSearchState.owner = getInputValue("claimSearchOwner").trim();
+      claimSearchState.email = getInputValue("claimSearchEmail").trim();
+      claimSearchState.status = getInputValue("claimSearchStatus");
+      claimSearchState.page = 1;
+      await loadClaims();
+    });
 
-    setStatus(
-      `Loaded ${claims.length} business claims.`,
-      "success"
-    );
+    document.getElementById("clearClaimSearchBtn")?.addEventListener("click", async () => {
+      claimSearchState = {
+        business: "",
+        owner: "",
+        email: "",
+        status: "",
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 1
+      };
+      await loadClaims();
+    });
+
+    document.getElementById("previousClaimPageBtn")?.addEventListener("click", async () => {
+      if (claimSearchState.page > 1) {
+        claimSearchState.page -= 1;
+        await loadClaims();
+      }
+    });
+
+    document.getElementById("nextClaimPageBtn")?.addEventListener("click", async () => {
+      if (claimSearchState.page < claimSearchState.totalPages) {
+        claimSearchState.page += 1;
+        await loadClaims();
+      }
+    });
+
+    attachClaimActionListeners();
+    setStatus(`Loaded ${claims.length} of ${claimSearchState.total} matching business claims.`, "success");
   } catch (error) {
     content.innerHTML = `
       <h3>Could Not Load Claims</h3>
       <p>${escapeHtml(error.message)}</p>
     `;
-
-    setStatus(
-      "Failed to load business claims.",
-      "error"
-    );
+    setStatus("Failed to load business claims.", "error");
   }
 }
 
