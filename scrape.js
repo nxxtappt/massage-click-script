@@ -931,6 +931,13 @@ async function run() {
 
   let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, filters);
 
+  const businessConfigByName = new Map(
+    scrapeableBusinesses.map((business) => [
+      normalizeResultKeyValue(business.businessName || business.name),
+      business
+    ])
+  );
+
   console.log(`Loaded ${businesses.length} businesses from businessManager`);
   console.log(`Built ${scrapeJobs.length} service-level scrape job(s)`);
 
@@ -1180,9 +1187,14 @@ function resultTimesToAppointments(result = {}) {
   }));
 }
 
+const hydratedBusinessConfig =
+  businessConfigByName.get(
+    normalizeResultKeyValue(result.businessName || job.businessName)
+  ) || job;
+
 const mergedAppointments = mergeConfirmedAndInferredAppointments(
   confirmedAppointments,
-  job,
+  hydratedBusinessConfig,
   {
     inferenceMode: "scrape_pipeline"
   }
@@ -1262,7 +1274,9 @@ if (inferredAppointments.length > 0) {
     durationMinutes: anchor.durationMinutes || job.durationMinutes || null,
     inferenceRole: job.inferenceRole || "",
     inferShorterDurations: job.inferShorterDurations === true,
-    configuredServiceCount: Array.isArray(job.services) ? job.services.length : 0
+    configuredServiceCount: Array.isArray(hydratedBusinessConfig.services)
+      ? hydratedBusinessConfig.services.length
+      : 0
   });
 }
 

@@ -196,6 +196,17 @@ function buildFallbackInferencePlan(anchorAppointment = {}, businessConfig = {})
 function getResolvedInferencePlan(anchorAppointment = {}, businessConfig = {}) {
   const plannerPlan = getInferencePlan(
     {
+      id:
+        anchorAppointment.businessServiceId ||
+        anchorAppointment.business_service_id ||
+        null,
+      businessServiceId:
+        anchorAppointment.businessServiceId ||
+        anchorAppointment.business_service_id ||
+        null,
+      platformServiceId: anchorAppointment.platformServiceId || null,
+      serviceId: anchorAppointment.serviceId || null,
+      sessionTypeId: anchorAppointment.sessionTypeId || null,
       serviceType: getAppointmentServiceType(anchorAppointment),
       durationMinutes: getAppointmentDuration(anchorAppointment),
       serviceName: anchorAppointment.serviceName || anchorAppointment.service || ""
