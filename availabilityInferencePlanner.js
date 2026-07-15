@@ -28,58 +28,75 @@ function serviceIsEnabled(service = {}) {
 }
 
 function getSearchInference(service = {}) {
-  if (service.searchInference && typeof service.searchInference === "object") {
-    return service.searchInference;
-  }
+  const nested =
+    service.searchInference && typeof service.searchInference === "object"
+      ? service.searchInference
+      : {};
 
   return {
-    enabled: service.inferenceEnabled === true,
-    isInferenceAnchor: service.inferenceRole === "anchor",
-    canBeInferred: service.inferenceRole === "inferred",
-    inferShorterDurations: service.inferShorterDurations === true,
-    inferServiceTypes: Array.isArray(service.inferServiceTypes)
-      ? service.inferServiceTypes
-      : [],
-    inferStartIntervalMinutes: service.inferStartIntervalMinutes,
-    confidence: service.inferenceConfidence,
-    anchorServiceId: service.anchorServiceId || service.anchor_service_id || null,
-    anchorServiceKey: service.anchorServiceKey || service.anchor_service_key || null
+    ...nested,
+    enabled:
+      nested.enabled !== undefined
+        ? nested.enabled
+        : service.inferenceEnabled === true,
+    isInferenceAnchor:
+      nested.isInferenceAnchor === true ||
+      nested.inferenceRole === "anchor" ||
+      service.inferenceRole === "anchor",
+    canBeInferred:
+      nested.canBeInferred === true ||
+      nested.inferenceRole === "inferred" ||
+      service.inferenceRole === "inferred",
+    inferShorterDurations:
+      nested.inferShorterDurations === true ||
+      service.inferShorterDurations === true,
+    inferServiceTypes: Array.isArray(nested.inferServiceTypes)
+      ? nested.inferServiceTypes
+      : Array.isArray(service.inferServiceTypes)
+        ? service.inferServiceTypes
+        : [],
+    inferStartIntervalMinutes:
+      nested.inferStartIntervalMinutes ||
+      service.inferStartIntervalMinutes,
+    confidence:
+      nested.confidence ??
+      service.inferenceConfidence,
+    anchorServiceId:
+      nested.anchorServiceId ||
+      service.anchorServiceId ||
+      service.anchor_service_id ||
+      null,
+    anchorServiceKey:
+      nested.anchorServiceKey ||
+      service.anchorServiceKey ||
+      service.anchor_service_key ||
+      null
   };
 }
 
 function serviceCanBeInferred(service = {}) {
   const inference = getSearchInference(service);
-  return inference.enabled !== false && (
-    inference.canBeInferred === true ||
-    service.inferenceRole === "inferred"
-  );
+  return inference.enabled !== false && inference.canBeInferred === true;
 }
 
 function serviceIsInferenceAnchor(service = {}) {
   const inference = getSearchInference(service);
-  return inference.enabled !== false && (
-    inference.isInferenceAnchor === true ||
-    service.inferenceRole === "anchor"
-  );
+  return inference.enabled !== false && inference.isInferenceAnchor === true;
 }
 
 function serviceAllowsShorterDurationInference(service = {}) {
-  const inference = getSearchInference(service);
-  return inference.inferShorterDurations === true;
+  return getSearchInference(service).inferShorterDurations === true;
 }
 
 function getInferServiceTypes(service = {}) {
-  const inference = getSearchInference(service);
-  const values = Array.isArray(inference.inferServiceTypes)
-    ? inference.inferServiceTypes
-    : [];
-  return values.map(normalizeServiceType).filter(Boolean);
+  return getSearchInference(service).inferServiceTypes
+    .map(normalizeServiceType)
+    .filter(Boolean);
 }
 
 function getInferStartIntervalMinutes(service = {}, fallback = 15) {
-  const inference = getSearchInference(service);
   const value = Number(
-    inference.inferStartIntervalMinutes ||
+    getSearchInference(service).inferStartIntervalMinutes ||
     service.bookingIntervalMinutes ||
     fallback
   );
@@ -87,22 +104,36 @@ function getInferStartIntervalMinutes(service = {}, fallback = 15) {
 }
 
 function getInferenceConfidence(service = {}, fallback = 0.85) {
-  const inference = getSearchInference(service);
-  const value = Number(inference.confidence ?? service.inferenceConfidence ?? fallback);
+  const value = Number(
+    getSearchInference(service).confidence ??
+    service.inferenceConfidence ??
+    fallback
+  );
   return Number.isFinite(value) && value > 0 && value <= 1 ? value : fallback;
 }
 
 function servicesMatch(a = {}, b = {}) {
   const aId = getServiceId(a);
   const bId = getServiceId(b);
-  if (aId && bId && String(aId) === String(bId)) return true;
+  if (aId && bId) return String(aId) === String(bId);
 
-  const aPlatformId = a.platformServiceId || a.serviceId || "";
-  const bPlatformId = b.platformServiceId || b.serviceId || "";
-  if (aPlatformId && bPlatformId && String(aPlatformId) === String(bPlatformId)) {
-    const aDuration = getServiceDuration(a);
-    const bDuration = getServiceDuration(b);
-    return !aDuration || !bDuration || aDuration === bDuration;
+  const identifiers = [
+    ["platformServiceId", "platformServiceId"],
+    ["serviceButtonId", "serviceButtonId"],
+    ["sessionTypeId", "sessionTypeId"],
+    ["canonicalKey", "canonicalKey"],
+    ["canonical_key", "canonical_key"],
+    ["serviceId", "serviceId"]
+  ];
+
+  for (const [aKey, bKey] of identifiers) {
+    const av = a[aKey];
+    const bv = b[bKey];
+    if (av && bv && String(av) === String(bv)) {
+      const ad = getServiceDuration(a);
+      const bd = getServiceDuration(b);
+      return !ad || !bd || ad === bd;
+    }
   }
 
   const aName = normalize(a.serviceName || a.name || "");
@@ -129,52 +160,83 @@ function sortServicesForInference(services = []) {
 }
 
 function getDefaultBusinessInferenceRules(businessConfig = {}) {
-  const rules = businessConfig.inferenceRules && typeof businessConfig.inferenceRules === "object"
-    ? businessConfig.inferenceRules
-    : {};
+  const rules =
+    businessConfig.inferenceRules &&
+    typeof businessConfig.inferenceRules === "object"
+      ? businessConfig.inferenceRules
+      : {};
+
   return {
     inferDownwardOnly: rules.inferDownwardOnly !== false,
     durationIntervalMinutes: Number(rules.durationIntervalMinutes || 15),
-    serviceMappings: rules.serviceMappings && typeof rules.serviceMappings === "object"
-      ? rules.serviceMappings
-      : {}
+    serviceMappings:
+      rules.serviceMappings && typeof rules.serviceMappings === "object"
+        ? rules.serviceMappings
+        : {}
   };
 }
 
 function getMappedServiceTypes(anchorService = {}, businessConfig = {}) {
-  const anchorType = normalizeServiceType(anchorService.serviceType || anchorService.serviceCategory || "");
+  const anchorType = normalizeServiceType(
+    anchorService.serviceType || anchorService.serviceCategory || ""
+  );
   const explicitTypes = getInferServiceTypes(anchorService);
   if (explicitTypes.length) return explicitTypes;
-  const mapped = getDefaultBusinessInferenceRules(businessConfig).serviceMappings[anchorType];
-  return Array.isArray(mapped) ? mapped.map(normalizeServiceType).filter(Boolean) : [];
+
+  const mapped =
+    getDefaultBusinessInferenceRules(businessConfig).serviceMappings[anchorType];
+
+  return Array.isArray(mapped)
+    ? mapped.map(normalizeServiceType).filter(Boolean)
+    : [];
+}
+
+function candidateTargetsAnchor(service = {}, anchorService = {}) {
+  const inference = getSearchInference(service);
+  const anchorId = getServiceId(anchorService);
+  const anchorKey = getServiceKey(anchorService);
+
+  if (
+    inference.anchorServiceId &&
+    anchorId &&
+    String(inference.anchorServiceId) !== String(anchorId)
+  ) {
+    return false;
+  }
+
+  if (
+    inference.anchorServiceKey &&
+    String(inference.anchorServiceKey) !== String(anchorKey)
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 function getCandidateServices(anchorService = {}, businessConfig = {}) {
   const services = Array.isArray(businessConfig.services) ? businessConfig.services : [];
   const anchorDuration = getServiceDuration(anchorService);
   const anchorType = normalizeServiceType(anchorService.serviceType || "");
-  const anchorId = getServiceId(anchorService);
-  const allowedTypes = new Set([anchorType, ...getMappedServiceTypes(anchorService, businessConfig)].filter(Boolean));
+  const allowedTypes = new Set(
+    [anchorType, ...getMappedServiceTypes(anchorService, businessConfig)].filter(Boolean)
+  );
+  const autoInferShorter = serviceAllowsShorterDurationInference(anchorService);
 
   return services.filter((service) => {
-    if (!serviceIsEnabled(service) || !serviceCanBeInferred(service)) return false;
+    if (!serviceIsEnabled(service)) return false;
     if (getServiceKey(service) === getServiceKey(anchorService)) return false;
-
-    const configuredAnchorId = getSearchInference(service).anchorServiceId;
-    const configuredAnchorKey = getSearchInference(service).anchorServiceKey;
-    if (configuredAnchorId && anchorId && String(configuredAnchorId) !== String(anchorId)) {
-      return false;
-    }
-    if (configuredAnchorKey && configuredAnchorKey !== getServiceKey(anchorService)) {
-      return false;
-    }
+    if (!candidateTargetsAnchor(service, anchorService)) return false;
 
     const duration = getServiceDuration(service);
     if (!duration || !anchorDuration) return false;
-    if (serviceAllowsShorterDurationInference(anchorService)) {
-      if (duration > anchorDuration) return false;
-    } else if (duration !== anchorDuration) {
-      return false;
+
+    const explicitlyInferable = serviceCanBeInferred(service);
+
+    if (autoInferShorter) {
+      if (duration >= anchorDuration) return false;
+    } else {
+      if (!explicitlyInferable || duration !== anchorDuration) return false;
     }
 
     const serviceType = normalizeServiceType(service.serviceType || "");
@@ -187,19 +249,47 @@ function buildInferencePlan(scrapedService = {}, businessConfig = {}) {
   const businessName = businessConfig.businessName || businessConfig.name || "";
 
   if (!anchorService) {
-    return { canInfer: false, reason: "No matching canonical service found.", businessName, scrapedService, anchorService: null, inferServices: [] };
-  }
-  if (!serviceIsEnabled(anchorService)) {
-    return { canInfer: false, reason: "Matched service is disabled.", businessName, scrapedService, anchorService, inferServices: [] };
-  }
-  if (!serviceIsInferenceAnchor(anchorService)) {
-    return { canInfer: false, reason: "Matched service is not an inference anchor.", businessName, scrapedService, anchorService, inferServices: [] };
+    return {
+      canInfer: false,
+      reason: "No matching canonical service found.",
+      businessName,
+      scrapedService,
+      anchorService: null,
+      inferServices: []
+    };
   }
 
-  const candidates = sortServicesForInference(getCandidateServices(anchorService, businessConfig));
+  if (!serviceIsEnabled(anchorService)) {
+    return {
+      canInfer: false,
+      reason: "Matched service is disabled.",
+      businessName,
+      scrapedService,
+      anchorService,
+      inferServices: []
+    };
+  }
+
+  if (!serviceIsInferenceAnchor(anchorService)) {
+    return {
+      canInfer: false,
+      reason: "Matched service is not an inference anchor.",
+      businessName,
+      scrapedService,
+      anchorService,
+      inferServices: []
+    };
+  }
+
+  const candidates = sortServicesForInference(
+    getCandidateServices(anchorService, businessConfig)
+  );
+
   return {
     canInfer: candidates.length > 0,
-    reason: candidates.length ? "Inference plan created." : "No enabled inferable services matched this anchor.",
+    reason: candidates.length
+      ? "Inference plan created."
+      : "No enabled inferable services matched this anchor.",
     businessName,
     anchorService: {
       id: getServiceId(anchorService),
@@ -214,8 +304,12 @@ function buildInferencePlan(scrapedService = {}, businessConfig = {}) {
     },
     inferServices: candidates.map((service) => ({
       id: getServiceId(service),
-      anchorServiceId: getSearchInference(service).anchorServiceId || getServiceId(anchorService),
-      anchorServiceKey: getSearchInference(service).anchorServiceKey || getServiceKey(anchorService),
+      anchorServiceId:
+        getSearchInference(service).anchorServiceId ||
+        getServiceId(anchorService),
+      anchorServiceKey:
+        getSearchInference(service).anchorServiceKey ||
+        getServiceKey(anchorService),
       serviceName: service.serviceName || "",
       serviceType: service.serviceType || "",
       durationMinutes: getServiceDuration(service),
@@ -223,8 +317,14 @@ function buildInferencePlan(scrapedService = {}, businessConfig = {}) {
       platformServiceId: service.platformServiceId || null,
       serviceId: service.serviceId || null,
       price: service.price || null,
-      inferStartIntervalMinutes: getInferStartIntervalMinutes(service, getInferStartIntervalMinutes(anchorService)),
-      inferenceConfidence: getInferenceConfidence(service, getInferenceConfidence(anchorService)),
+      inferStartIntervalMinutes: getInferStartIntervalMinutes(
+        service,
+        getInferStartIntervalMinutes(anchorService)
+      ),
+      inferenceConfidence: getInferenceConfidence(
+        service,
+        getInferenceConfidence(anchorService)
+      ),
       source: "inference_plan"
     }))
   };

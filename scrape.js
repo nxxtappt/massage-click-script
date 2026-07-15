@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 const { chromium } = require("playwright");
-
 const { parseCliFilters, buildScrapeJobs } = require("./jobBuilder");
 const { initializeAppointmentCache, upsertAppointmentResult, getCacheStats } = require("./cacheManager");
 const { shouldSkipScrapeForFreshCache } = require("./staleChecker");
@@ -58,7 +57,6 @@ function resolveBusinessServiceId(...values) {
 
   return null;
 }
-
 const {
   mergeConfirmedAndInferredAppointments
 } = require("./availabilityInferenceEngine");
@@ -75,6 +73,7 @@ const scrapeVagaroMarketplace =
   vagaroModule.scrapeVagaroMarketplace ||
   vagaroModule.scrapeVagaroMarketplaceSearch ||
   vagaroModule;
+
 
 function normalizeResultKeyValue(value) {
   return String(value || "")
@@ -132,7 +131,7 @@ async function cacheResult(result) {
       return;
     }
 
-    await upsertAppointmentResult(result, { ttlMinutes });
+    upsertAppointmentResult(result, { ttlMinutes });
   } catch (error) {
     console.error("[CACHE] Failed to save scrape result:", error.message);
   }
@@ -836,7 +835,7 @@ async function scrapeWithRetries(browser, business) {
           ...buildScrapeWindowPayload(scrapeTarget)
         };
 
-        await appendErrorLog(errorResult);
+        appendErrorLog(errorResult);
 
         return errorResult;
       }
@@ -873,8 +872,7 @@ async function runVagaroDiscoveryOnly(filters = {}) {
       inspectBusinessPages: filters.inspectBusinessPages !== "false"
     });
 
-    console.log(`[VAGARO] Discovery produced ${vagaroResults.length} result(s); raw output is retained in PostgreSQL scrape records only.`);
-
+    console.log(`Discovered ${vagaroResults.length} Vagaro marketplace result(s).`);
   } catch (error) {
     console.error("Vagaro discovery failed:", error.message);
     await appendErrorLog({
@@ -888,7 +886,6 @@ async function runVagaroDiscoveryOnly(filters = {}) {
 async function run() {
   await initializeAdminSettings();
   await initializeAppointmentCache();
-  await businessManager.getAllBusinesses({ includeDisabled: true });
 
   const adminSettings = loadAdminSettings();
   const filters = parseCliFilters(process.argv);
@@ -902,7 +899,7 @@ async function run() {
     adminSettings.scraping.skipFreshCache !== false && !forceRefresh;
 
   if (adminSettings.scraping.enabled === false) {
-    console.log("[ADMIN] Scraping is disabled in PostgreSQL admin settings.");
+    console.log("[ADMIN] Scraping is disabled.");
     return;
   }
 
@@ -966,6 +963,7 @@ async function run() {
 
   if (scrapeJobs.length === 0) {
     console.log("No scrape jobs matched the filters or enabled platforms.");
+    console.log("[RESULTS] Leaving existing results.json untouched.");
     return;
   }
 
@@ -975,9 +973,7 @@ async function run() {
 
 let results = [];
 
-  console.log(
-    "[INVENTORY] Starting a new PostgreSQL-backed scrape run."
-  );
+  console.log("[INVENTORY] Starting a new PostgreSQL-backed scrape run.");
 
   try {
     for (const job of scrapeJobs) {
@@ -987,6 +983,7 @@ let results = [];
         job.serviceDatabaseId,
         job.serviceConfigId
       );
+
       if (skipFreshCache) {
         const staleCheck = shouldSkipScrapeForFreshCache(job, {
           forceRefresh
@@ -1008,7 +1005,9 @@ let results = [];
 
       const scrapeRun = await createScrapeRun({
         triggerType:
-          filters.manual === true || filters.manual === "true" ? "manual" : "scheduled",
+          filters.manual === true || filters.manual === "true"
+            ? "manual"
+            : "scheduled",
         businessName: job.businessName,
         platform: job.platform,
         serviceName: job.serviceName || job.service || "",
@@ -1042,6 +1041,7 @@ result.businessServiceId = resolveBusinessServiceId(
   result.businessServiceId,
   businessServiceId
 );
+
 const confirmedAppointments = resultTimesToAppointments(result);
 
 function toDateKey(displayDate) {
@@ -1061,13 +1061,84 @@ function resultTimesToAppointments(result = {}) {
   if (Array.isArray(result.appointments) && result.appointments.length > 0) {
     return result.appointments.map((appointment) => ({
       ...appointment,
+      businessName:
+        appointment.businessName ||
+        result.businessName ||
+        job.businessName ||
+        "",
+      platform:
+        appointment.platform ||
+        result.platform ||
+        job.platform ||
+        "",
+      bookingUrl:
+        appointment.bookingUrl ||
+        result.bookingUrl ||
+        job.bookingUrl ||
+        "",
+      serviceName:
+        appointment.serviceName ||
+        appointment.service ||
+        result.serviceName ||
+        result.service ||
+        job.serviceName ||
+        "",
+      service:
+        appointment.service ||
+        appointment.serviceName ||
+        result.serviceName ||
+        result.service ||
+        job.serviceName ||
+        "",
+      serviceType:
+        appointment.serviceType ||
+        appointment.serviceCategory ||
+        result.serviceType ||
+        job.serviceType ||
+        "",
+      serviceCategory:
+        appointment.serviceCategory ||
+        appointment.serviceType ||
+        result.serviceType ||
+        job.serviceType ||
+        "",
+      durationMinutes:
+        appointment.durationMinutes ||
+        appointment.duration ||
+        result.durationMinutes ||
+        job.durationMinutes ||
+        null,
+      therapistName:
+        appointment.therapistName ||
+        appointment.providerName ||
+        appointment.provider ||
+        result.provider ||
+        result.providerText ||
+        "",
+      provider:
+        appointment.provider ||
+        appointment.providerName ||
+        appointment.therapistName ||
+        result.provider ||
+        result.providerText ||
+        "",
+      platformServiceId:
+        appointment.platformServiceId ||
+        result.platformServiceId ||
+        job.platformServiceId ||
+        null,
+      serviceId:
+        appointment.serviceId ||
+        result.serviceId ||
+        job.serviceId ||
+        null,
+      businessServiceId: resolveBusinessServiceId(
+        appointment.businessServiceId,
+        appointment.business_service_id,
+        result.businessServiceId,
+        businessServiceId
+      ),
       sourceType: appointment.sourceType || "confirmed",
-      businessServiceId:
-        resolveBusinessServiceId(
-          appointment.businessServiceId,
-          result.businessServiceId,
-          businessServiceId
-        ),
       localDateKey: appointment.localDateKey || localDateKey
     }));
   }
@@ -1150,7 +1221,8 @@ console.log(
 );
 
 const inferredAppointments = mergedAppointments.filter(
-  (appointment) => String(appointment.sourceType || "").toLowerCase() === "inferred"
+  (appointment) =>
+    String(appointment.sourceType || "").toLowerCase() === "inferred"
 );
 
 if (inferredAppointments.length > 0) {
@@ -1166,6 +1238,18 @@ if (inferredAppointments.length > 0) {
   console.log(
     `[INVENTORY] Saved ${savedInferred.length} inferred appointment(s) to PostgreSQL inventory.`
   );
+} else if (confirmedAppointments.length > 0) {
+  const anchor = confirmedAppointments[0] || {};
+  console.warn("[INFERENCE] No inferred appointments generated.", {
+    businessName: result.businessName || job.businessName || "",
+    businessServiceId,
+    serviceName: anchor.serviceName || anchor.service || job.serviceName || "",
+    serviceType: anchor.serviceType || anchor.serviceCategory || job.serviceType || "",
+    durationMinutes: anchor.durationMinutes || job.durationMinutes || null,
+    inferenceRole: job.inferenceRole || "",
+    inferShorterDurations: job.inferShorterDurations === true,
+    configuredServiceCount: Array.isArray(job.services) ? job.services.length : 0
+  });
 }
 
 results = upsertResult(results, resultWithInference);
@@ -1190,7 +1274,7 @@ await cacheResult(resultWithInference);
 if (require.main === module) {
   run().catch(async (error) => {
     console.error("Fatal scrape error:", error);
-    await appendErrorLog({
+    appendErrorLog({
       status: "fatal_error",
       error: error.message,
       stack: error.stack

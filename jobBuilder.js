@@ -340,10 +340,6 @@ function getEnabledServicesForBusiness(business) {
               : Boolean(business.skipProvider),
 
           enabled: service.enabled !== false,
-          scrapeDirectly:
-            service.scrapeDirectly !== false &&
-            service.inferenceRole !== "inferred" &&
-            service.searchInference?.canBeInferred !== true,
           priority: service.priority || business.priority || "",
           discoveryStatus:
             service.discoveryStatus ||
@@ -362,34 +358,74 @@ function getEnabledServicesForBusiness(business) {
 
           searchInference:
             service.searchInference ||
+            service.inference ||
             null,
 
+          inferenceEnabled:
+            service.inferenceEnabled === true ||
+            service.searchInference?.enabled === true ||
+            Boolean(service.inferenceRole),
+
           inferenceRole:
-  service.inferenceRole ||
-  service.searchInference?.inferenceRole ||
-  service.inference?.role ||
-  "",
+            service.inferenceRole ||
+            service.searchInference?.inferenceRole ||
+            service.inference?.role ||
+            "",
 
-canInfer:
-  service.canInfer === true ||
-  service.searchInference?.isInferenceAnchor === true ||
-  service.searchInference?.inferenceRole === "anchor",
+          canInfer:
+            service.canInfer === true ||
+            service.searchInference?.isInferenceAnchor === true ||
+            service.searchInference?.inferenceRole === "anchor" ||
+            service.inferenceRole === "anchor",
 
-inferShorterDurations:
-  service.inferShorterDurations === true ||
-  service.searchInference?.inferShorterDurations === true ||
-  service.inference?.inferShorterDurations === true,
+          inferShorterDurations:
+            service.inferShorterDurations === true ||
+            service.searchInference?.inferShorterDurations === true ||
+            service.inference?.inferShorterDurations === true,
 
-inferredFromAnchor:
-  service.inferredFromAnchor === true ||
-  service.searchInference?.canBeInferred === true ||
-  service.searchInference?.inferenceRole === "inferred",
+          inferServiceTypes: Array.isArray(service.inferServiceTypes)
+            ? service.inferServiceTypes
+            : Array.isArray(service.searchInference?.inferServiceTypes)
+              ? service.searchInference.inferServiceTypes
+              : [],
 
-inference:
-  service.searchInference ||
-  service.inference ||
-  null
-          };
+          inferStartIntervalMinutes:
+            service.inferStartIntervalMinutes ||
+            service.searchInference?.inferStartIntervalMinutes ||
+            null,
+
+          inferenceConfidence:
+            service.inferenceConfidence ??
+            service.searchInference?.confidence ??
+            null,
+
+          bookingIntervalMinutes:
+            service.bookingIntervalMinutes ||
+            null,
+
+          anchorServiceId:
+            service.anchorServiceId ||
+            service.anchor_service_id ||
+            service.searchInference?.anchorServiceId ||
+            null,
+
+          anchorServiceKey:
+            service.anchorServiceKey ||
+            service.anchor_service_key ||
+            service.searchInference?.anchorServiceKey ||
+            null,
+
+          inferredFromAnchor:
+            service.inferredFromAnchor === true ||
+            service.searchInference?.canBeInferred === true ||
+            service.searchInference?.inferenceRole === "inferred" ||
+            service.inferenceRole === "inferred",
+
+          inference:
+            service.searchInference ||
+            service.inference ||
+            null
+        };
           });
     }
 
@@ -425,7 +461,6 @@ inference:
       providerText: business.providerText || "First Available",
       skipProvider: Boolean(business.skipProvider),
       enabled: true,
-      scrapeDirectly: business.scrapeDirectly !== false,
       priority: business.priority || "medium",
       discoveryStatus: business.discoveryStatus || "manual",
       daysForward: business.daysForward || null,
@@ -583,6 +618,10 @@ function getScrapeMode(filters = {}) {
     return "manual";
   }
 
+  if (filters.onDemand === true || filters.onDemand === "true") {
+    return "onDemand";
+  }
+
   return "scheduled";
 }
 
@@ -607,14 +646,6 @@ function servicePassesServiceRules(service, business, filters = {}, adminSetting
     return false;
   }
 
-  const forceDirectScrape =
-    filters.forceDirectScrape === true ||
-    filters.forceDirectScrape === "true";
-
-  if (service.scrapeDirectly === false && !forceDirectScrape) {
-    return false;
-  }
-
   const priority = normalize(service.priority);
   const discoveryStatus = normalize(service.discoveryStatus);
 
@@ -624,6 +655,13 @@ function servicePassesServiceRules(service, business, filters = {}, adminSetting
   if (mode === "scheduled") {
     allowedPriorities = normalizeList(rules.scheduledPriorities || ["high"]);
     allowedDiscoveryStatuses = normalizeList(rules.scheduledDiscoveryStatuses || ["approved"]);
+  }
+
+  if (mode === "onDemand") {
+    allowedPriorities = normalizeList(rules.onDemandPriorities || ["high", "medium", "normal"]);
+    allowedDiscoveryStatuses = normalizeList(
+      rules.onDemandDiscoveryStatuses || ["approved", "manual"]
+    );
   }
 
   if (mode === "manual") {
@@ -751,6 +789,10 @@ function limitServicesPerBusiness(jobs, filters = {}, adminSettings = null) {
 
   if (mode === "scheduled") {
     limit = Number(rules.maxServicesPerBusinessPerScheduledRun || 0);
+  }
+
+  if (mode === "onDemand") {
+    limit = Number(rules.maxServicesPerBusinessPerOnDemandRun || 0);
   }
 
   if (mode === "manual") {
@@ -949,13 +991,37 @@ function buildScrapeJobs(businesses, filters = {}) {
         priority: service.priority,
         discoveryStatus: service.discoveryStatus,
         searchInference: service.searchInference || service.inference || null,
+        inferenceEnabled: service.inferenceEnabled === true,
         inferenceRole: service.inferenceRole || service.searchInference?.inferenceRole || "",
         canInfer: service.canInfer === true,
         inferredFromAnchor: service.inferredFromAnchor === true,
-        scrapeDirectly: service.scrapeDirectly !== false,
-        businessServiceId: service.id || service.businessServiceId || null,
-        anchorServiceId: service.anchorServiceId || null,
-        inferenceEnabled: service.inferenceEnabled === true,
+        inferShorterDurations: service.inferShorterDurations === true,
+        inferServiceTypes: Array.isArray(service.inferServiceTypes)
+          ? service.inferServiceTypes
+          : [],
+        inferStartIntervalMinutes: service.inferStartIntervalMinutes || null,
+        inferenceConfidence: service.inferenceConfidence ?? null,
+        bookingIntervalMinutes: service.bookingIntervalMinutes || null,
+        businessServiceId:
+          service.businessServiceId ||
+          service.business_service_id ||
+          service.id ||
+          null,
+        serviceDatabaseId:
+          service.businessServiceId ||
+          service.business_service_id ||
+          service.id ||
+          null,
+        anchorServiceId:
+          service.anchorServiceId ||
+          service.anchor_service_id ||
+          service.searchInference?.anchorServiceId ||
+          null,
+        anchorServiceKey:
+          service.anchorServiceKey ||
+          service.anchor_service_key ||
+          service.searchInference?.anchorServiceKey ||
+          null,
 
         scrapeStartDate: scrapeWindow.scrapeStartDate,
         scrapeEndDate: scrapeWindow.scrapeEndDate,
