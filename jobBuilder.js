@@ -279,9 +279,28 @@ function getEnabledServicesForBusiness(business) {
         const serviceType = getCanonicalServiceTypeForService(service, business);
 
         return {
+          id:
+            service.id ||
+            service.businessServiceId ||
+            service.business_service_id ||
+            null,
+          businessServiceId:
+            service.businessServiceId ||
+            service.id ||
+            service.business_service_id ||
+            null,
+          canonicalKey:
+            service.canonicalKey ||
+            service.canonical_key ||
+            "",
           serviceName: service.serviceName || business.serviceName || "",
           serviceType,
           durationMinutes: service.durationMinutes || business.durationMinutes || null,
+          price: service.price ?? business.price ?? null,
+          sessionTypeId:
+            service.sessionTypeId ||
+            service.session_type_id ||
+            null,
 
           platformServiceId:
             service.platformServiceId ||
@@ -340,6 +359,10 @@ function getEnabledServicesForBusiness(business) {
               : Boolean(business.skipProvider),
 
           enabled: service.enabled !== false,
+          scrapeDirectly:
+            service.scrapeDirectly !== false &&
+            service.inferenceRole !== "inferred" &&
+            service.searchInference?.canBeInferred !== true,
           priority: service.priority || business.priority || "",
           discoveryStatus:
             service.discoveryStatus ||
@@ -433,9 +456,28 @@ function getEnabledServicesForBusiness(business) {
 
   return [
     {
+      id:
+        business.id ||
+        business.businessServiceId ||
+        business.business_service_id ||
+        null,
+      businessServiceId:
+        business.businessServiceId ||
+        business.id ||
+        business.business_service_id ||
+        null,
+      canonicalKey:
+        business.canonicalKey ||
+        business.canonical_key ||
+        "",
       serviceName: business.serviceName || "",
       serviceType,
       durationMinutes: business.durationMinutes || null,
+      price: business.price ?? null,
+      sessionTypeId:
+        business.sessionTypeId ||
+        business.session_type_id ||
+        null,
 
       platformServiceId:
         business.platformServiceId ||
@@ -461,6 +503,7 @@ function getEnabledServicesForBusiness(business) {
       providerText: business.providerText || "First Available",
       skipProvider: Boolean(business.skipProvider),
       enabled: true,
+      scrapeDirectly: business.scrapeDirectly !== false,
       priority: business.priority || "medium",
       discoveryStatus: business.discoveryStatus || "manual",
       daysForward: business.daysForward || null,

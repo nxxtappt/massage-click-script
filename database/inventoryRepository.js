@@ -509,6 +509,61 @@ async function insertInventoryAppointment(payload = {}, client = db) {
   );
 }
 
+async function reconcileAppointmentInventoryScope(payload = {}, client = db) {
+  const businessServiceId = toBigIntOrNull(payload.businessServiceId);
+  const anchorServiceId = toBigIntOrNull(
+    payload.anchorServiceId || payload.businessServiceId
+  );
+
+  if (!businessServiceId && !anchorServiceId) {
+    return { deleted: 0 };
+  }
+
+  const values = [];
+  const where = [];
+
+  if (businessServiceId && anchorServiceId) {
+    values.push(businessServiceId, anchorServiceId);
+    where.push("(business_service_id = $1 OR anchor_service_id = $2)");
+  } else if (businessServiceId) {
+    values.push(businessServiceId);
+    where.push("business_service_id = $1");
+  } else {
+    values.push(anchorServiceId);
+    where.push("anchor_service_id = $1");
+  }
+
+  const startDate = payload.scrapeStartDate || payload.startDate || null;
+  const endDate =
+    payload.scrapeEndDate ||
+    payload.endDate ||
+    startDate ||
+    null;
+
+  if (startDate) {
+    values.push(startDate);
+    where.push(`local_date >= $${values.length}::date`);
+  }
+
+  if (endDate) {
+    values.push(endDate);
+    where.push(`local_date <= $${values.length}::date`);
+  }
+
+  const result = await client.query(
+    `
+      DELETE FROM appointment_inventory
+      WHERE ${where.join(" AND ")}
+      RETURNING id
+    `,
+    values
+  );
+
+  return {
+    deleted: result.rowCount || result.rows.length
+  };
+}
+
 async function insertConfirmedAppointmentsFromResult(result = {}, options = {}, client = db) {
   const appointments = extractAppointments(result);
   const inserted = [];
@@ -823,6 +878,7 @@ module.exports = {
   insertInferredAppointment,
   insertConfirmedAppointmentsFromResult,
   insertInventoryAppointment,
+  reconcileAppointmentInventoryScope,
   saveBusinessResult,
   getInventory,
   searchInventory,

@@ -64,7 +64,8 @@ const {
   createScrapeRun,
   finishScrapeRun,
   insertRawScrapeResult,
-  insertConfirmedAppointmentsFromResult
+  insertConfirmedAppointmentsFromResult,
+  reconcileAppointmentInventoryScope
 } = require("./database/inventoryRepository");
 
 const { logScrapeError } = require("./database/runtimeStateRepository");
@@ -903,7 +904,9 @@ async function run() {
     return;
   }
 
-  const businesses = businessManager.getAllBusinessesSync();
+  const businesses = await businessManager.getAllBusinesses({
+    includeDisabled: false
+  });
 
   const supportedPlatforms = [
     "mindbody",
@@ -1209,6 +1212,17 @@ const confirmedInventoryResult = {
   businessServiceId,
   appointments: confirmedAppointments
 };
+
+const reconciledInventory = await reconcileAppointmentInventoryScope({
+  businessServiceId,
+  anchorServiceId: businessServiceId,
+  scrapeStartDate: result.scrapeStartDate || job.scrapeStartDate || null,
+  scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null
+});
+
+console.log(
+  `[INVENTORY] Removed ${reconciledInventory.deleted} previous inventory row(s) for this service and scrape window.`
+);
 
 const insertedInventoryAppointments =
   await insertConfirmedAppointmentsFromResult(confirmedInventoryResult, {

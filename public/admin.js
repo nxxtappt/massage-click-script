@@ -175,6 +175,19 @@ function normalizeBusinessDefaults(business) {
   return normalized;
 }
 
+function normalizeInferServiceTypes(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function createBlankService() {
   return {
     serviceType: "",
@@ -366,7 +379,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
           candidate.id ||
           candidate.businessServiceId ||
           `key:${getAdminServiceKey(candidate)}`,
-        label: `${candidate.serviceName || "Unnamed"} · ${candidate.durationMinutes || "?"} min`
+        label: `${candidate.serviceName || "Unnamed"} Â· ${candidate.durationMinutes || "?"} min`
       }))
   ];
 
@@ -375,7 +388,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
       <div class="service-card-header">
         <div>
           <h4>${escapeHtml(service.serviceName || "Unnamed Service")}</h4>
-          <p>${escapeHtml(service.serviceType || "unknown")} · ${escapeHtml(service.durationMinutes || "unknown")} min · ${escapeHtml(service.priority || "no priority")} · ${escapeHtml(service.discoveryStatus || "no status")}</p>
+          <p>${escapeHtml(service.serviceType || "unknown")} Â· ${escapeHtml(service.durationMinutes || "unknown")} min Â· ${escapeHtml(service.priority || "no priority")} Â· ${escapeHtml(service.discoveryStatus || "no status")}</p>
         </div>
 
         <div class="service-card-actions">
@@ -422,8 +435,8 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
           serviceIndex,
           [
             { value: "", label: "No inference role" },
-            { value: "anchor", label: "Anchor — scrape confirmed availability" },
-            { value: "inferred", label: "Inferred — generated from an anchor" }
+            { value: "anchor", label: "Anchor â€” scrape confirmed availability" },
+            { value: "inferred", label: "Inferred â€” generated from an anchor" }
           ]
         )}
 
@@ -444,7 +457,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
         ${renderServiceInput(
           "Infer Service Types",
           "inferServiceTypes",
-          Array.isArray(service.inferServiceTypes) ? service.inferServiceTypes.join(", ") : service.inferServiceTypes || "",
+          normalizeInferServiceTypes(service.inferServiceTypes).join(", "),
           businessIndex,
           serviceIndex
         )}
@@ -584,13 +597,6 @@ function attachServiceInputListeners() {
         ].includes(field)
       ) {
         value = value === "" ? null : Number(value);
-      }
-
-      if (field === "inferServiceTypes") {
-        value = String(value || "")
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
       }
 
       business.services[serviceIndex][field] = value;
@@ -804,7 +810,7 @@ function renderBusinessesFromCache() {
   content.innerHTML = `
     <div class="section-heading compact-heading">
       <div>
-        <button id="backToBusinessSearchBtn" class="secondary-btn">← Back to Business Search</button>
+        <button id="backToBusinessSearchBtn" class="secondary-btn">â† Back to Business Search</button>
       </div>
     </div>
     <div class="business-list">
@@ -850,11 +856,24 @@ async function saveSingleBusiness(index, button = null) {
     }
 
     setStatus(`Saving ${business.businessName}...`, "info");
+
+    const businessToSave = {
+      ...business,
+      services: Array.isArray(business.services)
+        ? business.services.map((service) => ({
+            ...service,
+            inferServiceTypes: normalizeInferServiceTypes(
+              service.inferServiceTypes
+            )
+          }))
+        : []
+    };
+
     const identifier = business.businessId || business.id || "new";
     const data = await fetchJson(`/api/admin/businesses/${encodeURIComponent(identifier)}/save`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ business })
+      body: JSON.stringify({ business: businessToSave })
     });
 
     businessesCache[index] = normalizeBusinessDefaults(data.business || business);
@@ -1428,11 +1447,11 @@ async function loadResults() {
                 <article class="inventory-card">
                   <div>
                     <strong>${escapeHtml(row.business_name || row.businessName || "Unknown business")}</strong>
-                    <p>${escapeHtml(row.service_name || row.serviceName || row.service_category || "Service")} · ${escapeHtml(row.duration_minutes || row.durationMinutes || "?")} min</p>
+                    <p>${escapeHtml(row.service_name || row.serviceName || row.service_category || "Service")} Â· ${escapeHtml(row.duration_minutes || row.durationMinutes || "?")} min</p>
                   </div>
                   <div>
                     <strong>${escapeHtml(row.local_date || row.localDate || row.target_local_date_key || "")}</strong>
-                    <p>${escapeHtml(row.local_time || row.localTime || "")} · ${escapeHtml(row.platform || "")}</p>
+                    <p>${escapeHtml(row.local_time || row.localTime || "")} Â· ${escapeHtml(row.platform || "")}</p>
                   </div>
                   <span class="platform-pill">${escapeHtml(row.appointment_source || row.source_type || row.sourceType || "confirmed")}</span>
                 </article>
@@ -2104,7 +2123,7 @@ function renderClaimCard(claim) {
 
           <p>
             ${escapeHtml(claim.ownerName || "Unknown Owner")}
-            ·
+            Â·
             ${escapeHtml(claim.email || "")}
           </p>
         </div>
@@ -2217,8 +2236,8 @@ async function loadClaims() {
         <div>
           <h3>${claimSearchState.total} Matching Claims</h3>
           <p>
-            Pending: ${escapeHtml(data.stats?.pending || 0)} ·
-            Verified: ${escapeHtml(data.stats?.verified || 0)} ·
+            Pending: ${escapeHtml(data.stats?.pending || 0)} Â·
+            Verified: ${escapeHtml(data.stats?.verified || 0)} Â·
             Rejected: ${escapeHtml(data.stats?.rejected || 0)}
           </p>
         </div>
