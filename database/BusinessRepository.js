@@ -20,6 +20,20 @@ function cleanObject(value) {
     : {};
 }
 
+function normalizeTextArray(value) {
+  const values = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+
+  return [...new Set(
+    values
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+  )];
+}
+
 function toCleanRawJson(input = {}, allowedKeys = []) {
   const output = {};
   for (const key of allowedKeys) {
@@ -171,11 +185,11 @@ function normalizeService(input = {}, business = {}, numericBusinessId) {
         : null),
     inferShorterDurations:
       input.inferShorterDurations === true || inference.inferShorterDurations === true,
-    inferServiceTypes: Array.isArray(input.inferServiceTypes)
-      ? input.inferServiceTypes
-      : Array.isArray(inference.inferServiceTypes)
-        ? inference.inferServiceTypes
-        : [],
+    inferServiceTypes: normalizeTextArray(
+      input.inferServiceTypes !== undefined
+        ? input.inferServiceTypes
+        : inference.inferServiceTypes
+    ),
     inferStartIntervalMinutes:
       input.inferStartIntervalMinutes ||
       inference.inferStartIntervalMinutes ||
@@ -687,7 +701,7 @@ async function saveServices(numericBusinessId, businessOrServices = [], client =
         )
         VALUES (
           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-          $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,NOW()
+          $19,$20,$21,$22,$23,$24,$25::text[],$26,$27,$28,$29,NOW()
         )
         ON CONFLICT (business_id, canonical_key)
         DO UPDATE SET
