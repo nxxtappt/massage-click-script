@@ -382,10 +382,22 @@ async function insertConfirmedAppointment(payload = {}, client = db) {
       duration_minutes: toNumberOrNull(payload.durationMinutes),
       provider_name: payload.providerName || payload.therapistName || payload.provider || null,
       booking_url: payload.bookingUrl || null,
-      appointment_start: payload.appointmentStart || null,
+      appointment_start:
+        payload.appointmentStart ||
+        payload.startTime ||
+        buildAppointmentStart(payload) ||
+        null,
       appointment_end: payload.appointmentEnd || payload.endTime || null,
-      local_date: payload.localDate || null,
-      local_time: payload.localTime || null,
+      local_date:
+        payload.localDate ||
+        payload.localDateKey ||
+        buildLocalDate(payload) ||
+        null,
+      local_time:
+        payload.localTime ||
+        payload.localTimeKey ||
+        buildLocalTime(payload) ||
+        null,
       timezone: payload.timezone || DEFAULT_TIMEZONE,
       source_type: payload.sourceType || "confirmed",
       confidence: payload.confidence === undefined ? 1.0 : Number(payload.confidence),
@@ -481,10 +493,22 @@ async function insertInventoryAppointment(payload = {}, client = db) {
         null,
       booking_url: payload.bookingUrl || null,
 
-      appointment_start: payload.appointmentStart || null,
+      appointment_start:
+        payload.appointmentStart ||
+        payload.startTime ||
+        buildAppointmentStart(payload) ||
+        null,
       appointment_end: payload.appointmentEnd || payload.endTime || null,
-      local_date: payload.localDate || null,
-      local_time: payload.localTime || null,
+      local_date:
+        payload.localDate ||
+        payload.localDateKey ||
+        buildLocalDate(payload) ||
+        null,
+      local_time:
+        payload.localTime ||
+        payload.localTimeKey ||
+        buildLocalTime(payload) ||
+        null,
       timezone: payload.timezone || DEFAULT_TIMEZONE,
 
       confidence:
