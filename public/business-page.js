@@ -48,6 +48,28 @@ function formatAppointmentButton(appointment = {}) {
   return appointment.time || "Time available";
 }
 
+function formatAppointmentService(appointment = {}) {
+  const serviceName = String(
+    appointment.serviceName ||
+    appointment.service ||
+    appointment.serviceCategory ||
+    "Appointment"
+  ).trim();
+  const durationMinutes = Number(appointment.durationMinutes);
+
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+    return serviceName;
+  }
+
+  const durationAlreadyShown = new RegExp(
+    `(^|\\D)${durationMinutes}(\\D|$)`
+  ).test(serviceName);
+
+  return durationAlreadyShown
+    ? serviceName
+    : `${serviceName} - ${durationMinutes} min`;
+}
+
 function groupAppointmentsByDate(appointments = []) {
   return appointments.reduce((groups, appointment) => {
     const key = appointment.localDateKey || appointment.date || "Upcoming";
@@ -255,6 +277,8 @@ async function loadBusinessInventory(page) {
                     "";
 
                   const isInferred = String(sourceType).toLowerCase() === "inferred";
+                  const availabilityLabel = isInferred ? "Inferred" : "Confirmed";
+                  const serviceLabel = formatAppointmentService(appointment);
 
                   return `
                     <a
@@ -263,8 +287,11 @@ async function loadBusinessInventory(page) {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <span>${escapeHtml(formatAppointmentButton(appointment))}</span>
-                      <small>${escapeHtml(isInferred ? "Inferred" : "Confirmed")}</small>
+                      <span class="appointment-date-time">${escapeHtml(formatAppointmentButton(appointment))}</span>
+                      <small class="appointment-details">
+                        <span class="appointment-status">${escapeHtml(availabilityLabel)}</span>
+                        <span class="appointment-service" title="${escapeAttribute(serviceLabel)}">${escapeHtml(serviceLabel)}</span>
+                      </small>
                     </a>
                   `;
                 })

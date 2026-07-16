@@ -206,19 +206,48 @@ h2 {
 .appointment-button {
   display: inline-flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  width: 190px;
+  max-width: 100%;
+  box-sizing: border-box;
   text-decoration: none;
   background: #0075b9;
   color: white;
-  padding: 11px 13px;
+  padding: 10px 16px;
   border-radius: 14px;
   font-weight: 900;
 }
 
-.appointment-button small {
-  font-size: 11px;
+.appointment-date-time {
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.appointment-details {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.2;
   opacity: 0.85;
+}
+
+.appointment-status {
+  flex: 0 0 auto;
   text-transform: uppercase;
+}
+
+.appointment-status::after {
+  content: " -";
+}
+
+.appointment-service {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
 }
 
 .appointment-button.inferred {
