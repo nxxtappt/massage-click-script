@@ -892,6 +892,64 @@ function serviceIsInferenceAnchor(service = {}) {
   );
 }
 
+function serviceIsInferredTarget(service = {}) {
+  const searchInference = service.searchInference || service.inference || {};
+
+  return Boolean(
+    service.inferredFromAnchor === true ||
+      service.inferenceRole === "inferred" ||
+      searchInference.role === "inferred" ||
+      searchInference.inferenceRole === "inferred" ||
+      searchInference.canBeInferred === true
+  );
+}
+
+function shouldScrapeServiceDirectly(service = {}, filters = {}) {
+  const forceDirectScrape =
+    filters.forceDirectScrape === true ||
+    filters.forceDirectScrape === "true";
+
+  if (forceDirectScrape) {
+    return true;
+  }
+
+  if (serviceIsInferredTarget(service)) {
+    return false;
+  }
+
+  return service.scrapeDirectly !== false;
+}
+
+function sortServicesForScraping(services = []) {
+  return [...services].sort((a, b) => {
+    const anchorDifference =
+      Number(serviceIsInferenceAnchor(b)) -
+      Number(serviceIsInferenceAnchor(a));
+
+    if (anchorDifference) {
+      return anchorDifference;
+    }
+
+    const priorityRank = {
+      high: 0,
+      medium: 1,
+      normal: 2,
+      low: 3
+    };
+
+    const aPriority = priorityRank[normalize(a.priority)] ?? 4;
+    const bPriority = priorityRank[normalize(b.priority)] ?? 4;
+
+    if (aPriority !== bPriority) {
+      return aPriority - bPriority;
+    }
+
+    return String(a.serviceName || "").localeCompare(
+      String(b.serviceName || "")
+    );
+  });
+}
+
 function businessHasInferenceAnchors(services = []) {
   return services.some(serviceIsInferenceAnchor);
 }
@@ -975,9 +1033,11 @@ function buildScrapeJobs(businesses, filters = {}) {
       continue;
     }
 
-    const services = filterServicesForInferenceAnchors(
-      getEnabledServicesForBusiness(business),
-      filters
+    const services = sortServicesForScraping(
+      filterServicesForInferenceAnchors(
+        getEnabledServicesForBusiness(business),
+        filters
+      ).filter((service) => shouldScrapeServiceDirectly(service, filters))
     );
 
     for (const service of services) {
@@ -1093,6 +1153,9 @@ module.exports = {
   businessMatchesExactNameOrAlias,
   businessPassesBusinessFilter,
   serviceIsInferenceAnchor,
+  serviceIsInferredTarget,
+  shouldScrapeServiceDirectly,
+  sortServicesForScraping,
   filterServicesForInferenceAnchors,
   getScrapeMode,
   getResolvedDaysForward,

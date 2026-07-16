@@ -97,6 +97,15 @@ function normalizeAdminService(service = {}) {
     ["", "anchor", "inferred"],
     ""
   );
+  const rawAnchorServiceId = String(service.anchorServiceId || "").trim();
+  const anchorServiceId = /^\d+$/.test(rawAnchorServiceId)
+    ? Number(rawAnchorServiceId)
+    : null;
+  const anchorServiceKey =
+    cleanText(service.anchorServiceKey, 500) ||
+    (rawAnchorServiceId.startsWith("key:")
+      ? cleanText(rawAnchorServiceId.slice(4), 500)
+      : "");
 
   return {
     ...service,
@@ -110,8 +119,8 @@ function normalizeAdminService(service = {}) {
     inferenceEnabled:
       cleanBoolean(service.inferenceEnabled) || Boolean(inferenceRole),
     inferenceRole: inferenceRole || null,
-    anchorServiceId: cleanNumberOrNull(service.anchorServiceId),
-    anchorServiceKey: cleanText(service.anchorServiceKey, 500),
+    anchorServiceId,
+    anchorServiceKey,
     inferShorterDurations: cleanBoolean(service.inferShorterDurations),
     inferServiceTypes: cleanStringArray(service.inferServiceTypes),
     inferStartIntervalMinutes: cleanNumberOrNull(service.inferStartIntervalMinutes),

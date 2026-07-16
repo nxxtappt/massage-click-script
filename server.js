@@ -38,9 +38,6 @@ const {
 const {
   getBusinessPageDataAsync
 } = require("./businessManager");
-const {
-  mergeConfirmedAndInferredAppointments
-} = require("./availabilityInferenceEngine");
 const app = express();
 const PORT = 3000;
 const APPOINTMENT_TIME_ZONE = "America/Chicago";
@@ -228,49 +225,16 @@ function getBusinessConfigByName(businessName) {
 }
 
 function applyInferenceToAppointments(appointments = [], options = {}) {
-  if (options.includeInferred !== true) {
-    return appointments;
-  }
+  const inventory = Array.isArray(appointments) ? appointments : [];
 
-  if (!Array.isArray(appointments) || appointments.length === 0) {
-    return appointments;
-  }
-
-  const grouped = new Map();
-
-  appointments.forEach((appointment) => {
-    const businessName = appointment.businessName || "";
-
-    if (!businessName) {
-      return;
-    }
-
-    if (!grouped.has(businessName)) {
-      grouped.set(businessName, []);
-    }
-
-    grouped.get(businessName).push(appointment);
-  });
-
-  const expanded = [];
-
-  grouped.forEach((businessAppointments, businessName) => {
-    const businessConfig = getBusinessConfigByName(businessName);
-
-    if (!businessConfig) {
-      expanded.push(...businessAppointments);
-      return;
-    }
-
-    expanded.push(
-      ...mergeConfirmedAndInferredAppointments(
-        businessAppointments,
-        businessConfig
-      )
+  if (options.includeInferred === false) {
+    return inventory.filter(
+      (appointment) =>
+        String(appointment.sourceType || "").toLowerCase() !== "inferred"
     );
-  });
+  }
 
-  return dedupeAppointments(expanded);
+  return inventory;
 }
 
 function mergeBusinessesForNormalization(primaryBusinesses, cacheBusinesses) {
@@ -1524,6 +1488,9 @@ function dedupeAppointmentsByStrictTimeKey(appointments = []) {
     const key = [
       appointment.businessName || "",
       appointment.therapistName || "",
+      appointment.serviceName || appointment.service || "",
+      appointment.serviceCategory || appointment.serviceType || "",
+      appointment.durationMinutes || "",
       appointment.startTime || "",
       appointment.rawTime || "",
       appointment.time || ""
@@ -1788,7 +1755,9 @@ function getInventoryFiltersForSearch(query = {}, intent = {}) {
     hours: query.hours || intent.hours || "",
     limit: query.limit || 5000,
     limitPerBusiness: query.limitPerBusiness || 999,
-    includeInactive: true
+    includeInactive: true,
+    includeInferred: query.includeInferred !== "false",
+    includeConfirmed: query.includeConfirmed !== "false"
   };
 }
 
@@ -2094,7 +2063,7 @@ app.get("/api/search", async (req, res) => {
       });
     }
 
-const includeInferred = req.query.includeInferred === "true";
+const includeInferred = req.query.includeInferred !== "false";
 
 const responseAppointments = applyInferenceToAppointments(appointments, {
   includeInferred

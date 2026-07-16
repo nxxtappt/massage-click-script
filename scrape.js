@@ -1055,9 +1055,70 @@ result.businessServiceId = resolveBusinessServiceId(
 const confirmedAppointments = resultTimesToAppointments(result);
 
 function toDateKey(displayDate) {
+  const directMatch = String(displayDate || "").match(/^(\d{4}-\d{2}-\d{2})/);
+  if (directMatch) return directMatch[1];
+
   const parsed = new Date(displayDate);
   if (Number.isNaN(parsed.getTime())) return "";
   return parsed.toISOString().slice(0, 10);
+}
+
+function getAppointmentLocalDateKey(appointment = {}, fallback = "") {
+  const candidates = [
+    appointment.localDateKey,
+    appointment.dateKey,
+    appointment.appointmentDate,
+    appointment.date,
+    appointment.startTime,
+    appointment.startDateTime,
+    appointment.appointmentStart,
+    appointment.rawDate,
+    fallback
+  ];
+
+  for (const candidate of candidates) {
+    const dateKey = toDateKey(candidate);
+    if (dateKey) return dateKey;
+  }
+
+  return "";
+}
+
+function getAppointmentLocalTimeKey(appointment = {}) {
+  const candidates = [
+    appointment.localTimeKey,
+    appointment.timeKey,
+    appointment.appointmentTime,
+    appointment.time,
+    appointment.startTime,
+    appointment.startDateTime,
+    appointment.appointmentStart,
+    appointment.rawTime
+  ];
+
+  for (const candidate of candidates) {
+    const raw = String(candidate || "").trim();
+    if (!raw) continue;
+
+    const isoMatch = raw.match(/T(\d{1,2}):(\d{2})/);
+    if (isoMatch) {
+      return `${String(isoMatch[1]).padStart(2, "0")}:${isoMatch[2]}`;
+    }
+
+    const displayMatch = raw.match(/(?:^|\s)(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!displayMatch) continue;
+
+    let hour = Number(displayMatch[1]);
+    const minute = displayMatch[2];
+    const ampm = String(displayMatch[3] || "").toUpperCase();
+
+    if (ampm === "PM" && hour !== 12) hour += 12;
+    if (ampm === "AM" && hour === 12) hour = 0;
+
+    return `${String(hour).padStart(2, "0")}:${minute}`;
+  }
+
+  return "";
 }
 
 function resultTimesToAppointments(result = {}) {
@@ -1149,7 +1210,8 @@ function resultTimesToAppointments(result = {}) {
         businessServiceId
       ),
       sourceType: appointment.sourceType || "confirmed",
-      localDateKey: appointment.localDateKey || localDateKey
+      localDateKey: getAppointmentLocalDateKey(appointment, localDateKey),
+      localTimeKey: getAppointmentLocalTimeKey(appointment)
     }));
   }
 
@@ -1172,7 +1234,17 @@ function resultTimesToAppointments(result = {}) {
     therapistName: result.provider || result.providerText || "",
     provider: result.provider || result.providerText || "",
 
-    localDateKey,
+    localDateKey: getAppointmentLocalDateKey(
+      {
+        time,
+        startTime: time
+      },
+      localDateKey
+    ),
+    localTimeKey: getAppointmentLocalTimeKey({
+      time,
+      startTime: time
+    }),
 
     time,
     rawTime: time,

@@ -430,6 +430,10 @@ async function insertInferredAppointment(payload = {}, client = db) {
       local_time: payload.localTime || payload.localTimeKey || null,
       timezone: payload.timezone || DEFAULT_TIMEZONE,
       source_type: "inferred",
+      inference_type:
+        payload.inferenceType ||
+        payload.inferenceMode ||
+        "service_anchor",
       confidence:
         payload.confidenceScore ??
         payload.inferenceConfidence ??
