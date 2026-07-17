@@ -3,6 +3,7 @@ const aiSearchRoutes = require("./api/aiSearchRoutes");
 const { initializeAdminSettings, loadAdminSettings } = require("./adminSettingsManager");
 const express = require("express");
 const path = require("path");
+const seoRoutes = require("./seoRoutes");
 const businessManager = require("./businessManager");
 const { spawn } = require("child_process");
 const { storagePath } = require("./storagePaths");
@@ -77,6 +78,7 @@ function requireAdminAuth(req, res, next) {
 
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/ai", aiSearchRoutes);
+app.use(seoRoutes);
 
 app.use(
   [
