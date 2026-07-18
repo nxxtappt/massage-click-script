@@ -331,7 +331,7 @@ async function loadBusinessPage() {
       page.verificationStatus === "verified" ||
       page.verificationStatus === "claimed_verified";
 
-    document.title = `${page.businessName} | NextAppt`;
+      updateBusinessMetadata(page);
 
     root.innerHTML = page.isVerified
       ? renderVerifiedPage(page)
@@ -347,5 +347,82 @@ async function loadBusinessPage() {
     `;
   }
 }
+function updateBusinessMetadata(page = {}) {
+  const businessName =
+    page.businessName ||
+    page.name ||
+    "Local Business";
 
+  const city =
+    page.city ||
+    page.address?.city ||
+    page.location?.city ||
+    "";
+
+  const state =
+    page.state ||
+    page.address?.state ||
+    page.location?.state ||
+    "";
+
+  const industry =
+    page.industry ||
+    page.category ||
+    page.businessType ||
+    page.serviceCategory ||
+    "appointments";
+
+  const location = [city, state].filter(Boolean).join(", ");
+
+  const titleParts = [
+    businessName,
+    location ? `${industry} in ${location}` : industry,
+    "NextAppt.ai"
+  ];
+
+  document.title = titleParts.join(" | ");
+
+  const description = location
+    ? `View appointment availability for ${businessName}, a local ${industry} provider in ${location}. Find services and book through NextAppt.ai.`
+    : `View appointment availability, services, and booking information for ${businessName} through NextAppt.ai.`;
+
+  let descriptionTag = document.querySelector(
+    'meta[name="description"]'
+  );
+
+  if (!descriptionTag) {
+    descriptionTag = document.createElement("meta");
+    descriptionTag.setAttribute("name", "description");
+    document.head.appendChild(descriptionTag);
+  }
+
+  descriptionTag.setAttribute("content", description);
+
+  let robotsTag = document.querySelector('meta[name="robots"]');
+
+  if (!robotsTag) {
+    robotsTag = document.createElement("meta");
+    robotsTag.setAttribute("name", "robots");
+    document.head.appendChild(robotsTag);
+  }
+
+  robotsTag.setAttribute("content", "index,follow");
+
+  let canonicalTag = document.querySelector(
+    'link[rel="canonical"]'
+  );
+
+  if (!canonicalTag) {
+    canonicalTag = document.createElement("link");
+    canonicalTag.setAttribute("rel", "canonical");
+    document.head.appendChild(canonicalTag);
+  }
+
+  canonicalTag.setAttribute(
+    "href",
+    `${window.location.origin}/business/${encodeURIComponent(
+      getSlugFromPath()
+    )}`
+  );
+}
 loadBusinessPage();
