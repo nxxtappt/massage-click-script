@@ -47,6 +47,8 @@ let inventorySearchState = {
   total: 0,
   totalPages: 1
 };
+let schedulerV2State = { groups: [], schedules: [], exceptions: [], history: [], health: {}, platforms: [] };
+
 let claimSearchState = {
   business: "",
   owner: "",
@@ -87,6 +89,11 @@ const views = {
   subscriptions: {
     title: "Business Subscriptions",
     subtitle: "Manually manage verified basic and premium business access."
+  },
+
+  schedules: {
+    title: "Scheduler V2",
+    subtitle: "Manage scrape groups, business schedules, calendar rules, exceptions, history, and scheduler health."
   },
 
   settings: {
@@ -172,6 +179,22 @@ function normalizeBusinessDefaults(business) {
     normalized.services = [];
   }
 
+  if (!Array.isArray(normalized.integrations)) {
+    normalized.integrations = [];
+  }
+
+  if (!normalized.integrations.length && (normalized.platform || normalized.bookingUrl)) {
+    normalized.integrations.push(createBlankIntegration({
+      platform: normalized.platform || "",
+      integrationType: normalized.integrationType || "scrape",
+      apiProvider: normalized.apiProvider || "",
+      credentialId: normalized.credentialId || "",
+      bookingUrl: normalized.bookingUrl || "",
+      status: normalized.integrationStatus || "active",
+      isDefault: true
+    }));
+  }
+
   return normalized;
 }
 
@@ -186,6 +209,25 @@ function normalizeInferServiceTypes(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function createBlankIntegration(overrides = {}) {
+  return {
+    id: null,
+    integrationId: null,
+    name: "",
+    platform: "",
+    integrationType: "scrape",
+    apiProvider: "",
+    credentialId: "",
+    bookingUrl: "",
+    status: "active",
+    enabled: true,
+    priority: 100,
+    isDefault: false,
+    config: {},
+    ...overrides
+  };
 }
 
 function createBlankService() {
@@ -238,6 +280,7 @@ function createBlankBusiness() {
     priority: "normal",
     discoveryStatus: "manual",
     services: [createBlankService()],
+    integrations: [createBlankIntegration({ isDefault: true })],
     isNew: true
   });
 }
@@ -411,6 +454,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
         ${renderServiceInput("Priority", "priority", service.priority, businessIndex, serviceIndex)}
         ${renderServiceInput("Discovery Status", "discoveryStatus", service.discoveryStatus, businessIndex, serviceIndex)}
         ${renderServiceInput("Booking Interval Minutes", "bookingIntervalMinutes", service.bookingIntervalMinutes, businessIndex, serviceIndex, "number")}
+        ${renderServiceInput("Integration ID", "integrationId", service.integrationId || "", businessIndex, serviceIndex)}
 
         <div class="admin-field checkbox-wrap">
           <span>Service Status</span>
@@ -465,6 +509,67 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
         ${renderServiceInput("Inference Confidence", "inferenceConfidence", service.inferenceConfidence ?? 0.85, businessIndex, serviceIndex, "number")}
       </div>
     </div>
+  `;
+}
+
+function renderIntegrationInput(label, field, value, businessIndex, integrationIndex, type = "text") {
+  return `
+    <label class="admin-field">
+      <span>${escapeHtml(label)}</span>
+      <input type="${type}" data-integration-business-index="${businessIndex}" data-integration-index="${integrationIndex}" data-integration-field="${escapeHtml(field)}" value="${escapeHtml(value ?? "")}" />
+    </label>
+  `;
+}
+
+function renderIntegrationCheckbox(label, field, checked, businessIndex, integrationIndex) {
+  return `
+    <label class="admin-checkbox service-checkbox">
+      <input type="checkbox" data-integration-business-index="${businessIndex}" data-integration-index="${integrationIndex}" data-integration-field="${escapeHtml(field)}" ${checked ? "checked" : ""} />
+      <span>${escapeHtml(label)}</span>
+    </label>
+  `;
+}
+
+function renderIntegrationCard(integration, businessIndex, integrationIndex) {
+  return `
+    <div class="service-card integration-card">
+      <div class="service-card-header">
+        <div>
+          <h4>${escapeHtml(integration.name || integration.platform || "Unnamed Integration")}</h4>
+          <p>${escapeHtml(integration.platform || "unknown")} - ${escapeHtml(integration.integrationType || "scrape")} - ${escapeHtml(integration.status || "active")}</p>
+        </div>
+        <button class="danger-btn" data-delete-integration-business-index="${businessIndex}" data-delete-integration-index="${integrationIndex}">Delete</button>
+      </div>
+      <div class="service-edit-grid">
+        ${renderIntegrationInput("Name", "name", integration.name, businessIndex, integrationIndex)}
+        ${renderIntegrationInput("Platform", "platform", integration.platform, businessIndex, integrationIndex)}
+        ${renderIntegrationInput("Integration Type", "integrationType", integration.integrationType || "scrape", businessIndex, integrationIndex)}
+        ${renderIntegrationInput("API Provider", "apiProvider", integration.apiProvider, businessIndex, integrationIndex)}
+        ${renderIntegrationInput("Credential ID", "credentialId", integration.credentialId, businessIndex, integrationIndex)}
+        ${renderIntegrationInput("Booking URL", "bookingUrl", integration.bookingUrl, businessIndex, integrationIndex, "url")}
+        ${renderIntegrationInput("Status", "status", integration.status || "active", businessIndex, integrationIndex)}
+        ${renderIntegrationInput("Priority", "priority", integration.priority ?? 100, businessIndex, integrationIndex, "number")}
+        <div class="admin-field checkbox-wrap"><span>Enabled</span>${renderIntegrationCheckbox("Integration enabled", "enabled", integration.enabled !== false, businessIndex, integrationIndex)}</div>
+        <div class="admin-field checkbox-wrap"><span>Default</span>${renderIntegrationCheckbox("Default integration", "isDefault", integration.isDefault === true, businessIndex, integrationIndex)}</div>
+        <label class="admin-field admin-field-full">
+          <span>Configuration JSON</span>
+          <textarea rows="6" data-integration-business-index="${businessIndex}" data-integration-index="${integrationIndex}" data-integration-field="configJson">${escapeHtml(JSON.stringify(integration.config || {}, null, 2))}</textarea>
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+function renderIntegrationsSection(business, businessIndex) {
+  const integrations = Array.isArray(business.integrations) ? business.integrations : [];
+  return `
+    <details class="services-section" open>
+      <summary class="services-summary"><span>Universal Integrations</span><small>${integrations.length} configured</small></summary>
+      <div class="services-inner">
+        <div class="services-actions"><button class="secondary-btn" data-add-integration-index="${businessIndex}">+ Add Integration</button></div>
+        ${integrations.length ? integrations.map((integration, integrationIndex) => renderIntegrationCard(integration, businessIndex, integrationIndex)).join("") : `<p class="empty-note">No integrations configured.</p>`}
+      </div>
+    </details>
   `;
 }
 
@@ -543,6 +648,8 @@ function renderBusinessCard(business, index) {
         </div>
       </details>
 
+      ${renderIntegrationsSection(business, index)}
+
       ${renderServicesSection(business, index)}
 
       <details class="raw-json-box">
@@ -616,6 +723,62 @@ function attachServiceInputListeners() {
 
     fieldElement.addEventListener("input", update);
     fieldElement.addEventListener("change", update);
+  });
+}
+
+function attachIntegrationInputListeners() {
+  content.querySelectorAll("[data-integration-business-index][data-integration-index][data-integration-field]").forEach((element) => {
+    const update = () => {
+      const businessIndex = Number(element.dataset.integrationBusinessIndex);
+      const integrationIndex = Number(element.dataset.integrationIndex);
+      const field = element.dataset.integrationField;
+      const integration = businessesCache[businessIndex]?.integrations?.[integrationIndex];
+      if (!integration) return;
+      let value = element.type === "checkbox" ? element.checked : element.value;
+      if (field === "priority") value = value === "" ? 100 : Number(value);
+      if (field === "configJson") {
+        try {
+          integration.config = value.trim() ? JSON.parse(value) : {};
+          element.setCustomValidity("");
+        } catch (error) {
+          element.setCustomValidity("Configuration must be valid JSON.");
+          setStatus(`Invalid integration JSON: ${error.message}`, "error");
+          return;
+        }
+      } else {
+        integration[field] = value;
+      }
+      if (field === "isDefault" && value === true) {
+        businessesCache[businessIndex].integrations.forEach((item, index) => { if (index !== integrationIndex) item.isDefault = false; });
+      }
+      setStatus("Unsaved integration changes.", "info");
+    };
+    element.addEventListener("input", update);
+    element.addEventListener("change", update);
+  });
+}
+
+function attachIntegrationActionListeners() {
+  content.querySelectorAll("[data-add-integration-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const businessIndex = Number(button.dataset.addIntegrationIndex);
+      const business = businessesCache[businessIndex];
+      if (!business) return;
+      business.integrations = Array.isArray(business.integrations) ? business.integrations : [];
+      business.integrations.push(createBlankIntegration({ isDefault: business.integrations.length === 0 }));
+      renderBusinessesFromCache();
+    });
+  });
+  content.querySelectorAll("[data-delete-integration-business-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const businessIndex = Number(button.dataset.deleteIntegrationBusinessIndex);
+      const integrationIndex = Number(button.dataset.deleteIntegrationIndex);
+      const business = businessesCache[businessIndex];
+      if (!business?.integrations?.[integrationIndex]) return;
+      if (!window.confirm("Delete this integration? Save Business to make the change permanent.")) return;
+      business.integrations.splice(integrationIndex, 1);
+      renderBusinessesFromCache();
+    });
   });
 }
 
@@ -824,6 +987,8 @@ function renderBusinessesFromCache() {
   });
 
   attachBusinessInputListeners();
+  attachIntegrationInputListeners();
+  attachIntegrationActionListeners();
   attachServiceInputListeners();
   attachAddServiceListeners();
   attachDeleteServiceListeners();
@@ -1645,7 +1810,6 @@ function renderTargetedScrapePanel() {
         ${renderTargetedCheckbox("Manual mode", "targetManual", true)}
         
         ${renderTargetedCheckbox("Ignore service rules", "targetIgnoreServiceRules", false)}
-        ${renderTargetedCheckbox("Skip Vagaro discovery", "targetSkipVagaroDiscovery", true)}
       </div>
 
       <div id="targetedPreview" class="targeted-preview">
@@ -1692,7 +1856,6 @@ async function loadSettings() {
           ${renderSettingsCheckbox("Search Enabled", "searchEnabled", settings.searchEnabled !== false)}
           ${renderSettingsCheckbox("Scheduled Scraping Enabled", "scraping.scheduledScrapingEnabled", scraping.scheduledScrapingEnabled !== false)}
           ${renderSettingsCheckbox("Skip Fresh Cache", "scraping.skipFreshCache", scraping.skipFreshCache !== false)}
-          ${renderSettingsCheckbox("Skip Vagaro Discovery By Default", "scraping.skipVagaroDiscoveryByDefault", scraping.skipVagaroDiscoveryByDefault !== false)}
           ${renderSettingsInput("Default Lookahead Hours", "scraping.defaultLookaheadHours", scraping.defaultLookaheadHours || 48, "number")}
           ${renderSettingsInput("Default Interval Minutes", "scraping.defaultIntervalMinutes", scraping.defaultIntervalMinutes || 15, "number")}
           ${renderSettingsInput("Max Concurrent Scrapes", "scraping.maxConcurrentScrapes", scraping.maxConcurrentScrapes || 1, "number")}
@@ -1972,7 +2135,6 @@ function hydrateTargetedDropdowns() {
     "targetManual",
     "targetOnDemand",
     "targetIgnoreServiceRules",
-    "targetSkipVagaroDiscovery"
   ].forEach((id) => {
     document.getElementById(id)?.addEventListener("change", updateTargetedPreview);
   });
@@ -2000,7 +2162,6 @@ function buildTargetedPayload() {
     forceRefresh: getCheckboxValue("targetForceRefresh"),
     manual: getCheckboxValue("targetManual"),
     ignoreServiceRules: getCheckboxValue("targetIgnoreServiceRules"),
-    skipVagaroDiscovery: getCheckboxValue("targetSkipVagaroDiscovery")
   };
 
   Object.keys(payload).forEach((key) => {
@@ -2043,9 +2204,7 @@ function attachTargetedScrapeListeners() {
 
     document.getElementById("targetForceRefresh").checked = true;
     document.getElementById("targetManual").checked = true;
-    document.getElementById("targetOnDemand").checked = false;
     document.getElementById("targetIgnoreServiceRules").checked = false;
-    document.getElementById("targetSkipVagaroDiscovery").checked = true;
 
     hydrateTargetedDropdowns();
     setStatus("Targeted scrape choices reset.", "info");
@@ -2305,6 +2464,99 @@ async function loadClaims() {
   }
 }
 
+function renderJsonTextarea(label, id, value, rows = 5) {
+  return `<label class="admin-field admin-field-full"><span>${escapeHtml(label)}</span><textarea id="${escapeHtml(id)}" rows="${rows}">${escapeHtml(JSON.stringify(value || {}, null, 2))}</textarea></label>`;
+}
+
+function parseJsonInput(id, fallback = {}) {
+  const raw = document.getElementById(id)?.value.trim();
+  if (!raw) return fallback;
+  return JSON.parse(raw);
+}
+
+async function loadSchedulerV2() {
+  currentView = "schedules";
+  pageTitle.textContent = views.schedules.title;
+  pageSubtitle.textContent = views.schedules.subtitle;
+  setLoading("Loading Scheduler V2...");
+  try {
+    const [groupsData, schedulesData, exceptionsData, historyData, healthData, platformsData] = await Promise.all([
+      fetchJson("/api/admin/v2/scheduler/groups"),
+      fetchJson("/api/admin/v2/scheduler/schedules"),
+      fetchJson("/api/admin/v2/scheduler/exceptions"),
+      fetchJson("/api/admin/v2/scheduler/history?limit=100"),
+      fetchJson("/api/admin/v2/scheduler/health"),
+      fetchJson("/api/admin/v2/integrations/platforms")
+    ]);
+    schedulerV2State = { groups: groupsData.groups || [], schedules: schedulesData.schedules || [], exceptions: exceptionsData.exceptions || [], history: historyData.history || [], health: healthData.health || {}, platforms: platformsData.platforms || [] };
+    const health = schedulerV2State.health;
+    content.innerHTML = `
+      <div class="settings-grid">
+        <div class="settings-panel settings-panel-full">
+          <h3>Scheduler Health</h3>
+          <div class="business-summary-meta">
+            <span>Enabled schedules: ${escapeHtml(health.enabled_schedules || 0)}</span>
+            <span>Enabled groups: ${escapeHtml(health.enabled_groups || 0)}</span>
+            <span>Active locks: ${escapeHtml(health.active_locks || 0)}</span>
+            <span>Errors (24h): ${escapeHtml(health.errors_24h || 0)}</span>
+            <span>Last success: ${escapeHtml(health.last_success_at || "Never")}</span>
+          </div>
+          <div class="settings-actions"><button id="runSchedulerV2Btn" class="primary-btn">Run Due Schedules</button><button id="refreshSchedulerV2Btn" class="secondary-btn">Refresh</button></div>
+        </div>
+        <div class="settings-panel settings-panel-full">
+          <h3>Create / Update Scrape Group</h3>
+          <div class="business-edit-grid">
+            ${renderSubscriptionTextInput("Group ID (blank for new)", "v2GroupId", "")}
+            ${renderSubscriptionTextInput("Name", "v2GroupName", "")}
+            ${renderSubscriptionTextarea("Description", "v2GroupDescription", "", "", 3)}
+            ${renderSubscriptionTextInput("Business IDs", "v2GroupBusinessIds", "", "Comma-separated public business IDs")}
+            ${renderJsonTextarea("Dynamic Selector JSON", "v2GroupSelector", {}, 5)}
+          </div>
+          <div class="settings-actions"><button id="saveV2GroupBtn" class="primary-btn">Save Group</button></div>
+          <div class="business-summary-list">${schedulerV2State.groups.map((group) => `<article class="business-summary-card"><div><h3>${escapeHtml(group.name)}</h3><p>${escapeHtml(group.description || "")}</p><small>${escapeHtml((group.businesses || []).length)} explicit businesses</small></div><div><button class="secondary-btn" data-edit-v2-group="${escapeHtml(group.id)}">Edit</button><button class="danger-btn" data-delete-v2-group="${escapeHtml(group.id)}">Delete</button></div></article>`).join("") || `<p class="empty-note">No groups configured.</p>`}</div>
+        </div>
+        <div class="settings-panel settings-panel-full">
+          <h3>Create / Update Schedule</h3>
+          <div class="business-edit-grid">
+            ${renderSubscriptionTextInput("Schedule ID (blank for new)", "v2ScheduleId", "")}
+            ${renderSubscriptionTextInput("Name", "v2ScheduleName", "")}
+            ${renderSubscriptionTextInput("Timezone", "v2ScheduleTimezone", "America/Chicago")}
+            <label class="admin-field"><span>Group</span><select id="v2ScheduleGroupId"><option value="">Business-specific schedule</option>${schedulerV2State.groups.map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join("")}</select></label>
+            ${renderSubscriptionTextInput("Business ID", "v2ScheduleBusinessId", "", "Used when no group is selected")}
+            ${renderJsonTextarea("Calendar Rules JSON", "v2ScheduleRules", { daysOfWeek: ["MO","TU","WE","TH","FR","SA","SU"], times: ["00:00"] }, 7)}
+            ${renderJsonTextarea("Scrape Options JSON", "v2ScheduleOptions", { lookaheadHours: 48 }, 5)}
+          </div>
+          <div class="settings-actions"><button id="saveV2ScheduleBtn" class="primary-btn">Save Schedule</button></div>
+          <div class="business-summary-list">${schedulerV2State.schedules.map((schedule) => `<article class="business-summary-card"><div><h3>${escapeHtml(schedule.name)}</h3><p>${escapeHtml(schedule.group_name || schedule.business_id || "No target")}</p><small>${escapeHtml(schedule.timezone)} - next ${escapeHtml(schedule.next_run_at || "evaluation pending")}</small></div><div><button class="secondary-btn" data-edit-v2-schedule="${escapeHtml(schedule.id)}">Edit</button><button class="danger-btn" data-delete-v2-schedule="${escapeHtml(schedule.id)}">Delete</button></div></article>`).join("") || `<p class="empty-note">No schedules configured.</p>`}</div>
+        </div>
+        <div class="settings-panel settings-panel-full">
+          <h3>Schedule Exception</h3>
+          <div class="business-edit-grid"><label class="admin-field"><span>Schedule</span><select id="v2ExceptionScheduleId">${schedulerV2State.schedules.map((schedule) => `<option value="${escapeHtml(schedule.id)}">${escapeHtml(schedule.name)}</option>`).join("")}</select></label><label class="admin-field"><span>Date</span><input id="v2ExceptionDate" type="date" /></label><label class="admin-field"><span>Action</span><select id="v2ExceptionAction"><option value="skip">Skip</option><option value="run">Force Run</option><option value="override">Override</option></select></label>${renderSubscriptionTextInput("Override Time", "v2ExceptionTime", "", "HH:MM")}${renderSubscriptionTextInput("Reason", "v2ExceptionReason", "")}</div>
+          <div class="settings-actions"><button id="saveV2ExceptionBtn" class="primary-btn">Save Exception</button></div>
+          <details class="raw-json-box"><summary>Exceptions</summary><pre>${escapeHtml(JSON.stringify(schedulerV2State.exceptions, null, 2))}</pre></details>
+        </div>
+        <div class="settings-panel settings-panel-full"><h3>Scheduler History</h3><div class="inventory-list">${schedulerV2State.history.map((row) => `<article class="inventory-card"><div><strong>${escapeHtml(row.schedule_name || row.schedule_id || "Deleted schedule")}</strong><p>${escapeHtml(row.occurrence_key)}</p></div><div><strong>${escapeHtml(row.status)}</strong><p>${escapeHtml(row.started_at || "")}</p></div><span class="platform-pill">${escapeHtml(row.jobs_built || 0)} jobs</span></article>`).join("") || `<p class="empty-note">No scheduler history.</p>`}</div></div>
+      </div>`;
+    attachSchedulerV2Listeners();
+    setStatus("Scheduler V2 loaded.", "success");
+  } catch (error) {
+    content.innerHTML = `<h3>Could Not Load Scheduler V2</h3><p>${escapeHtml(error.message)}</p>`;
+    setStatus("Failed to load Scheduler V2.", "error");
+  }
+}
+
+function attachSchedulerV2Listeners() {
+  document.getElementById("refreshSchedulerV2Btn")?.addEventListener("click", loadSchedulerV2);
+  document.getElementById("runSchedulerV2Btn")?.addEventListener("click", async () => { await fetchJson("/api/admin/v2/scheduler/run-v2", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force: false }) }); await loadSchedulerV2(); });
+  document.getElementById("saveV2GroupBtn")?.addEventListener("click", async () => { try { await fetchJson("/api/admin/v2/scheduler/groups", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: getInputValue("v2GroupId") || null, name: getInputValue("v2GroupName"), description: getInputValue("v2GroupDescription"), businessIds: getInputValue("v2GroupBusinessIds").split(",").map((item) => item.trim()).filter(Boolean), selector: parseJsonInput("v2GroupSelector", {}) }) }); await loadSchedulerV2(); } catch (error) { setStatus(error.message, "error"); } });
+  document.getElementById("saveV2ScheduleBtn")?.addEventListener("click", async () => { try { await fetchJson("/api/admin/v2/scheduler/schedules", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: getInputValue("v2ScheduleId") || null, name: getInputValue("v2ScheduleName"), timezone: getInputValue("v2ScheduleTimezone") || "America/Chicago", groupId: getInputValue("v2ScheduleGroupId") || null, businessId: getInputValue("v2ScheduleBusinessId") || null, calendarRules: parseJsonInput("v2ScheduleRules", {}), scrapeOptions: parseJsonInput("v2ScheduleOptions", {}) }) }); await loadSchedulerV2(); } catch (error) { setStatus(error.message, "error"); } });
+  document.getElementById("saveV2ExceptionBtn")?.addEventListener("click", async () => { await fetchJson("/api/admin/v2/scheduler/exceptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scheduleId: getInputValue("v2ExceptionScheduleId"), exceptionDate: getInputValue("v2ExceptionDate"), action: getInputValue("v2ExceptionAction"), overrideTime: getInputValue("v2ExceptionTime") || null, reason: getInputValue("v2ExceptionReason") }) }); await loadSchedulerV2(); });
+  document.querySelectorAll("[data-delete-v2-group]").forEach((button) => button.addEventListener("click", async () => { if (confirm("Delete this scrape group?")) { await fetchJson(`/api/admin/v2/scheduler/groups/${button.dataset.deleteV2Group}`, { method: "DELETE" }); await loadSchedulerV2(); } }));
+  document.querySelectorAll("[data-delete-v2-schedule]").forEach((button) => button.addEventListener("click", async () => { if (confirm("Delete this schedule?")) { await fetchJson(`/api/admin/v2/scheduler/schedules/${button.dataset.deleteV2Schedule}`, { method: "DELETE" }); await loadSchedulerV2(); } }));
+  document.querySelectorAll("[data-edit-v2-group]").forEach((button) => button.addEventListener("click", () => { const group = schedulerV2State.groups.find((item) => String(item.id) === button.dataset.editV2Group); if (!group) return; document.getElementById("v2GroupId").value = group.id; document.getElementById("v2GroupName").value = group.name || ""; document.getElementById("v2GroupDescription").value = group.description || ""; document.getElementById("v2GroupBusinessIds").value = (group.businesses || []).map((item) => item.businessId).join(", "); document.getElementById("v2GroupSelector").value = JSON.stringify(group.selector || {}, null, 2); }));
+  document.querySelectorAll("[data-edit-v2-schedule]").forEach((button) => button.addEventListener("click", () => { const schedule = schedulerV2State.schedules.find((item) => String(item.id) === button.dataset.editV2Schedule); if (!schedule) return; document.getElementById("v2ScheduleId").value = schedule.id; document.getElementById("v2ScheduleName").value = schedule.name || ""; document.getElementById("v2ScheduleTimezone").value = schedule.timezone || "America/Chicago"; document.getElementById("v2ScheduleGroupId").value = schedule.group_id || ""; document.getElementById("v2ScheduleBusinessId").value = schedule.business_id || ""; document.getElementById("v2ScheduleRules").value = JSON.stringify(schedule.calendar_rules || {}, null, 2); document.getElementById("v2ScheduleOptions").value = JSON.stringify(schedule.scrape_options || {}, null, 2); }));
+}
+
 function refreshNavButtons() {
   navButtons = document.querySelectorAll(".nav-btn");
 }
@@ -2343,6 +2595,16 @@ function ensureSubscriptionsNavButton() {
   refreshNavButtons();
 }
 
+function ensureSchedulerV2NavButton() {
+  if (document.querySelector(".nav-btn[data-view='schedules']")) { refreshNavButtons(); return; }
+  const navContainer = document.querySelector(".admin-nav") || document.querySelector(".sidebar-nav") || document.querySelector("nav") || document.querySelector(".nav-btn")?.parentElement;
+  if (!navContainer) return;
+  const button = document.createElement("button"); button.type = "button"; button.className = "nav-btn"; button.dataset.view = "schedules"; button.textContent = "Schedules";
+  const settingsButton = navContainer.querySelector(".nav-btn[data-view='settings']");
+  if (settingsButton) navContainer.insertBefore(button, settingsButton); else navContainer.appendChild(button);
+  refreshNavButtons();
+}
+
 function setActiveNav(viewName) {
   navButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.view === viewName);
@@ -2357,10 +2619,12 @@ function loadView(viewName) {
   if (viewName === "results" || viewName === "inventory") return loadResults();
   if (viewName === "errors") return loadErrors();
   if (viewName === "settings") return loadSettings();
+  if (viewName === "schedules") return loadSchedulerV2();
   if (viewName === "subscriptions") return loadBusinessSubscriptionsView();
 }
 
 ensureSubscriptionsNavButton();
+ensureSchedulerV2NavButton();
 
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {

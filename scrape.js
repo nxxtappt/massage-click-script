@@ -2,15 +2,11 @@ require("dotenv").config();
 
 const { chromium } = require("playwright");
 const { parseCliFilters, buildScrapeJobs } = require("./jobBuilder");
-const { initializeAppointmentCache, upsertAppointmentResult, getCacheStats } = require("./cacheManager");
-const { shouldSkipScrapeForFreshCache } = require("./staleChecker");
 
 const {
   initializeAdminSettings,
   loadAdminSettings,
   isPlatformEnabled,
-  getTtlMinutesForStatus,
-  shouldSkipVagaroDiscovery
 } = require("./adminSettingsManager");
 
 const { scrapeMindbodyBusiness } = require("./scrapers/mindbody");
@@ -28,6 +24,7 @@ const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 const businessManager = require("./businessManager");
 const inventoryManager = require("./inventoryManager");
+const { getPlatformDefinition, validateIntegration } = require("./platformIntegrationRegistry");
 
 const MAX_ATTEMPTS = 2;
 
@@ -123,28 +120,8 @@ async function appendErrorLog(entry) {
   }
 }
 
-async function cacheResult(result) {
-  try {
-    const ttlMinutes = getTtlMinutesForStatus(result.status);
-
-    if (!ttlMinutes || ttlMinutes <= 0) {
-      console.log("[CACHE] Cache disabled or TTL is 0. Skipping cache save.");
-      return;
-    }
-
-    upsertAppointmentResult(result, { ttlMinutes });
-  } catch (error) {
-    console.error("[CACHE] Failed to save scrape result:", error.message);
-  }
-}
-
-function normalizeCachedResult(cachedResult) {
-  return {
-    ...cachedResult,
-    fromCache: true,
-    cacheStatus: "fresh",
-    status: cachedResult.status || "cached"
-  };
+async function cacheResult() {
+  // PostgreSQL inventory is the only runtime appointment store.
 }
 
 async function createScrapePage(browser) {
@@ -466,6 +443,12 @@ async function scrapeMeevoBusiness(business, attemptNumber) {
 async function scrapeWithRetries(browser, business) {
   let lastError = null;
   const scrapeTarget = withScrapeWindow(business);
+  const integrationValidation = scrapeTarget.integration
+    ? validateIntegration(scrapeTarget.integration, scrapeTarget)
+    : { valid: false, errors: ["No integration resolved for scrape job."], warnings: [] };
+  if (!integrationValidation.valid) {
+    throw new Error(`Invalid scrape integration: ${integrationValidation.errors.join(" ")}`);
+  }
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     const { page, context } = await createScrapePage(browser);
@@ -593,6 +576,32 @@ async function scrapeWithRetries(browser, business) {
       if (scrapeTarget.platform === "meevo") {
         await closeScrapePage(page, context);
         return await scrapeMeevoBusiness(scrapeTarget, attempt);
+      }
+
+      if (scrapeTarget.platform === "vagaro") {
+        await closeScrapePage(page, context);
+        const result = await scrapeVagaroMarketplace({
+          business: scrapeTarget,
+          bookingUrl: scrapeTarget.bookingUrl,
+          service: scrapeTarget.serviceName,
+          serviceName: scrapeTarget.serviceName,
+          city: scrapeTarget.city || "austin",
+          state: scrapeTarget.state || "tx",
+          limit: scrapeTarget.maxResults || 20,
+          inspectBusinessPages: true,
+          integrationConfig: scrapeTarget.integrationConfig || {},
+          ...buildScrapeWindowPayload(scrapeTarget)
+        });
+        const rows = Array.isArray(result) ? result : (result.results || result.appointments || []);
+        return {
+          businessName: scrapeTarget.businessName, bookingUrl: scrapeTarget.bookingUrl, platform: "vagaro",
+          serviceName: scrapeTarget.serviceName, service: scrapeTarget.serviceName, serviceType: scrapeTarget.serviceType || "massage",
+          durationMinutes: scrapeTarget.durationMinutes || null, platformServiceId: scrapeTarget.platformServiceId || null,
+          appointments: rows, times: rows.map((item) => item.time || item.startTime).filter(Boolean),
+          status: rows.length ? "success" : "no_times_found", attemptNumber: attempt, scrapeDurationMs: Date.now() - startedAt,
+          lastChecked: new Date().toISOString(), distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
       }
 
       if (scrapeTarget.platform === "axl3") {
@@ -846,58 +855,15 @@ async function scrapeWithRetries(browser, business) {
   return null;
 }
 
-async function runVagaroDiscoveryOnly(filters = {}) {
-  if (!isPlatformEnabled("vagaro")) {
-    console.log("[VAGARO] Platform disabled in admin settings. Skipping discovery.");
-    return;
-  }
-
-  if (shouldSkipVagaroDiscovery(filters)) {
-    console.log("[VAGARO] Discovery skipped by admin settings.");
-    return;
-  }
-
-  if (typeof scrapeVagaroMarketplace !== "function") {
-    console.log("[VAGARO] No callable Vagaro marketplace scraper export found.");
-    return;
-  }
-
-  try {
-    console.log("\n===== Running Vagaro discovery only =====");
-
-    const vagaroResults = await scrapeVagaroMarketplace({
-      service: filters.service || "Swedish Massage - 60 Minute",
-      city: filters.city || "austin",
-      state: filters.state || "tx",
-      limit: filters.maxResults ? Number(filters.maxResults) : 20,
-      inspectBusinessPages: filters.inspectBusinessPages !== "false"
-    });
-
-    console.log(`Discovered ${vagaroResults.length} Vagaro marketplace result(s).`);
-  } catch (error) {
-    console.error("Vagaro discovery failed:", error.message);
-    await appendErrorLog({
-      platform: "vagaro",
-      status: "error",
-      error: error.message
-    });
-  }
-}
-
 async function run() {
   await initializeAdminSettings();
-  await initializeAppointmentCache();
 
   const adminSettings = loadAdminSettings();
   const filters = parseCliFilters(process.argv);
 
   const forceRefresh =
     filters.forceRefresh === true ||
-    filters.forceRefresh === "true" ||
-    adminSettings.scraping.skipFreshCache === false;
-
-  const skipFreshCache =
-    adminSettings.scraping.skipFreshCache !== false && !forceRefresh;
+    filters.forceRefresh === "true";
 
   if (adminSettings.scraping.enabled === false) {
     console.log("[ADMIN] Scraping is disabled.");
@@ -919,8 +885,9 @@ async function run() {
     "oakhaven",
     "massage-envy",
     "mangomint",
-    "hand-stone"
-  ];
+    "hand-stone",
+    "vagaro"
+  ].filter((platform) => Boolean(getPlatformDefinition(platform)));
 
   const scrapeableBusinesses = businesses.filter((business) => {
     return (
@@ -930,6 +897,11 @@ async function run() {
   });
 
   let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, filters);
+  const rejectedJobs = scrapeJobs.filter((job) => job.jobValidation && !job.jobValidation.valid);
+  scrapeJobs = scrapeJobs.filter((job) => !job.jobValidation || job.jobValidation.valid);
+  if (rejectedJobs.length) {
+    console.warn(`[JOB VALIDATION] Rejected ${rejectedJobs.length} invalid job(s).`);
+  }
 
   const businessConfigByName = new Map(
     scrapeableBusinesses.map((business) => [
@@ -965,15 +937,11 @@ async function run() {
     );
   }
 
-  if (skipFreshCache) {
-    console.log("[CACHE] Fresh-cache skipping is enabled.");
-  } else {
-    console.log("[CACHE] Fresh-cache skipping is disabled / force refresh enabled.");
-  }
+  console.log("[INVENTORY] PostgreSQL is the only runtime appointment store.");
 
   if (scrapeJobs.length === 0) {
     console.log("No scrape jobs matched the filters or enabled platforms.");
-    console.log("[RESULTS] Leaving existing results.json untouched.");
+    console.log("[INVENTORY] No PostgreSQL inventory changes were made.");
     return;
   }
 
@@ -993,25 +961,6 @@ let results = [];
         job.serviceDatabaseId,
         job.serviceConfigId
       );
-
-      if (skipFreshCache) {
-        const staleCheck = shouldSkipScrapeForFreshCache(job, {
-          forceRefresh
-        });
-
-        if (staleCheck.skip) {
-          const cachedResult = normalizeCachedResult(staleCheck.cachedResult);
-
-          console.log(
-            `[CACHE] Skipping scrape for ${job.businessName} | ${job.serviceName}. Reason: ${staleCheck.reason}`
-          );
-
-          const filteredCachedResult = filterResultToScrapeWindow(cachedResult, job);
-
-          results = upsertResult(results, filteredCachedResult);
-          continue;
-        }
-      }
 
       const scrapeRun = await createScrapeRun({
         triggerType:
@@ -1353,7 +1302,6 @@ if (inferredAppointments.length > 0) {
 }
 
 results = upsertResult(results, resultWithInference);
-await cacheResult(resultWithInference);
 
       console.log("----- RESULT -----");
       console.log(JSON.stringify(result, null, 2));
@@ -1361,11 +1309,6 @@ await cacheResult(resultWithInference);
   } finally {
     await browser.close().catch(() => null);
   }
-
-  await runVagaroDiscoveryOnly(filters);
-
-  console.log("\n===== CACHE STATS =====");
-  console.log(JSON.stringify(getCacheStats(), null, 2));
 
   console.log("\n===== SCRAPE COMPLETE =====");
   console.log(`Total results: ${results.length}`);

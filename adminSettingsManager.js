@@ -1,66 +1,50 @@
-const runtimeStateRepository = require("./database/runtimeStateRepository");
+"use strict";
 
-const DEFAULT_ADMIN_SETTINGS = {
+const db = require("./db");
+
+const DEFAULT_SETTINGS = Object.freeze({
   searchEnabled: true,
   scraping: {
     enabled: true,
+    onDemandEnabled: false,
     scheduledScrapingEnabled: true,
-    skipFreshCache: true,
-    maxConcurrentScrapes: 1,
+    skipFreshCache: false,
     defaultIntervalMinutes: 15,
     defaultLookaheadHours: 48,
-    skipVagaroDiscoveryByDefault: true
+    maxServicesPerBusiness: 25
   },
-  cache: {
-    enabled: true,
-    defaultTtlMinutes: 15,
-    successTtlMinutes: 15,
-    noTimesFoundTtlMinutes: 8,
-    fullyBookedTtlMinutes: 8,
-    errorTtlMinutes: 3,
-    unknownTtlMinutes: 5
-  },
+  platforms: {},
   serviceRules: {
     scheduledPriorities: ["high"],
     scheduledDiscoveryStatuses: ["approved"],
+    onDemandPriorities: ["high", "medium", "normal"],
+    onDemandDiscoveryStatuses: ["approved", "manual"],
     manualPriorities: ["high", "medium", "normal", "low"],
     manualDiscoveryStatuses: ["approved", "manual", "test", "pending"],
-    maxServicesPerBusinessPerScheduledRun: 2,
-    allowServicesWithoutPriority: false,
-    allowServicesWithoutDiscoveryStatus: false
+    allowServicesWithoutPriority: true,
+    allowServicesWithoutDiscoveryStatus: true
   },
-  clusters: {
-    "austin-central": { enabled: true, intervalMinutes: 15 }
+  cache: {
+    successTtlMinutes: 0,
+    emptyTtlMinutes: 0,
+    errorTtlMinutes: 0
   },
-  platforms: {
-    mindbody: true,
-    "mindbody-old": true,
-    schedulista: true,
-    meevo: true,
-    axl3: true,
-    booker: true,
-    zenoti: true,
-    mangomint: true,
-    "hand-stone": true,
-    "massage-envy": true,
-    vagaro: false
-  },
-  safety: {
-    stopOnRepeatedErrors: false,
-    maxErrorsPerRun: 20,
-    logVerbose: true
-  }
-};
+  clusters: {},
+  safety: {}
+});
 
-let settingsCache = structuredClone(DEFAULT_ADMIN_SETTINGS);
+let settingsCache = structuredClone(DEFAULT_SETTINGS);
 let initialized = false;
 
-function deepMerge(base, override) {
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergeSettings(base, incoming) {
   const output = { ...base };
-  for (const [key, value] of Object.entries(override || {})) {
-    if (value && typeof value === "object" && !Array.isArray(value) &&
-        base[key] && typeof base[key] === "object" && !Array.isArray(base[key])) {
-      output[key] = deepMerge(base[key], value);
+  for (const [key, value] of Object.entries(incoming || {})) {
+    if (isPlainObject(value) && isPlainObject(base?.[key])) {
+      output[key] = mergeSettings(base[key], value);
     } else {
       output[key] = value;
     }
@@ -68,108 +52,81 @@ function deepMerge(base, override) {
   return output;
 }
 
+async function ensureSettingsTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      settings_key TEXT PRIMARY KEY,
+      settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
 async function initializeAdminSettings() {
-  const stored = await runtimeStateRepository.getSettings();
-  settingsCache = deepMerge(DEFAULT_ADMIN_SETTINGS, stored || {});
-  if (!stored) await runtimeStateRepository.saveSettings(settingsCache);
+  await ensureSettingsTable();
+  const existing = await db.query(
+    `SELECT settings FROM app_settings WHERE settings_key = 'admin' LIMIT 1`
+  );
+  const merged = mergeSettings(DEFAULT_SETTINGS, existing.rows[0]?.settings || {});
+  const { rows } = await db.query(
+    `INSERT INTO app_settings (settings_key, settings, updated_at)
+     VALUES ('admin', $1::jsonb, NOW())
+     ON CONFLICT (settings_key)
+     DO UPDATE SET settings = EXCLUDED.settings, updated_at = NOW()
+     RETURNING settings`,
+    [JSON.stringify(merged)]
+  );
+  settingsCache = mergeSettings(DEFAULT_SETTINGS, rows[0]?.settings || {});
   initialized = true;
-  return settingsCache;
+  return loadAdminSettings();
 }
 
 function loadAdminSettings() {
-  return settingsCache;
+  return structuredClone(settingsCache);
 }
 
-async function saveAdminSettings(settings) {
-  settingsCache = deepMerge(DEFAULT_ADMIN_SETTINGS, settings || {});
-  await runtimeStateRepository.saveSettings(settingsCache);
-  initialized = true;
-  return settingsCache;
+async function saveAdminSettings(nextSettings = {}) {
+  if (!initialized) await initializeAdminSettings();
+  const merged = mergeSettings(DEFAULT_SETTINGS, nextSettings);
+  const { rows } = await db.query(
+    `INSERT INTO app_settings (settings_key, settings, updated_at)
+     VALUES ('admin', $1::jsonb, NOW())
+     ON CONFLICT (settings_key)
+     DO UPDATE SET settings = EXCLUDED.settings, updated_at = NOW()
+     RETURNING settings`,
+    [JSON.stringify(merged)]
+  );
+  settingsCache = mergeSettings(DEFAULT_SETTINGS, rows[0]?.settings || {});
+  return loadAdminSettings();
 }
 
-function getSetting(pathText, fallback) {
-  const parts = String(pathText || "").split(".").filter(Boolean);
-  let current = settingsCache;
-  for (const part of parts) {
-    if (!current || typeof current !== "object" || !(part in current)) return fallback;
-    current = current[part];
-  }
-  return current;
-}
-
-async function setSetting(pathText, value) {
-  const parts = String(pathText || "").split(".").filter(Boolean);
-  if (!parts.length) throw new Error("Setting path is required.");
-  const next = structuredClone(settingsCache);
-  let current = next;
-  for (let i = 0; i < parts.length - 1; i += 1) {
-    current[parts[i]] = current[parts[i]] && typeof current[parts[i]] === "object"
-      ? current[parts[i]] : {};
-    current = current[parts[i]];
-  }
-  current[parts.at(-1)] = value;
-  return saveAdminSettings(next);
-}
-
-function parseValue(value) {
-  if (value === "true") return true;
-  if (value === "false") return false;
-  if (value === "null") return null;
-  if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) return Number(value);
-  return value;
+async function updateAdminSettings(patch = {}) {
+  return saveAdminSettings(mergeSettings(settingsCache, patch));
 }
 
 function isPlatformEnabled(platform) {
-  return Boolean(platform) && settingsCache.platforms?.[platform] !== false;
-}
-function isClusterEnabled(clusterId) {
-  return !clusterId || !settingsCache.clusters?.[clusterId] || settingsCache.clusters[clusterId].enabled !== false;
-}
-function getClusterIntervalMinutes(clusterId) {
-  return settingsCache.clusters?.[clusterId]?.intervalMinutes || settingsCache.scraping.defaultIntervalMinutes || 15;
-}
-function getTtlMinutesForStatus(status) {
-  if (settingsCache.cache.enabled === false) return 0;
-  const value = String(status || "").toLowerCase();
-  if (["success", "available_times_found"].includes(value)) return settingsCache.cache.successTtlMinutes;
-  if (["no_times_found", "no_times_today", "next_available_found", "marketplace_business_found_no_times_yet"].includes(value)) return settingsCache.cache.noTimesFoundTtlMinutes;
-  if (value === "fully_booked") return settingsCache.cache.fullyBookedTtlMinutes;
-  if (value === "error" || value.includes("failed")) return settingsCache.cache.errorTtlMinutes;
-  return settingsCache.cache.unknownTtlMinutes || settingsCache.cache.defaultTtlMinutes;
-}
-function shouldSkipVagaroDiscovery(filters = {}) {
-  if (filters.skipVagaroDiscovery === true || filters.skipVagaroDiscovery === "true") return true;
-  if (filters.skipVagaroDiscovery === false || filters.skipVagaroDiscovery === "false") return false;
-  return settingsCache.scraping.skipVagaroDiscoveryByDefault === true;
+  const key = String(platform || "").trim().toLowerCase();
+  const configured = settingsCache.platforms?.[key];
+  if (configured === false) return false;
+  if (isPlainObject(configured) && configured.enabled === false) return false;
+  return true;
 }
 
-async function runCli() {
-  await initializeAdminSettings();
-  const args = process.argv.slice(2);
-  if (args.includes("--print")) return console.log(JSON.stringify(settingsCache, null, 2));
-  const setArg = args.find((arg) => arg.startsWith("--set="));
-  if (setArg) {
-    const assignment = setArg.slice(6);
-    const index = assignment.indexOf("=");
-    if (index < 0) throw new Error("Use --set=path.to.setting=value");
-    const updated = await setSetting(assignment.slice(0, index), parseValue(assignment.slice(index + 1)));
-    console.log(JSON.stringify(updated, null, 2));
-  }
+function getTtlMinutesForStatus() {
+  return 0;
 }
-if (require.main === module) runCli().catch((error) => { console.error(error); process.exitCode = 1; });
 
 module.exports = {
-  DEFAULT_ADMIN_SETTINGS,
+  DEFAULT_SETTINGS,
   initializeAdminSettings,
   loadAdminSettings,
   saveAdminSettings,
-  getSetting,
-  setSetting,
-  parseValue,
+  updateAdminSettings,
+  getAdminSettings: loadAdminSettings,
+  setAdminSettings: saveAdminSettings,
+  saveSettings: saveAdminSettings,
+  updateSettings: updateAdminSettings,
   isPlatformEnabled,
-  isClusterEnabled,
-  getClusterIntervalMinutes,
-  getTtlMinutesForStatus,
-  shouldSkipVagaroDiscovery,
-  isInitialized: () => initialized
+  getTtlMinutesForStatus
 };

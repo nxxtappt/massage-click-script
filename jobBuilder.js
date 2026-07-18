@@ -1,5 +1,10 @@
 const { loadAdminSettings } = require("./adminSettingsManager");
 const { normalizeServiceType } = require("./normalizationUtils");
+const {
+  resolveEnabledIntegration,
+  validateIntegration,
+  applyIntegrationToJob
+} = require("./platformIntegrationRegistry");
 
 function normalize(value) {
   return String(value || "")
@@ -289,6 +294,11 @@ function getEnabledServicesForBusiness(business) {
             service.id ||
             service.business_service_id ||
             null,
+          integrationId:
+            service.integrationId ||
+            service.integration_id ||
+            service.raw_json?.integrationId ||
+            null,
           canonicalKey:
             service.canonicalKey ||
             service.canonical_key ||
@@ -466,6 +476,7 @@ function getEnabledServicesForBusiness(business) {
         business.id ||
         business.business_service_id ||
         null,
+      integrationId: business.integrationId || business.integration_id || null,
       canonicalKey:
         business.canonicalKey ||
         business.canonical_key ||
@@ -1021,6 +1032,28 @@ function businessPassesBusinessFilter(business = {}, filters = {}, businessFilte
   return businessMatchesSearch(business, filters.business);
 }
 
+function validateScrapeJob(job = {}) {
+  const errors = [];
+  const warnings = [];
+  if (!job.businessName) errors.push("businessName is required.");
+  if (!job.serviceName) errors.push("serviceName is required.");
+  if (!job.durationMinutes || Number(job.durationMinutes) <= 0) warnings.push("durationMinutes is missing or invalid.");
+  if (!job.integration) errors.push("No enabled integration resolved for the business/service.");
+  if (job.integrationValidation) {
+    errors.push(...(job.integrationValidation.errors || []));
+    warnings.push(...(job.integrationValidation.warnings || []));
+  }
+  return { valid: errors.length === 0, errors, warnings, job };
+}
+
+function resolveJobIntegration(business = {}, service = {}, filters = {}) {
+  return resolveEnabledIntegration(business, {
+    integrationId: filters.integrationId || service.integrationId,
+    platform: filters.platform || business.platform,
+    integrationType: filters.integrationType
+  });
+}
+
 function buildScrapeJobs(businesses, filters = {}) {
   const adminSettings = loadAdminSettings();
   const jobs = [];
@@ -1049,6 +1082,15 @@ function buildScrapeJobs(businesses, filters = {}) {
         continue;
       }
 
+      const integration = resolveJobIntegration(business, service, filters);
+      if (!integration) {
+        continue;
+      }
+      const integrationValidation = validateIntegration(integration, business);
+      if (!integrationValidation.valid && filters.allowInvalidJobs !== true && filters.allowInvalidJobs !== "true") {
+        continue;
+      }
+
       const distanceMiles =
         filters.latitude &&
         filters.longitude &&
@@ -1069,7 +1111,7 @@ function buildScrapeJobs(businesses, filters = {}) {
         adminSettings
       );
 
-      jobs.push({
+      const baseJob = {
         ...business,
 
         integrationType: business.integrationType || "scrape",
@@ -1135,8 +1177,15 @@ function buildScrapeJobs(businesses, filters = {}) {
         distanceMiles:
           typeof distanceMiles === "number"
             ? Number(distanceMiles.toFixed(2))
-            : null
-      });
+            : null,
+        integrationValidation
+      };
+
+      const resolvedJob = applyIntegrationToJob(baseJob, integration);
+      const jobValidation = validateScrapeJob(resolvedJob);
+      if (jobValidation.valid || filters.allowInvalidJobs === true || filters.allowInvalidJobs === "true") {
+        jobs.push({ ...resolvedJob, jobValidation });
+      }
     }
   }
 
@@ -1159,5 +1208,7 @@ module.exports = {
   filterServicesForInferenceAnchors,
   getScrapeMode,
   getResolvedDaysForward,
-  getResolvedScrapeWindow
+  getResolvedScrapeWindow,
+  resolveJobIntegration,
+  validateScrapeJob
 };

@@ -8,6 +8,7 @@ const businessManager = require("./businessManager");
 const { spawn } = require("child_process");
 const { storagePath } = require("./storagePaths");
 const adminRoutes = require("./adminRoutes");
+const adminV2Routes = require("./api/adminV2Routes");
 const businessPortalRoutes = require("./businessPortalRoutes");
 const businessDashboardRoutes = require("./businessDashboardRoutes");
 const analyticsRoutes = require("./analyticsRoutes");
@@ -30,8 +31,6 @@ const {
 } = safeRequire("./apiSyncRouter") || {};
 
 const inventoryManager = require("./inventoryManager");
-const { initializeAppointmentCache } = require("./cacheManager");
-const { initializeSearchLocks } = require("./searchLockManager");
 const { saveEmailCapture } = require("./database/runtimeStateRepository");
 const {
   createFeedbackEntry
@@ -118,6 +117,7 @@ app.post("/api/email-capture", async (req, res) => {
 app.use("/uploads", express.static(storagePath("public", "uploads")));
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use("/api/admin/v2", adminV2Routes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/business", businessPortalRoutes);
 app.use("/api/business-dashboard", businessDashboardRoutes);
@@ -2183,8 +2183,6 @@ async function warmBusinessCache() {
 
 async function initializeRuntime() {
   await initializeAdminSettings();
-  await initializeAppointmentCache();
-  await initializeSearchLocks();
   await warmBusinessCache();
 }
 

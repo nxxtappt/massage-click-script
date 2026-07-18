@@ -1,3 +1,10 @@
+const {
+  normalizeBusinessIntegrations,
+  resolveEnabledIntegration,
+  validateIntegration
+} = require("./platformIntegrationRegistry");
+const { syncBusinessIntegrations } = require("./database/integrationRepository");
+
 let BusinessRepository = null;
 
 try {
@@ -242,6 +249,8 @@ function normalizeBusinessShape(business = {}) {
   );
 
   const subscription = normalizeSubscriptionShape(business.subscription);
+  const integrations = normalizeBusinessIntegrations(business);
+  const primaryIntegration = resolveEnabledIntegration({ ...business, integrations });
 
   return {
     ...business,
@@ -260,8 +269,13 @@ function normalizeBusinessShape(business = {}) {
       `/business/${businessSlug}`,
     businessCategory:
       business.businessCategory || business.business_category || "wellness",
-    platform: business.platform || "",
-    bookingUrl: business.bookingUrl || business.booking_url || "",
+    platform: primaryIntegration?.platform || business.platform || "",
+    integrationType: primaryIntegration?.integrationType || business.integrationType || business.integration_type || "scrape",
+    apiProvider: primaryIntegration?.apiProvider || business.apiProvider || business.api_provider || "",
+    credentialId: primaryIntegration?.credentialId || business.credentialId || business.credential_id || "",
+    integrationStatus: primaryIntegration?.status || business.integrationStatus || business.integration_status || "active",
+    integrationConfig: primaryIntegration?.config || business.integrationConfig || {},
+    bookingUrl: primaryIntegration?.bookingUrl || business.bookingUrl || business.booking_url || "",
     website: business.website || business.businessWebsite || "",
     phone: business.phone || business.businessPhone || "",
     email: business.email || "",
@@ -302,9 +316,8 @@ function normalizeBusinessShape(business = {}) {
     discoveryStatus:
       business.discoveryStatus || business.discovery_status || "",
     services: Array.isArray(business.services) ? business.services : [],
-    integrations: Array.isArray(business.integrations)
-      ? business.integrations
-      : [],
+    integrations,
+    primaryIntegration,
     locations: Array.isArray(business.locations) ? business.locations : [],
     searchAliases: Array.isArray(business.searchAliases)
       ? business.searchAliases
@@ -492,6 +505,10 @@ async function createBusiness(business = {}) {
     normalizeBusinessShape(business)
   );
 
+  await syncBusinessIntegrations(
+    row.business_id || row.id || business.businessId || business.businessName,
+    normalizeBusinessIntegrations(business)
+  );
   await getAllBusinesses({ includeDisabled: true });
   return hydrateBusinessRow(row);
 }
@@ -518,6 +535,11 @@ async function updateBusiness(idOrBusinessName, updates = {}) {
         existing.businessId || existing.id,
         merged
       );
+
+  await syncBusinessIntegrations(
+    existing.businessId || existing.id,
+    normalizeBusinessIntegrations(merged)
+  );
 
   await getAllBusinesses({ includeDisabled: true });
   return hydrateBusinessRow(row);
@@ -648,6 +670,19 @@ async function getBusinessPageDataAsync(slugOrName) {
   return getBusinessPageData(slugOrName);
 }
 
+function getBusinessIntegration(business = {}, options = {}) {
+  const normalized = normalizeBusinessShape(business);
+  return resolveEnabledIntegration(normalized, options);
+}
+
+function validateBusinessIntegrations(business = {}) {
+  const normalized = normalizeBusinessShape(business);
+  return normalized.integrations.map((integration) => ({
+    integration,
+    validation: validateIntegration(integration, normalized)
+  }));
+}
+
 function getCacheInfo() {
   return {
     loaded: Array.isArray(businessCache),
@@ -688,6 +723,8 @@ module.exports = {
   buildBusinessPageData,
   normalizeBusinessShape,
   normalizeSubscriptionShape,
+  getBusinessIntegration,
+  validateBusinessIntegrations,
   slugify,
   getCacheInfo
 };
