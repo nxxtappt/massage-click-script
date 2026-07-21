@@ -1,16 +1,10 @@
 const express = require("express");
-const { spawn } = require("child_process");
-
 const {
   loadAdminSettings,
   saveAdminSettings
 } = require("./adminSettingsManager");
 
-const {
-  clearAppointmentCache,
-  getCacheStats,
-  getCachedAppointments
-} = require("./cacheManager");
+const { getCacheStats } = require("./cacheManager");
 
 const router = express.Router();
 
@@ -18,33 +12,13 @@ const businessManager = require("./businessManager");
 const inventoryRepository = require("./database/inventoryRepository");
 const runtimeStateRepository = require("./database/runtimeStateRepository");
 const { loadClaims, getClaimStats } = require("./businessClaimManager");
-
-let schedulerRunInProgress = false;
-let scrapeRunInProgress = false;
+const scrapeJobRepository = require("./database/scrapeJobRepository");
+const { runDueSchedules } = require("./schedulerV2");
 
 function addArg(args, key, value) {
   const cleaned = String(value ?? "").trim();
   if (!cleaned) return;
   args.push(`--${key}=${cleaned}`);
-}
-
-function runNodeScript(scriptName, args = []) {
-  return new Promise((resolve) => {
-    const child = spawn("node", [scriptName, ...args], {
-      cwd: __dirname,
-      shell: false,
-      stdio: "ignore",
-      detached: true
-    });
-
-    child.on("error", (error) => {
-      resolve({ success: false, error: error.message });
-    });
-
-    child.unref();
-
-    resolve({ success: true });
-  });
 }
 
 function buildScrapeArgsFromBody(body = {}) {
@@ -62,6 +36,13 @@ function buildScrapeArgsFromBody(body = {}) {
   addArg(args, "latitude", body.latitude);
   addArg(args, "longitude", body.longitude);
   addArg(args, "maxDistanceMiles", body.maxDistanceMiles);
+  addArg(args, "scrapeStartDate", body.scrapeStartDate);
+  addArg(args, "scrapeEndDate", body.scrapeEndDate);
+  addArg(args, "lookaheadHours", body.lookaheadHours);
+  addArg(args, "daysForward", body.daysForward);
+  addArg(args, "scrapeWindowMode", body.scrapeWindowMode);
+  addArg(args, "integrationId", body.integrationId);
+  addArg(args, "scheduleId", body.scheduleId);
 
   if (body.forceRefresh === true) args.push("--forceRefresh=true");
   if (body.forceDirectScrape === true) args.push("--forceDirectScrape=true");
@@ -256,7 +237,11 @@ router.get("/debug/routes", (req, res) => {
       "POST /api/admin/cache/clear",
       "POST /api/admin/scheduler/run-once",
       "POST /api/admin/scrape/run-once",
-      "POST /api/admin/scrape/targeted"
+      "POST /api/admin/scrape/targeted",
+      "GET /api/admin/scrape/jobs",
+      "GET /api/admin/scrape/jobs/:id",
+      "POST /api/admin/scrape/jobs/:id/retry",
+      "POST /api/admin/scrape/jobs/:id/cancel"
     ]
   });
 });
@@ -628,84 +613,68 @@ router.get("/cache/stats", (req, res) => {
 });
 
 router.get("/cache/items", (req, res) => {
-  const items = getCachedAppointments(req.query || {});
-
   res.json({
     success: true,
-    count: items.length,
-    items
+    source: "postgres",
+    count: 0,
+    items: [],
+    message: "The legacy file appointment cache is disabled. PostgreSQL inventory is authoritative."
   });
 });
 
 router.post("/cache/clear", async (req, res) => {
-  await clearAppointmentCache();
-
   res.json({
     success: true,
-    message: "Appointment cache cleared."
+    source: "postgres",
+    message: "No file cache exists to clear. PostgreSQL appointment inventory was not deleted."
   });
 });
 
 router.post("/scheduler/run-once", async (req, res) => {
-  if (schedulerRunInProgress) {
-    return res.status(409).json({
-      success: false,
-      error: "A scheduler run is already being started."
-    });
-  }
+  const results = await runDueSchedules({
+    force: req.body?.force === true,
+    requestedBy: "admin-legacy-route"
+  });
+  const jobsQueued = results.reduce(
+    (sum, result) => sum + Number(result.jobsQueued || 0),
+    0
+  );
 
-  schedulerRunInProgress = true;
-
-  try {
-    const result = await runNodeScript("scheduler.js", ["--once"]);
-
-    res.json({
-      success: result.success,
-      message: result.success ? "Scheduler run started." : "Scheduler failed to start.",
-      error: result.error || null
-    });
-  } finally {
-    setTimeout(() => {
-      schedulerRunInProgress = false;
-    }, 5000);
-  }
+  res.status(202).json({
+    success: true,
+    message: `${jobsQueued} scheduled scrape job(s) queued for the background worker.`,
+    jobsQueued,
+    results
+  });
 });
 
 router.post("/scrape/run-once", async (req, res) => {
-  if (scrapeRunInProgress) {
-    return res.status(409).json({
-      success: false,
-      error: "A scrape run is already being started."
-    });
-  }
+  const body = req.body || {};
+  const args = buildScrapeArgsFromBody(body);
+  const settings = loadAdminSettings();
 
-  scrapeRunInProgress = true;
+  const job = await scrapeJobRepository.enqueueJob({
+    source: "admin_run_once",
+    scriptName: "scrape.js",
+    args,
+    priority: body.queuePriority || 200,
+    maxAttempts: body.maxAttempts || settings.scheduler?.jobMaxAttempts || 3,
+    timeoutSeconds:
+      body.timeoutSeconds || settings.scheduler?.jobTimeoutSeconds || 1800,
+    requestedBy: "admin",
+    requestPayload: body
+  });
 
-  try {
-    const args = buildScrapeArgsFromBody(req.body || {});
-    const result = await runNodeScript("scrape.js", args);
-
-    res.json({
-      success: result.success,
-      message: result.success ? "Scrape run started." : "Scrape failed to start.",
-      args,
-      error: result.error || null
-    });
-  } finally {
-    setTimeout(() => {
-      scrapeRunInProgress = false;
-    }, 5000);
-  }
+  res.status(202).json({
+    success: true,
+    message: "Scrape queued for the background worker.",
+    jobId: job.id,
+    job,
+    args
+  });
 });
 
 router.post("/scrape/targeted", async (req, res) => {
-  if (scrapeRunInProgress) {
-    return res.status(409).json({
-      success: false,
-      error: "A scrape run is already being started."
-    });
-  }
-
   const body = req.body || {};
 
   if (
@@ -721,28 +690,72 @@ router.post("/scrape/targeted", async (req, res) => {
     });
   }
 
-  scrapeRunInProgress = true;
+  const args = buildScrapeArgsFromBody({
+    ...body,
+    manual: body.manual !== false,
+    forceRefresh: body.forceRefresh !== false
+  });
+  const settings = loadAdminSettings();
 
-  try {
-    const args = buildScrapeArgsFromBody({
-      ...body,
-      manual: body.manual !== false,
-      forceRefresh: body.forceRefresh !== false
-    });
+  const job = await scrapeJobRepository.enqueueJob({
+    source: "admin_targeted",
+    scriptName: "scrape.js",
+    args,
+    priority: body.queuePriority || 300,
+    maxAttempts: body.maxAttempts || settings.scheduler?.jobMaxAttempts || 3,
+    timeoutSeconds:
+      body.timeoutSeconds || settings.scheduler?.jobTimeoutSeconds || 1800,
+    requestedBy: "admin",
+    requestPayload: body
+  });
 
-    const result = await runNodeScript("scrape.js", args);
+  res.status(202).json({
+    success: true,
+    message: "Targeted scrape queued for the background worker.",
+    jobId: job.id,
+    job,
+    args
+  });
+});
 
-    res.json({
-      success: result.success,
-      message: result.success ? "Targeted scrape started." : "Targeted scrape failed to start.",
-      args,
-      error: result.error || null
-    });
-  } finally {
-    setTimeout(() => {
-      scrapeRunInProgress = false;
-    }, 5000);
+router.get("/scrape/jobs", async (req, res) => {
+  const jobs = await scrapeJobRepository.listJobs({
+    status: req.query.status,
+    source: req.query.source,
+    scheduleId: req.query.scheduleId,
+    limit: req.query.limit
+  });
+  res.json({ success: true, jobs });
+});
+
+router.get("/scrape/jobs/:id", async (req, res) => {
+  const job = await scrapeJobRepository.getJob(req.params.id);
+  if (!job) {
+    return res.status(404).json({ success: false, error: "Scrape job not found." });
   }
+  res.json({ success: true, job });
+});
+
+router.post("/scrape/jobs/:id/retry", async (req, res) => {
+  const job = await scrapeJobRepository.retryJob(req.params.id);
+  if (!job) {
+    return res.status(409).json({
+      success: false,
+      error: "Only failed or cancelled scrape jobs can be retried."
+    });
+  }
+  res.json({ success: true, job });
+});
+
+router.post("/scrape/jobs/:id/cancel", async (req, res) => {
+  const job = await scrapeJobRepository.requestJobCancellation(req.params.id);
+  if (!job) {
+    return res.status(409).json({
+      success: false,
+      error: "Only queued or running scrape jobs can be cancelled."
+    });
+  }
+  res.json({ success: true, job });
 });
 
 module.exports = router;

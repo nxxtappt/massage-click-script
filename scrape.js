@@ -150,6 +150,13 @@ async function closeScrapePage(page, context) {
   await context?.close?.().catch(() => null);
 }
 
+function usesDedicatedBrowser(job = {}) {
+  return (
+    String(job.integrationType || "").toLowerCase() === "api" ||
+    String(job.platform || "").toLowerCase() === "meevo"
+  );
+}
+
 function buildScrapeWindowPayload(job = {}) {
   return {
     scrapeStartDate: job.scrapeStartDate || "",
@@ -451,15 +458,11 @@ async function scrapeWithRetries(browser, business) {
   }
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-  const usesOwnBrowser =
-    scrapeTarget.integrationType === "api" ||
-    scrapeTarget.platform === "meevo";
+    const { page, context } = usesDedicatedBrowser(scrapeTarget)
+      ? { page: null, context: null }
+      : await createScrapePage(browser);
 
-  const { page, context } = usesOwnBrowser
-    ? { page: null, context: null }
-    : await createScrapePage(browser);
-
-  const startedAt = Date.now();
+    const startedAt = Date.now();
 
     try {
       console.log("[SCRAPE WINDOW]", {
@@ -952,24 +955,26 @@ async function run() {
     return;
   }
 
-  const requiresSharedBrowser = scrapeJobs.some(
-  (job) =>
-    job.integrationType !== "api" &&
-    job.platform !== "meevo"
-);
-
-const browser = requiresSharedBrowser
-  ? await chromium.launch({
-      headless: true
-    })
-  : null;
-
-let results = [];
+  let browser = null;
+  let results = [];
 
   console.log("[INVENTORY] Starting a new PostgreSQL-backed scrape run.");
 
   try {
     for (const job of scrapeJobs) {
+      const dedicatedBrowser = usesDedicatedBrowser(job);
+
+      // Meevo owns its own Chromium instance. Close the shared browser first so
+      // a mixed scrape run never holds two Chromium processes at the same time.
+      if (dedicatedBrowser && browser) {
+        await browser.close().catch(() => null);
+        browser = null;
+      }
+
+      if (!dedicatedBrowser && !browser) {
+        browser = await chromium.launch({ headless: true });
+      }
+
       const businessServiceId = resolveBusinessServiceId(
         job.businessServiceId,
         job.business_service_id,
@@ -1343,5 +1348,6 @@ if (require.main === module) {
 
 module.exports = {
   run,
-  scrapeWithRetries
+  scrapeWithRetries,
+  usesDedicatedBrowser
 };

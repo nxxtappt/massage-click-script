@@ -1,17 +1,27 @@
 {
   "name": "massage-click-script",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.1.0",
+  "description": "NextAppt PostgreSQL-backed appointment inventory, scrape scheduler, and background worker",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:worker": "node scrapeWorker.js",
+    "start:scheduler": "node scheduler.js",
+    "scheduler:once": "node scheduler.js --once",
+    "worker:once": "node scrapeWorker.js --once",
+    "validate:scheduler": "node scripts/validateSchedulerLogic.js",
+    "check:scheduler": "node --check adminRoutes.js && node --check adminSettingsManager.js && node --check api/adminV2Routes.js && node --check database/schedulerRepository.js && node --check database/scrapeJobRepository.js && node --check scheduler.js && node --check schedulerV2.js && node --check scrapeWorker.js && node --check scrape.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nxxtappt/massage-click-script.git"
   },
-  "keywords": [],
+  "keywords": [
+    "nextappt",
+    "scheduler",
+    "playwright",
+    "postgresql"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",

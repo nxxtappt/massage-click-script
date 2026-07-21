@@ -1,42 +1,155 @@
-require("dotenv").config();
-const { spawn } = require("child_process");
-const { initializeAdminSettings, loadAdminSettings, getClusterIntervalMinutes, isClusterEnabled } = require("./adminSettingsManager");
-const { initializeAppointmentCache } = require("./cacheManager");
-const businessManager = require("./businessManager");
-let running = false;
+"use strict";
 
-function runScrapeOnce(extraArgs = []) {
-  return new Promise((resolve) => {
-    if (running) return resolve({ success: false, skipped: true, reason: "scrape_already_running" });
-    running = true;
-    const child = spawn(process.execPath, ["scrape.js", ...extraArgs], { cwd: __dirname, stdio: "inherit", shell: false });
-    child.on("close", (code) => { running = false; resolve({ success: code === 0, code }); });
-    child.on("error", (error) => { running = false; resolve({ success: false, error: error.message }); });
-  });
+require("dotenv").config();
+
+const {
+  initializeAdminSettings,
+  refreshAdminSettings,
+  loadAdminSettings
+} = require("./adminSettingsManager");
+const { runDueSchedules } = require("./schedulerV2");
+const scrapeJobRepository = require("./database/scrapeJobRepository");
+
+let running = false;
+let stopping = false;
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
+
 async function initializeScheduler() {
   await initializeAdminSettings();
-  await initializeAppointmentCache();
-  await businessManager.getAllBusinesses({ includeDisabled: true });
+  return loadAdminSettings();
 }
-async function runOnceFromSettings() {
-  await initializeScheduler();
-  const settings = loadAdminSettings();
-  if (settings.scraping.enabled === false || settings.scraping.scheduledScrapingEnabled === false) return { success: false, skipped: true };
-  return runScrapeOnce([]);
+
+function schedulerIsEnabled(settings) {
+  return (
+    settings.scraping?.enabled !== false &&
+    settings.scraping?.scheduledScrapingEnabled !== false &&
+    settings.scheduler?.enabled !== false
+  );
 }
-function getEnabledClusterIds(settings) {
-  return Object.keys(settings.clusters || {}).filter(isClusterEnabled);
+
+async function runScrapeOnce(extraArgs = [], options = {}) {
+  const settings = await refreshAdminSettings();
+  const job = await scrapeJobRepository.enqueueJob({
+    source: options.source || "legacy_scheduler_run_once",
+    scriptName: "scrape.js",
+    args: Array.isArray(extraArgs) ? extraArgs : [],
+    priority: options.priority || 100,
+    maxAttempts: options.maxAttempts || settings.scheduler?.jobMaxAttempts || 3,
+    timeoutSeconds:
+      options.timeoutSeconds || settings.scheduler?.jobTimeoutSeconds || 1800,
+    requestedBy: options.requestedBy || "scheduler-process",
+    requestPayload: options.requestPayload || {}
+  });
+
+  return { success: true, queued: true, job };
 }
+
+async function runOnceFromSettings(options = {}) {
+  if (running) {
+    return {
+      success: false,
+      skipped: true,
+      reason: "scheduler_already_running",
+      results: []
+    };
+  }
+
+  running = true;
+
+  try {
+    const settings = await refreshAdminSettings();
+    if (!schedulerIsEnabled(settings)) {
+      return {
+        success: false,
+        skipped: true,
+        reason: "scheduled_scraping_disabled",
+        results: []
+      };
+    }
+
+    const results = await runDueSchedules({
+      force: options.force === true,
+      requestedBy: options.requestedBy || "scheduler-process"
+    });
+
+    return {
+      success: true,
+      results,
+      jobsQueued: results.reduce(
+        (sum, result) => sum + Number(result.jobsQueued || 0),
+        0
+      )
+    };
+  } finally {
+    running = false;
+  }
+}
+
 async function startScheduler() {
   await initializeScheduler();
-  const settings = loadAdminSettings();
-  if (settings.scraping.enabled === false || settings.scraping.scheduledScrapingEnabled === false) return;
-  const clusterIds = getEnabledClusterIds(settings);
-  const schedule = (args, minutes) => { runScrapeOnce(args); setInterval(() => runScrapeOnce(args), minutes * 60000); };
-  if (!clusterIds.length) return schedule([], settings.scraping.defaultIntervalMinutes || 15);
-  clusterIds.forEach((id) => schedule([`--cluster=${id}`], getClusterIntervalMinutes(id)));
+
+  while (!stopping) {
+    try {
+      const result = await runOnceFromSettings();
+      if (result.jobsQueued) {
+        console.log(`[SCHEDULER] Queued ${result.jobsQueued} scrape job(s).`);
+      }
+    } catch (error) {
+      console.error("[SCHEDULER] Poll failed:", error);
+    }
+
+    const settings = await refreshAdminSettings();
+    const pollSeconds = Math.max(
+      10,
+      Number(
+        process.env.SCHEDULER_POLL_SECONDS ||
+        settings.scheduler?.pollIntervalSeconds ||
+        30
+      )
+    );
+
+    await sleep(pollSeconds * 1000);
+  }
 }
-async function runCli() { process.argv.includes("--once") ? await runOnceFromSettings() : await startScheduler(); }
-if (require.main === module) runCli().catch((error) => { console.error(error); process.exitCode = 1; });
-module.exports = { runScrapeOnce, runOnceFromSettings, startScheduler, initializeScheduler };
+
+async function stopScheduler(signal) {
+  if (stopping) return;
+  stopping = true;
+  console.log(`[SCHEDULER] Received ${signal}; stopping.`);
+}
+
+process.on("SIGTERM", () => stopScheduler("SIGTERM"));
+process.on("SIGINT", () => stopScheduler("SIGINT"));
+
+async function runCli() {
+  await initializeScheduler();
+
+  if (process.argv.includes("--once")) {
+    const result = await runOnceFromSettings({
+      force: process.argv.includes("--force")
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  await startScheduler();
+}
+
+if (require.main === module) {
+  runCli().catch((error) => {
+    console.error("[SCHEDULER] Fatal error:", error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  initializeScheduler,
+  runScrapeOnce,
+  runOnceFromSettings,
+  startScheduler,
+  stopScheduler,
+  schedulerIsEnabled
+};

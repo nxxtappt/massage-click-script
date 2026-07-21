@@ -11,7 +11,16 @@ const DEFAULT_SETTINGS = Object.freeze({
     skipFreshCache: false,
     defaultIntervalMinutes: 15,
     defaultLookaheadHours: 48,
-    maxServicesPerBusiness: 25
+    maxServicesPerBusiness: 25,
+    maxConcurrentScrapes: 1
+  },
+  scheduler: {
+    enabled: true,
+    pollIntervalSeconds: 30,
+    workerRunsScheduler: true,
+    jobMaxAttempts: 3,
+    jobTimeoutSeconds: 1800,
+    staleJobMinutes: 20
   },
   platforms: {},
   serviceRules: {
@@ -25,9 +34,14 @@ const DEFAULT_SETTINGS = Object.freeze({
     allowServicesWithoutDiscoveryStatus: true
   },
   cache: {
+    enabled: false,
+    defaultTtlMinutes: 0,
     successTtlMinutes: 0,
+    noTimesFoundTtlMinutes: 0,
+    fullyBookedTtlMinutes: 0,
     emptyTtlMinutes: 0,
-    errorTtlMinutes: 0
+    errorTtlMinutes: 0,
+    unknownTtlMinutes: 0
   },
   clusters: {},
   safety: {}
@@ -42,6 +56,7 @@ function isPlainObject(value) {
 
 function mergeSettings(base, incoming) {
   const output = { ...base };
+
   for (const [key, value] of Object.entries(incoming || {})) {
     if (isPlainObject(value) && isPlainObject(base?.[key])) {
       output[key] = mergeSettings(base[key], value);
@@ -49,6 +64,7 @@ function mergeSettings(base, incoming) {
       output[key] = value;
     }
   }
+
   return output;
 }
 
@@ -65,10 +81,15 @@ async function ensureSettingsTable() {
 
 async function initializeAdminSettings() {
   await ensureSettingsTable();
+
   const existing = await db.query(
     `SELECT settings FROM app_settings WHERE settings_key = 'admin' LIMIT 1`
   );
-  const merged = mergeSettings(DEFAULT_SETTINGS, existing.rows[0]?.settings || {});
+  const merged = mergeSettings(
+    DEFAULT_SETTINGS,
+    existing.rows[0]?.settings || {}
+  );
+
   const { rows } = await db.query(
     `INSERT INTO app_settings (settings_key, settings, updated_at)
      VALUES ('admin', $1::jsonb, NOW())
@@ -77,6 +98,7 @@ async function initializeAdminSettings() {
      RETURNING settings`,
     [JSON.stringify(merged)]
   );
+
   settingsCache = mergeSettings(DEFAULT_SETTINGS, rows[0]?.settings || {});
   initialized = true;
   return loadAdminSettings();
@@ -86,8 +108,24 @@ function loadAdminSettings() {
   return structuredClone(settingsCache);
 }
 
+async function refreshAdminSettings() {
+  await ensureSettingsTable();
+  const { rows } = await db.query(
+    `SELECT settings FROM app_settings WHERE settings_key = 'admin' LIMIT 1`
+  );
+
+  if (!rows[0]) {
+    return initializeAdminSettings();
+  }
+
+  settingsCache = mergeSettings(DEFAULT_SETTINGS, rows[0].settings || {});
+  initialized = true;
+  return loadAdminSettings();
+}
+
 async function saveAdminSettings(nextSettings = {}) {
   if (!initialized) await initializeAdminSettings();
+
   const merged = mergeSettings(DEFAULT_SETTINGS, nextSettings);
   const { rows } = await db.query(
     `INSERT INTO app_settings (settings_key, settings, updated_at)
@@ -97,6 +135,7 @@ async function saveAdminSettings(nextSettings = {}) {
      RETURNING settings`,
     [JSON.stringify(merged)]
   );
+
   settingsCache = mergeSettings(DEFAULT_SETTINGS, rows[0]?.settings || {});
   return loadAdminSettings();
 }
@@ -113,6 +152,36 @@ function isPlatformEnabled(platform) {
   return true;
 }
 
+function isClusterEnabled(clusterId) {
+  const key = String(clusterId || "").trim();
+  if (!key) return false;
+  const cluster = settingsCache.clusters?.[key];
+  return Boolean(cluster) && cluster.enabled !== false;
+}
+
+function getClusterIntervalMinutes(clusterId) {
+  const cluster = settingsCache.clusters?.[String(clusterId || "").trim()] || {};
+  const value = Number(
+    cluster.intervalMinutes ||
+    settingsCache.scraping?.defaultIntervalMinutes ||
+    15
+  );
+  return Number.isFinite(value) && value > 0 ? value : 15;
+}
+
+function shouldSkipVagaroDiscovery(filters = {}) {
+  if (filters.skipVagaroDiscovery === true || filters.skipVagaroDiscovery === "true") {
+    return true;
+  }
+
+  const configured = settingsCache.platforms?.vagaro;
+  if (isPlainObject(configured) && configured.discoveryEnabled === false) {
+    return true;
+  }
+
+  return false;
+}
+
 function getTtlMinutesForStatus() {
   return 0;
 }
@@ -120,6 +189,7 @@ function getTtlMinutesForStatus() {
 module.exports = {
   DEFAULT_SETTINGS,
   initializeAdminSettings,
+  refreshAdminSettings,
   loadAdminSettings,
   saveAdminSettings,
   updateAdminSettings,
@@ -128,5 +198,8 @@ module.exports = {
   saveSettings: saveAdminSettings,
   updateSettings: updateAdminSettings,
   isPlatformEnabled,
+  isClusterEnabled,
+  getClusterIntervalMinutes,
+  shouldSkipVagaroDiscovery,
   getTtlMinutesForStatus
 };
