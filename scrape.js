@@ -451,8 +451,15 @@ async function scrapeWithRetries(browser, business) {
   }
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-    const { page, context } = await createScrapePage(browser);
-    const startedAt = Date.now();
+  const usesOwnBrowser =
+    scrapeTarget.integrationType === "api" ||
+    scrapeTarget.platform === "meevo";
+
+  const { page, context } = usesOwnBrowser
+    ? { page: null, context: null }
+    : await createScrapePage(browser);
+
+  const startedAt = Date.now();
 
     try {
       console.log("[SCRAPE WINDOW]", {
@@ -945,9 +952,17 @@ async function run() {
     return;
   }
 
-  const browser = await chromium.launch({
-    headless: true
-  });
+  const requiresSharedBrowser = scrapeJobs.some(
+  (job) =>
+    job.integrationType !== "api" &&
+    job.platform !== "meevo"
+);
+
+const browser = requiresSharedBrowser
+  ? await chromium.launch({
+      headless: true
+    })
+  : null;
 
 let results = [];
 
@@ -1307,7 +1322,7 @@ results = upsertResult(results, resultWithInference);
       console.log(JSON.stringify(result, null, 2));
     }
   } finally {
-    await browser.close().catch(() => null);
+    await browser?.close?.().catch(() => null);
   }
 
   console.log("\n===== SCRAPE COMPLETE =====");
