@@ -47,8 +47,18 @@ let inventorySearchState = {
   total: 0,
   totalPages: 1
 };
-let schedulerV2State = { groups: [], schedules: [], exceptions: [], history: [], health: {}, platforms: [] };
-
+let schedulerV2State = {
+  groups: [],
+  schedules: [],
+  exceptions: [],
+  history: [],
+  health: {},
+  queue: {},
+  workers: [],
+  jobs: [],
+  businesses: [],
+  platforms: []
+};
 let claimSearchState = {
   business: "",
   owner: "",
@@ -92,8 +102,8 @@ const views = {
   },
 
   schedules: {
-    title: "Scheduler V2",
-    subtitle: "Manage scrape groups, business schedules, calendar rules, exceptions, history, and scheduler health."
+    title: "Scrape Scheduler",
+    subtitle: "Manage PostgreSQL schedules, groups, exceptions, queue jobs, and workers."
   },
 
   settings: {
@@ -179,22 +189,6 @@ function normalizeBusinessDefaults(business) {
     normalized.services = [];
   }
 
-  if (!Array.isArray(normalized.integrations)) {
-    normalized.integrations = [];
-  }
-
-  if (!normalized.integrations.length && (normalized.platform || normalized.bookingUrl)) {
-    normalized.integrations.push(createBlankIntegration({
-      platform: normalized.platform || "",
-      integrationType: normalized.integrationType || "scrape",
-      apiProvider: normalized.apiProvider || "",
-      credentialId: normalized.credentialId || "",
-      bookingUrl: normalized.bookingUrl || "",
-      status: normalized.integrationStatus || "active",
-      isDefault: true
-    }));
-  }
-
   return normalized;
 }
 
@@ -209,25 +203,6 @@ function normalizeInferServiceTypes(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function createBlankIntegration(overrides = {}) {
-  return {
-    id: null,
-    integrationId: null,
-    name: "",
-    platform: "",
-    integrationType: "scrape",
-    apiProvider: "",
-    credentialId: "",
-    bookingUrl: "",
-    status: "active",
-    enabled: true,
-    priority: 100,
-    isDefault: false,
-    config: {},
-    ...overrides
-  };
 }
 
 function createBlankService() {
@@ -280,7 +255,6 @@ function createBlankBusiness() {
     priority: "normal",
     discoveryStatus: "manual",
     services: [createBlankService()],
-    integrations: [createBlankIntegration({ isDefault: true })],
     isNew: true
   });
 }
@@ -454,7 +428,6 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
         ${renderServiceInput("Priority", "priority", service.priority, businessIndex, serviceIndex)}
         ${renderServiceInput("Discovery Status", "discoveryStatus", service.discoveryStatus, businessIndex, serviceIndex)}
         ${renderServiceInput("Booking Interval Minutes", "bookingIntervalMinutes", service.bookingIntervalMinutes, businessIndex, serviceIndex, "number")}
-        ${renderServiceInput("Integration ID", "integrationId", service.integrationId || "", businessIndex, serviceIndex)}
 
         <div class="admin-field checkbox-wrap">
           <span>Service Status</span>
@@ -509,67 +482,6 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
         ${renderServiceInput("Inference Confidence", "inferenceConfidence", service.inferenceConfidence ?? 0.85, businessIndex, serviceIndex, "number")}
       </div>
     </div>
-  `;
-}
-
-function renderIntegrationInput(label, field, value, businessIndex, integrationIndex, type = "text") {
-  return `
-    <label class="admin-field">
-      <span>${escapeHtml(label)}</span>
-      <input type="${type}" data-integration-business-index="${businessIndex}" data-integration-index="${integrationIndex}" data-integration-field="${escapeHtml(field)}" value="${escapeHtml(value ?? "")}" />
-    </label>
-  `;
-}
-
-function renderIntegrationCheckbox(label, field, checked, businessIndex, integrationIndex) {
-  return `
-    <label class="admin-checkbox service-checkbox">
-      <input type="checkbox" data-integration-business-index="${businessIndex}" data-integration-index="${integrationIndex}" data-integration-field="${escapeHtml(field)}" ${checked ? "checked" : ""} />
-      <span>${escapeHtml(label)}</span>
-    </label>
-  `;
-}
-
-function renderIntegrationCard(integration, businessIndex, integrationIndex) {
-  return `
-    <div class="service-card integration-card">
-      <div class="service-card-header">
-        <div>
-          <h4>${escapeHtml(integration.name || integration.platform || "Unnamed Integration")}</h4>
-          <p>${escapeHtml(integration.platform || "unknown")} - ${escapeHtml(integration.integrationType || "scrape")} - ${escapeHtml(integration.status || "active")}</p>
-        </div>
-        <button class="danger-btn" data-delete-integration-business-index="${businessIndex}" data-delete-integration-index="${integrationIndex}">Delete</button>
-      </div>
-      <div class="service-edit-grid">
-        ${renderIntegrationInput("Name", "name", integration.name, businessIndex, integrationIndex)}
-        ${renderIntegrationInput("Platform", "platform", integration.platform, businessIndex, integrationIndex)}
-        ${renderIntegrationInput("Integration Type", "integrationType", integration.integrationType || "scrape", businessIndex, integrationIndex)}
-        ${renderIntegrationInput("API Provider", "apiProvider", integration.apiProvider, businessIndex, integrationIndex)}
-        ${renderIntegrationInput("Credential ID", "credentialId", integration.credentialId, businessIndex, integrationIndex)}
-        ${renderIntegrationInput("Booking URL", "bookingUrl", integration.bookingUrl, businessIndex, integrationIndex, "url")}
-        ${renderIntegrationInput("Status", "status", integration.status || "active", businessIndex, integrationIndex)}
-        ${renderIntegrationInput("Priority", "priority", integration.priority ?? 100, businessIndex, integrationIndex, "number")}
-        <div class="admin-field checkbox-wrap"><span>Enabled</span>${renderIntegrationCheckbox("Integration enabled", "enabled", integration.enabled !== false, businessIndex, integrationIndex)}</div>
-        <div class="admin-field checkbox-wrap"><span>Default</span>${renderIntegrationCheckbox("Default integration", "isDefault", integration.isDefault === true, businessIndex, integrationIndex)}</div>
-        <label class="admin-field admin-field-full">
-          <span>Configuration JSON</span>
-          <textarea rows="6" data-integration-business-index="${businessIndex}" data-integration-index="${integrationIndex}" data-integration-field="configJson">${escapeHtml(JSON.stringify(integration.config || {}, null, 2))}</textarea>
-        </label>
-      </div>
-    </div>
-  `;
-}
-
-function renderIntegrationsSection(business, businessIndex) {
-  const integrations = Array.isArray(business.integrations) ? business.integrations : [];
-  return `
-    <details class="services-section" open>
-      <summary class="services-summary"><span>Universal Integrations</span><small>${integrations.length} configured</small></summary>
-      <div class="services-inner">
-        <div class="services-actions"><button class="secondary-btn" data-add-integration-index="${businessIndex}">+ Add Integration</button></div>
-        ${integrations.length ? integrations.map((integration, integrationIndex) => renderIntegrationCard(integration, businessIndex, integrationIndex)).join("") : `<p class="empty-note">No integrations configured.</p>`}
-      </div>
-    </details>
   `;
 }
 
@@ -648,8 +560,6 @@ function renderBusinessCard(business, index) {
         </div>
       </details>
 
-      ${renderIntegrationsSection(business, index)}
-
       ${renderServicesSection(business, index)}
 
       <details class="raw-json-box">
@@ -723,62 +633,6 @@ function attachServiceInputListeners() {
 
     fieldElement.addEventListener("input", update);
     fieldElement.addEventListener("change", update);
-  });
-}
-
-function attachIntegrationInputListeners() {
-  content.querySelectorAll("[data-integration-business-index][data-integration-index][data-integration-field]").forEach((element) => {
-    const update = () => {
-      const businessIndex = Number(element.dataset.integrationBusinessIndex);
-      const integrationIndex = Number(element.dataset.integrationIndex);
-      const field = element.dataset.integrationField;
-      const integration = businessesCache[businessIndex]?.integrations?.[integrationIndex];
-      if (!integration) return;
-      let value = element.type === "checkbox" ? element.checked : element.value;
-      if (field === "priority") value = value === "" ? 100 : Number(value);
-      if (field === "configJson") {
-        try {
-          integration.config = value.trim() ? JSON.parse(value) : {};
-          element.setCustomValidity("");
-        } catch (error) {
-          element.setCustomValidity("Configuration must be valid JSON.");
-          setStatus(`Invalid integration JSON: ${error.message}`, "error");
-          return;
-        }
-      } else {
-        integration[field] = value;
-      }
-      if (field === "isDefault" && value === true) {
-        businessesCache[businessIndex].integrations.forEach((item, index) => { if (index !== integrationIndex) item.isDefault = false; });
-      }
-      setStatus("Unsaved integration changes.", "info");
-    };
-    element.addEventListener("input", update);
-    element.addEventListener("change", update);
-  });
-}
-
-function attachIntegrationActionListeners() {
-  content.querySelectorAll("[data-add-integration-index]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const businessIndex = Number(button.dataset.addIntegrationIndex);
-      const business = businessesCache[businessIndex];
-      if (!business) return;
-      business.integrations = Array.isArray(business.integrations) ? business.integrations : [];
-      business.integrations.push(createBlankIntegration({ isDefault: business.integrations.length === 0 }));
-      renderBusinessesFromCache();
-    });
-  });
-  content.querySelectorAll("[data-delete-integration-business-index]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const businessIndex = Number(button.dataset.deleteIntegrationBusinessIndex);
-      const integrationIndex = Number(button.dataset.deleteIntegrationIndex);
-      const business = businessesCache[businessIndex];
-      if (!business?.integrations?.[integrationIndex]) return;
-      if (!window.confirm("Delete this integration? Save Business to make the change permanent.")) return;
-      business.integrations.splice(integrationIndex, 1);
-      renderBusinessesFromCache();
-    });
   });
 }
 
@@ -987,8 +841,6 @@ function renderBusinessesFromCache() {
   });
 
   attachBusinessInputListeners();
-  attachIntegrationInputListeners();
-  attachIntegrationActionListeners();
   attachServiceInputListeners();
   attachAddServiceListeners();
   attachDeleteServiceListeners();
@@ -1810,6 +1662,7 @@ function renderTargetedScrapePanel() {
         ${renderTargetedCheckbox("Manual mode", "targetManual", true)}
         
         ${renderTargetedCheckbox("Ignore service rules", "targetIgnoreServiceRules", false)}
+        ${renderTargetedCheckbox("Skip Vagaro discovery", "targetSkipVagaroDiscovery", true)}
       </div>
 
       <div id="targetedPreview" class="targeted-preview">
@@ -1854,10 +1707,9 @@ async function loadSettings() {
           <h3>Scraping Controls</h3>
           ${renderSettingsCheckbox("Scraping Enabled", "scraping.enabled", scraping.enabled !== false)}
           ${renderSettingsCheckbox("Search Enabled", "searchEnabled", settings.searchEnabled !== false)}
-          ${renderSettingsCheckbox("Scheduled Scraping Enabled", "scraping.scheduledScrapingEnabled", scraping.scheduledScrapingEnabled !== false)}
           ${renderSettingsCheckbox("Skip Fresh Cache", "scraping.skipFreshCache", scraping.skipFreshCache !== false)}
+          ${renderSettingsCheckbox("Skip Vagaro Discovery By Default", "scraping.skipVagaroDiscoveryByDefault", scraping.skipVagaroDiscoveryByDefault !== false)}
           ${renderSettingsInput("Default Lookahead Hours", "scraping.defaultLookaheadHours", scraping.defaultLookaheadHours || 48, "number")}
-          ${renderSettingsInput("Default Interval Minutes", "scraping.defaultIntervalMinutes", scraping.defaultIntervalMinutes || 15, "number")}
           ${renderSettingsInput("Max Concurrent Scrapes", "scraping.maxConcurrentScrapes", scraping.maxConcurrentScrapes || 1, "number")}
         </div>
 
@@ -1894,22 +1746,10 @@ async function loadSettings() {
           ).join("")}
         </div>
 
-        <div class="settings-panel settings-panel-full">
-          <h3>Clusters</h3>
-          ${
-            Object.keys(clusters).length
-              ? Object.keys(clusters).map((clusterId) => {
-                  const cluster = clusters[clusterId] || {};
-                  return `
-                    <div class="cluster-settings-card">
-                      <h4>${escapeHtml(clusterId)}</h4>
-                      ${renderSettingsCheckbox("Cluster Enabled", `clusters.${clusterId}.enabled`, cluster.enabled !== false)}
-                      ${renderSettingsInput("Interval Minutes", `clusters.${clusterId}.intervalMinutes`, cluster.intervalMinutes || 15, "number")}
-                    </div>
-                  `;
-                }).join("")
-              : `<p class="empty-note">No cluster settings found.</p>`
-          }
+        <div class="settings-panel settings-panel-full legacy-scheduler-note">
+          <h3>PostgreSQL Scheduler</h3>
+          <p class="settings-help">Schedules are no longer configured in admin settings. Use the <strong>Schedules</strong> tab to create and manage PostgreSQL-backed schedules, groups, exceptions, jobs, and workers.</p>
+          <button id="openSchedulerTabBtn" class="secondary-btn" type="button">Open Schedules</button>
         </div>
 
         <div class="settings-panel settings-panel-full">
@@ -1918,7 +1758,6 @@ async function loadSettings() {
             <button id="saveSettingsBtn" class="primary-btn">Save Settings</button>
             <button id="reloadSettingsBtn" class="secondary-btn">Reload Settings</button>
             <button id="clearCacheBtn" class="danger-btn large-danger-btn">Clear Cache</button>
-            <button id="runSchedulerOnceBtn" class="secondary-btn">Run Scheduler Once</button>
             <button id="runScrapeOnceBtn" class="secondary-btn">Run Scrape Once</button>
             <button id="viewCacheStatsBtn" class="secondary-btn">View Cache Stats</button>
           </div>
@@ -1996,13 +1835,8 @@ function attachSettingsListeners(settings) {
     }
   });
 
-  document.getElementById("runSchedulerOnceBtn")?.addEventListener("click", async () => {
-    try {
-      await fetchJson("/api/admin/scheduler/run-once", { method: "POST" });
-      setStatus("Scheduler run started.", "success");
-    } catch (error) {
-      setStatus(`Scheduler run failed: ${error.message}`, "error");
-    }
+  document.getElementById("openSchedulerTabBtn")?.addEventListener("click", () => {
+    loadView("schedules");
   });
 
   document.getElementById("runScrapeOnceBtn")?.addEventListener("click", async () => {
@@ -2135,6 +1969,7 @@ function hydrateTargetedDropdowns() {
     "targetManual",
     "targetOnDemand",
     "targetIgnoreServiceRules",
+    "targetSkipVagaroDiscovery"
   ].forEach((id) => {
     document.getElementById(id)?.addEventListener("change", updateTargetedPreview);
   });
@@ -2162,6 +1997,7 @@ function buildTargetedPayload() {
     forceRefresh: getCheckboxValue("targetForceRefresh"),
     manual: getCheckboxValue("targetManual"),
     ignoreServiceRules: getCheckboxValue("targetIgnoreServiceRules"),
+    skipVagaroDiscovery: getCheckboxValue("targetSkipVagaroDiscovery")
   };
 
   Object.keys(payload).forEach((key) => {
@@ -2204,7 +2040,9 @@ function attachTargetedScrapeListeners() {
 
     document.getElementById("targetForceRefresh").checked = true;
     document.getElementById("targetManual").checked = true;
+    document.getElementById("targetOnDemand").checked = false;
     document.getElementById("targetIgnoreServiceRules").checked = false;
+    document.getElementById("targetSkipVagaroDiscovery").checked = true;
 
     hydrateTargetedDropdowns();
     setStatus("Targeted scrape choices reset.", "info");
@@ -2464,97 +2302,1017 @@ async function loadClaims() {
   }
 }
 
-function renderJsonTextarea(label, id, value, rows = 5) {
-  return `<label class="admin-field admin-field-full"><span>${escapeHtml(label)}</span><textarea id="${escapeHtml(id)}" rows="${rows}">${escapeHtml(JSON.stringify(value || {}, null, 2))}</textarea></label>`;
+
+const SCHEDULER_WEEKDAYS = [
+  { value: "MO", label: "Mon" },
+  { value: "TU", label: "Tue" },
+  { value: "WE", label: "Wed" },
+  { value: "TH", label: "Thu" },
+  { value: "FR", label: "Fri" },
+  { value: "SA", label: "Sat" },
+  { value: "SU", label: "Sun" }
+];
+
+function formatSchedulerDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short"
+  }).format(date);
 }
 
-function parseJsonInput(id, fallback = {}) {
-  const raw = document.getElementById(id)?.value.trim();
-  if (!raw) return fallback;
-  return JSON.parse(raw);
+function schedulerStatusClass(value) {
+  const status = String(value || "").toLowerCase();
+  if (["success", "succeeded", "online", "running"].includes(status)) return "success";
+  if (["error", "failed", "offline", "cancelled", "canceled", "partial_error"].includes(status)) return "error";
+  if (["queued", "pending", "idle"].includes(status)) return "warning";
+  return "neutral";
+}
+
+function schedulerBoolean(value, fallback = false) {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return fallback;
+}
+
+function schedulerNumber(value, fallback = null) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function schedulerStringList(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function getSchedulerBusinessPublicId(business = {}) {
+  return business.businessId || business.business_id || business.public_business_id || "";
+}
+
+function getSchedulerBusinessName(business = {}) {
+  return business.businessName || business.business_name || getSchedulerBusinessPublicId(business) || "Unknown business";
+}
+
+function getSchedulerSelectedValues(id) {
+  const element = document.getElementById(id);
+  if (!element) return [];
+  return [...element.selectedOptions].map((option) => option.value).filter(Boolean);
+}
+
+function setSchedulerSelectedValues(id, values = []) {
+  const selected = new Set(values.map(String));
+  const element = document.getElementById(id);
+  if (!element) return;
+  [...element.options].forEach((option) => {
+    option.selected = selected.has(String(option.value));
+  });
+}
+
+function getCheckedSchedulerDays() {
+  return [...document.querySelectorAll("[data-scheduler-day]:checked")]
+    .map((input) => input.value)
+    .filter(Boolean);
+}
+
+function setCheckedSchedulerDays(days = []) {
+  const selected = new Set((days || []).map(String));
+  document.querySelectorAll("[data-scheduler-day]").forEach((input) => {
+    input.checked = selected.has(input.value);
+  });
+}
+
+function renderSchedulerMetric(label, value, hint = "") {
+  return `
+    <article class="scheduler-metric">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value ?? 0)}</strong>
+      ${hint ? `<small>${escapeHtml(hint)}</small>` : ""}
+    </article>
+  `;
+}
+
+function renderSchedulerStatusPill(status) {
+  return `<span class="scheduler-status ${schedulerStatusClass(status)}">${escapeHtml(status || "unknown")}</span>`;
+}
+
+function renderSchedulerBusinessOptions(selected = "") {
+  return schedulerV2State.businesses.map((business) => {
+    const id = getSchedulerBusinessPublicId(business);
+    const label = `${getSchedulerBusinessName(business)}${business.platform ? ` · ${business.platform}` : ""}`;
+    return `<option value="${escapeHtml(id)}" ${String(id) === String(selected) ? "selected" : ""}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
+function renderSchedulerGroupOptions(selected = "") {
+  return schedulerV2State.groups.map((group) =>
+    `<option value="${escapeHtml(group.id)}" ${String(group.id) === String(selected) ? "selected" : ""}>${escapeHtml(group.name)}</option>`
+  ).join("");
+}
+
+function renderSchedulerWeekdayControls() {
+  return `
+    <fieldset class="scheduler-weekdays admin-field-full">
+      <legend>Days to run</legend>
+      <div class="scheduler-weekday-grid">
+        ${SCHEDULER_WEEKDAYS.map((day) => `
+          <label>
+            <input type="checkbox" value="${day.value}" data-scheduler-day checked />
+            <span>${day.label}</span>
+          </label>
+        `).join("")}
+      </div>
+    </fieldset>
+  `;
+}
+
+function renderSchedulerHealth() {
+  const health = schedulerV2State.health || {};
+  const queue = schedulerV2State.queue || {};
+  return `
+    <section class="scheduler-section scheduler-health-section">
+      <div class="scheduler-section-heading">
+        <div>
+          <h3>Scheduler Health</h3>
+          <p>Live status from PostgreSQL and the Render worker services.</p>
+        </div>
+        <div class="scheduler-toolbar">
+          <button id="runDueSchedulesBtn" class="primary-btn" type="button">Run Due Schedules</button>
+          <button id="runAllSchedulesBtn" class="secondary-btn" type="button">Run All Enabled Now</button>
+          <button id="refreshSchedulerBtn" class="secondary-btn" type="button">Refresh</button>
+        </div>
+      </div>
+      <div class="scheduler-metrics-grid">
+        ${renderSchedulerMetric("Enabled schedules", health.enabled_schedules || 0)}
+        ${renderSchedulerMetric("Enabled groups", health.enabled_groups || 0)}
+        ${renderSchedulerMetric("Queued jobs", queue.queued || queue.queued_jobs || 0)}
+        ${renderSchedulerMetric("Running jobs", queue.running || queue.running_jobs || 0)}
+        ${renderSchedulerMetric("Workers online", health.workers_online || 0)}
+        ${renderSchedulerMetric("Errors in 24h", health.errors_24h || 0)}
+      </div>
+      <div class="scheduler-health-foot">
+        <span><strong>Next scheduled run:</strong> ${escapeHtml(formatSchedulerDateTime(health.next_run_at))}</span>
+        <span><strong>Last successful schedule:</strong> ${escapeHtml(formatSchedulerDateTime(health.last_success_at))}</span>
+      </div>
+    </section>
+  `;
+}
+
+function renderScheduleEditor() {
+  return `
+    <section class="scheduler-section">
+      <div class="scheduler-section-heading">
+        <div>
+          <h3 id="scheduleEditorTitle">Create Schedule</h3>
+          <p>Create a PostgreSQL schedule without editing JSON.</p>
+        </div>
+        <button id="resetScheduleFormBtn" class="secondary-btn" type="button">Clear Form</button>
+      </div>
+      <input id="scheduleId" type="hidden" />
+      <div class="business-edit-grid scheduler-form-grid">
+        <label class="admin-field">
+          <span>Schedule name</span>
+          <input id="scheduleName" type="text" placeholder="Austin massage every 30 minutes" />
+        </label>
+        <label class="admin-field">
+          <span>Timezone</span>
+          <select id="scheduleTimezone">
+            <option value="America/Chicago">America/Chicago</option>
+            <option value="America/New_York">America/New_York</option>
+            <option value="America/Denver">America/Denver</option>
+            <option value="America/Los_Angeles">America/Los_Angeles</option>
+          </select>
+        </label>
+        <label class="admin-checkbox scheduler-enabled-checkbox">
+          <input id="scheduleEnabled" type="checkbox" checked />
+          <span>Schedule enabled</span>
+        </label>
+        <label class="admin-field">
+          <span>Target type</span>
+          <select id="scheduleTargetType">
+            <option value="business">One business</option>
+            <option value="group">Scrape group</option>
+          </select>
+        </label>
+        <label id="scheduleBusinessField" class="admin-field admin-field-full">
+          <span>Business</span>
+          <select id="scheduleBusinessId">
+            <option value="">Choose a business</option>
+            ${renderSchedulerBusinessOptions()}
+          </select>
+        </label>
+        <label id="scheduleGroupField" class="admin-field admin-field-full scheduler-hidden">
+          <span>Scrape group</span>
+          <select id="scheduleGroupId">
+            <option value="">Choose a group</option>
+            ${renderSchedulerGroupOptions()}
+          </select>
+        </label>
+        ${renderSchedulerWeekdayControls()}
+        <label class="admin-field">
+          <span>Timing mode</span>
+          <select id="scheduleTimingMode">
+            <option value="times">Specific times</option>
+            <option value="interval">Repeating interval</option>
+          </select>
+        </label>
+        <label id="scheduleTimesField" class="admin-field">
+          <span>Run times</span>
+          <input id="scheduleTimes" type="text" value="00:00" placeholder="00:00, 06:00, 12:00, 18:00" />
+          <small>24-hour times, separated by commas.</small>
+        </label>
+        <label id="scheduleIntervalField" class="admin-field scheduler-hidden">
+          <span>Interval minutes</span>
+          <input id="scheduleIntervalMinutes" type="number" min="1" value="30" />
+        </label>
+        <label id="scheduleWindowStartField" class="admin-field scheduler-hidden">
+          <span>Window start</span>
+          <input id="scheduleWindowStart" type="time" value="00:00" />
+        </label>
+        <label id="scheduleWindowEndField" class="admin-field scheduler-hidden">
+          <span>Window end</span>
+          <input id="scheduleWindowEnd" type="time" value="23:59" />
+        </label>
+      </div>
+      <details class="scheduler-advanced">
+        <summary>Scrape and queue options</summary>
+        <div class="business-edit-grid scheduler-form-grid scheduler-advanced-grid">
+          <label class="admin-field">
+            <span>Lookahead hours</span>
+            <input id="scheduleLookaheadHours" type="number" min="1" value="48" />
+          </label>
+          <label class="admin-field">
+            <span>Days forward</span>
+            <input id="scheduleDaysForward" type="number" min="1" placeholder="Leave blank to use lookahead" />
+          </label>
+          <label class="admin-field">
+            <span>Platform override</span>
+            <select id="schedulePlatform">
+              <option value="">Use business integration</option>
+              ${schedulerV2State.platforms.map((platform) => {
+                const value = platform.id || platform.platform || platform.name || platform;
+                const label = platform.label || platform.name || platform.platform || platform;
+                return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
+              }).join("")}
+            </select>
+          </label>
+          <label class="admin-field">
+            <span>Queue priority</span>
+            <input id="scheduleQueuePriority" type="number" value="100" />
+          </label>
+          <label class="admin-field">
+            <span>Maximum attempts</span>
+            <input id="scheduleMaxAttempts" type="number" min="1" value="3" />
+          </label>
+          <label class="admin-field">
+            <span>Timeout seconds</span>
+            <input id="scheduleTimeoutSeconds" type="number" min="60" value="1800" />
+          </label>
+          <label class="admin-checkbox"><input id="scheduleForceRefresh" type="checkbox" /><span>Force refresh</span></label>
+          <label class="admin-checkbox"><input id="scheduleForceDirectScrape" type="checkbox" /><span>Force direct scrape</span></label>
+          <label class="admin-checkbox"><input id="scheduleIgnoreServiceRules" type="checkbox" /><span>Ignore service rules</span></label>
+          <label class="admin-checkbox"><input id="scheduleSkipVagaroDiscovery" type="checkbox" checked /><span>Skip Vagaro discovery</span></label>
+        </div>
+      </details>
+      <div class="scheduler-form-actions">
+        <button id="saveScheduleBtn" class="primary-btn" type="button">Save Schedule</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderScheduleList() {
+  return `
+    <section class="scheduler-section">
+      <div class="scheduler-section-heading">
+        <div>
+          <h3>Schedules</h3>
+          <p>${schedulerV2State.schedules.length} PostgreSQL schedule(s).</p>
+        </div>
+      </div>
+      <div class="scheduler-card-list">
+        ${schedulerV2State.schedules.length ? schedulerV2State.schedules.map((schedule) => {
+          const rules = schedule.calendar_rules || {};
+          const target = schedule.group_name || schedule.business_name || schedule.public_business_id || "No target";
+          const timing = Array.isArray(rules.times) && rules.times.length
+            ? rules.times.join(", ")
+            : rules.intervalMinutes
+              ? `Every ${rules.intervalMinutes} minutes${rules.windowStart ? ` from ${rules.windowStart}` : ""}${rules.windowEnd ? ` to ${rules.windowEnd}` : ""}`
+              : "Midnight";
+          const days = Array.isArray(rules.daysOfWeek) && rules.daysOfWeek.length ? rules.daysOfWeek.join(", ") : "Every day";
+          return `
+            <article class="scheduler-card ${schedule.enabled === false ? "scheduler-card-disabled" : ""}">
+              <div class="scheduler-card-main">
+                <div class="scheduler-card-title-row">
+                  <h4>${escapeHtml(schedule.name || "Unnamed schedule")}</h4>
+                  ${renderSchedulerStatusPill(schedule.enabled === false ? "disabled" : "enabled")}
+                </div>
+                <p><strong>Target:</strong> ${escapeHtml(target)}</p>
+                <p><strong>Runs:</strong> ${escapeHtml(days)} · ${escapeHtml(timing)} · ${escapeHtml(schedule.timezone || "America/Chicago")}</p>
+                <p><strong>Next:</strong> ${escapeHtml(formatSchedulerDateTime(schedule.next_run_at))}</p>
+                ${schedule.last_error ? `<p class="scheduler-error-text"><strong>Last error:</strong> ${escapeHtml(schedule.last_error)}</p>` : ""}
+              </div>
+              <div class="scheduler-card-actions">
+                <button class="secondary-btn" type="button" data-edit-schedule="${escapeHtml(schedule.id)}">Edit</button>
+                <button class="secondary-btn" type="button" data-toggle-schedule="${escapeHtml(schedule.id)}">${schedule.enabled === false ? "Enable" : "Disable"}</button>
+                <button class="secondary-btn" type="button" data-recalculate-schedule="${escapeHtml(schedule.id)}">Recalculate</button>
+                <button class="danger-btn large-danger-btn" type="button" data-delete-schedule="${escapeHtml(schedule.id)}">Delete</button>
+              </div>
+            </article>
+          `;
+        }).join("") : `<p class="empty-note">No schedules exist yet. Use the form above to create the first one.</p>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderGroupEditor() {
+  return `
+    <section class="scheduler-section">
+      <div class="scheduler-section-heading">
+        <div>
+          <h3 id="groupEditorTitle">Create Scrape Group</h3>
+          <p>Combine explicit businesses with optional database filters.</p>
+        </div>
+        <button id="resetGroupFormBtn" class="secondary-btn" type="button">Clear Form</button>
+      </div>
+      <input id="groupId" type="hidden" />
+      <div class="business-edit-grid scheduler-form-grid">
+        <label class="admin-field">
+          <span>Group name</span>
+          <input id="groupName" type="text" placeholder="Austin massage businesses" />
+        </label>
+        <label class="admin-checkbox scheduler-enabled-checkbox">
+          <input id="groupEnabled" type="checkbox" checked />
+          <span>Group enabled</span>
+        </label>
+        <label class="admin-field admin-field-full">
+          <span>Description</span>
+          <textarea id="groupDescription" rows="2" placeholder="What this group is used for"></textarea>
+        </label>
+        <label class="admin-field admin-field-full">
+          <span>Explicit businesses</span>
+          <select id="groupBusinessIds" multiple size="8">
+            ${renderSchedulerBusinessOptions()}
+          </select>
+          <small>Hold Ctrl/Command to select multiple businesses.</small>
+        </label>
+        <label class="admin-field">
+          <span>Platform filters</span>
+          <input id="groupPlatforms" type="text" placeholder="mindbody, meevo" />
+        </label>
+        <label class="admin-field">
+          <span>Industry filters</span>
+          <input id="groupIndustries" type="text" placeholder="wellness, massage" />
+        </label>
+        <label class="admin-field">
+          <span>Metro or city filters</span>
+          <input id="groupMetros" type="text" placeholder="Austin" />
+        </label>
+        <label class="admin-field">
+          <span>Priority filters</span>
+          <input id="groupPriorities" type="text" placeholder="high, normal" />
+        </label>
+        <label class="admin-field">
+          <span>Discovery status filters</span>
+          <input id="groupDiscoveryStatuses" type="text" placeholder="approved, manual" />
+        </label>
+        <label class="admin-field">
+          <span>Business name contains</span>
+          <input id="groupNameContains" type="text" placeholder="Optional name filter" />
+        </label>
+      </div>
+      <div class="scheduler-form-actions">
+        <button id="saveGroupBtn" class="primary-btn" type="button">Save Group</button>
+      </div>
+      <div class="scheduler-card-list scheduler-sublist">
+        ${schedulerV2State.groups.length ? schedulerV2State.groups.map((group) => `
+          <article class="scheduler-card ${group.enabled === false ? "scheduler-card-disabled" : ""}">
+            <div class="scheduler-card-main">
+              <div class="scheduler-card-title-row">
+                <h4>${escapeHtml(group.name)}</h4>
+                ${renderSchedulerStatusPill(group.enabled === false ? "disabled" : "enabled")}
+              </div>
+              <p>${escapeHtml(group.description || "No description")}</p>
+              <p><strong>Explicit businesses:</strong> ${escapeHtml((group.businesses || []).length)}</p>
+            </div>
+            <div class="scheduler-card-actions">
+              <button class="secondary-btn" type="button" data-edit-group="${escapeHtml(group.id)}">Edit</button>
+              <button class="secondary-btn" type="button" data-toggle-group="${escapeHtml(group.id)}">${group.enabled === false ? "Enable" : "Disable"}</button>
+              <button class="danger-btn large-danger-btn" type="button" data-delete-group="${escapeHtml(group.id)}">Delete</button>
+            </div>
+          </article>
+        `).join("") : `<p class="empty-note">No scrape groups configured.</p>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderExceptionManager() {
+  return `
+    <section class="scheduler-section">
+      <div class="scheduler-section-heading">
+        <div>
+          <h3>Schedule Exceptions</h3>
+          <p>Skip, force, or override a schedule on a specific date.</p>
+        </div>
+      </div>
+      <div class="business-edit-grid scheduler-form-grid">
+        <label class="admin-field">
+          <span>Schedule</span>
+          <select id="exceptionScheduleId">
+            <option value="">Choose a schedule</option>
+            ${schedulerV2State.schedules.map((schedule) => `<option value="${escapeHtml(schedule.id)}">${escapeHtml(schedule.name)}</option>`).join("")}
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>Date</span>
+          <input id="exceptionDate" type="date" />
+        </label>
+        <label class="admin-field">
+          <span>Action</span>
+          <select id="exceptionAction">
+            <option value="skip">Skip this date</option>
+            <option value="run">Force a run</option>
+            <option value="override">Override the normal time</option>
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>Override time</span>
+          <input id="exceptionTime" type="time" />
+        </label>
+        <label class="admin-field admin-field-full">
+          <span>Reason</span>
+          <input id="exceptionReason" type="text" placeholder="Holiday, special event, maintenance..." />
+        </label>
+      </div>
+      <div class="scheduler-form-actions">
+        <button id="saveExceptionBtn" class="primary-btn" type="button">Save Exception</button>
+      </div>
+      <div class="scheduler-table-wrap">
+        <table class="scheduler-table">
+          <thead><tr><th>Date</th><th>Schedule</th><th>Action</th><th>Time</th><th>Reason</th><th></th></tr></thead>
+          <tbody>
+            ${schedulerV2State.exceptions.length ? schedulerV2State.exceptions.map((row) => {
+              const schedule = schedulerV2State.schedules.find((item) => String(item.id) === String(row.schedule_id));
+              return `<tr>
+                <td>${escapeHtml(String(row.exception_date || "").slice(0, 10))}</td>
+                <td>${escapeHtml(schedule?.name || row.schedule_id || "Deleted schedule")}</td>
+                <td>${renderSchedulerStatusPill(row.action)}</td>
+                <td>${escapeHtml(row.override_time || "—")}</td>
+                <td>${escapeHtml(row.reason || "—")}</td>
+                <td><button class="danger-btn" type="button" data-delete-exception="${escapeHtml(row.id)}">Delete</button></td>
+              </tr>`;
+            }).join("") : `<tr><td colspan="6" class="empty-note">No exceptions configured.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function renderWorkerAndQueuePanels() {
+  return `
+    <div class="scheduler-two-column">
+      <section class="scheduler-section">
+        <div class="scheduler-section-heading"><div><h3>Workers</h3><p>Render scrape workers registered in PostgreSQL.</p></div></div>
+        <div class="scheduler-card-list compact">
+          ${schedulerV2State.workers.length ? schedulerV2State.workers.map((worker) => `
+            <article class="scheduler-mini-card">
+              <div>
+                <strong>${escapeHtml(worker.worker_name || worker.worker_id || worker.name || worker.id || "Worker")}</strong>
+                <p>Heartbeat: ${escapeHtml(formatSchedulerDateTime(worker.last_heartbeat_at || worker.heartbeat_at))}</p>
+              </div>
+              ${renderSchedulerStatusPill(worker.effective_status || worker.status || "unknown")}
+            </article>
+          `).join("") : `<p class="empty-note">No workers have registered yet.</p>`}
+        </div>
+      </section>
+      <section class="scheduler-section">
+        <div class="scheduler-section-heading"><div><h3>Recent Jobs</h3><p>Latest queued and completed scrape jobs.</p></div></div>
+        <div class="scheduler-card-list compact">
+          ${schedulerV2State.jobs.length ? schedulerV2State.jobs.slice(0, 30).map((job) => `
+            <article class="scheduler-mini-card scheduler-job-card">
+              <div>
+                <strong>${escapeHtml(job.request_payload?.businessName || job.request_payload?.business_name || job.script_name || "Scrape job")}</strong>
+                <p>${escapeHtml(job.source || "manual")} · attempt ${escapeHtml(job.attempt_count || job.attempts || 0)}/${escapeHtml(job.max_attempts || 0)} · ${escapeHtml(formatSchedulerDateTime(job.created_at))}</p>
+                ${(job.error_message || job.last_error) ? `<p class="scheduler-error-text">${escapeHtml(job.error_message || job.last_error)}</p>` : ""}
+              </div>
+              <div class="scheduler-job-actions">
+                ${renderSchedulerStatusPill(job.status)}
+                ${["failed", "cancelled", "canceled"].includes(String(job.status || "").toLowerCase()) ? `<button class="secondary-btn" type="button" data-retry-job="${escapeHtml(job.id)}">Retry</button>` : ""}
+                ${["queued", "running"].includes(String(job.status || "").toLowerCase()) ? `<button class="danger-btn" type="button" data-cancel-job="${escapeHtml(job.id)}">Cancel</button>` : ""}
+              </div>
+            </article>
+          `).join("") : `<p class="empty-note">No scrape jobs found.</p>`}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderSchedulerHistory() {
+  return `
+    <section class="scheduler-section">
+      <div class="scheduler-section-heading"><div><h3>Schedule History</h3><p>The latest scheduler occurrences and job counts.</p></div></div>
+      <div class="scheduler-table-wrap">
+        <table class="scheduler-table">
+          <thead><tr><th>Started</th><th>Schedule</th><th>Occurrence</th><th>Status</th><th>Businesses</th><th>Jobs</th><th>Rejected</th></tr></thead>
+          <tbody>
+            ${schedulerV2State.history.length ? schedulerV2State.history.map((row) => `
+              <tr>
+                <td>${escapeHtml(formatSchedulerDateTime(row.started_at))}</td>
+                <td>${escapeHtml(row.schedule_name || row.schedule_id || "Deleted schedule")}</td>
+                <td>${escapeHtml(row.occurrence_key || "—")}</td>
+                <td>${renderSchedulerStatusPill(row.status)}</td>
+                <td>${escapeHtml(row.businesses_selected || 0)}</td>
+                <td>${escapeHtml(row.jobs_built || 0)}</td>
+                <td>${escapeHtml(row.jobs_rejected || 0)}</td>
+              </tr>
+            `).join("") : `<tr><td colspan="7" class="empty-note">No scheduler history yet.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
 }
 
 async function loadSchedulerV2() {
   currentView = "schedules";
   pageTitle.textContent = views.schedules.title;
   pageSubtitle.textContent = views.schedules.subtitle;
-  setLoading("Loading Scheduler V2...");
+  setLoading("Loading PostgreSQL scheduler...");
+
   try {
-    const [groupsData, schedulesData, exceptionsData, historyData, healthData, platformsData] = await Promise.all([
+    const [groupsData, schedulesData, exceptionsData, historyData, healthData, jobsData, platformsData, businessesData] = await Promise.all([
       fetchJson("/api/admin/v2/scheduler/groups"),
       fetchJson("/api/admin/v2/scheduler/schedules"),
       fetchJson("/api/admin/v2/scheduler/exceptions"),
       fetchJson("/api/admin/v2/scheduler/history?limit=100"),
       fetchJson("/api/admin/v2/scheduler/health"),
-      fetchJson("/api/admin/v2/integrations/platforms")
+      fetchJson("/api/admin/v2/scheduler/jobs?limit=100"),
+      fetchJson("/api/admin/v2/integrations/platforms"),
+      fetchJson("/api/admin/businesses/search?enabled=true&page=1&limit=100")
     ]);
-    schedulerV2State = { groups: groupsData.groups || [], schedules: schedulesData.schedules || [], exceptions: exceptionsData.exceptions || [], history: historyData.history || [], health: healthData.health || {}, platforms: platformsData.platforms || [] };
-    const health = schedulerV2State.health;
+
+    schedulerV2State = {
+      groups: groupsData.groups || [],
+      schedules: schedulesData.schedules || [],
+      exceptions: exceptionsData.exceptions || [],
+      history: historyData.history || [],
+      health: healthData.health || {},
+      queue: healthData.queue || {},
+      workers: healthData.workers || [],
+      jobs: jobsData.jobs || [],
+      businesses: businessesData.businesses || businessesData.results || [],
+      platforms: platformsData.platforms || []
+    };
+
     content.innerHTML = `
-      <div class="settings-grid">
-        <div class="settings-panel settings-panel-full">
-          <h3>Scheduler Health</h3>
-          <div class="business-summary-meta">
-            <span>Enabled schedules: ${escapeHtml(health.enabled_schedules || 0)}</span>
-            <span>Enabled groups: ${escapeHtml(health.enabled_groups || 0)}</span>
-            <span>Active locks: ${escapeHtml(health.active_locks || 0)}</span>
-            <span>Errors (24h): ${escapeHtml(health.errors_24h || 0)}</span>
-            <span>Last success: ${escapeHtml(health.last_success_at || "Never")}</span>
-          </div>
-          <div class="settings-actions"><button id="runSchedulerV2Btn" class="primary-btn">Run Due Schedules</button><button id="refreshSchedulerV2Btn" class="secondary-btn">Refresh</button></div>
-        </div>
-        <div class="settings-panel settings-panel-full">
-          <h3>Create / Update Scrape Group</h3>
-          <div class="business-edit-grid">
-            ${renderSubscriptionTextInput("Group ID (blank for new)", "v2GroupId", "")}
-            ${renderSubscriptionTextInput("Name", "v2GroupName", "")}
-            ${renderSubscriptionTextarea("Description", "v2GroupDescription", "", "", 3)}
-            ${renderSubscriptionTextInput("Business IDs", "v2GroupBusinessIds", "", "Comma-separated public business IDs")}
-            ${renderJsonTextarea("Dynamic Selector JSON", "v2GroupSelector", {}, 5)}
-          </div>
-          <div class="settings-actions"><button id="saveV2GroupBtn" class="primary-btn">Save Group</button></div>
-          <div class="business-summary-list">${schedulerV2State.groups.map((group) => `<article class="business-summary-card"><div><h3>${escapeHtml(group.name)}</h3><p>${escapeHtml(group.description || "")}</p><small>${escapeHtml((group.businesses || []).length)} explicit businesses</small></div><div><button class="secondary-btn" data-edit-v2-group="${escapeHtml(group.id)}">Edit</button><button class="danger-btn" data-delete-v2-group="${escapeHtml(group.id)}">Delete</button></div></article>`).join("") || `<p class="empty-note">No groups configured.</p>`}</div>
-        </div>
-        <div class="settings-panel settings-panel-full">
-          <h3>Create / Update Schedule</h3>
-          <div class="business-edit-grid">
-            ${renderSubscriptionTextInput("Schedule ID (blank for new)", "v2ScheduleId", "")}
-            ${renderSubscriptionTextInput("Name", "v2ScheduleName", "")}
-            ${renderSubscriptionTextInput("Timezone", "v2ScheduleTimezone", "America/Chicago")}
-            <label class="admin-field"><span>Group</span><select id="v2ScheduleGroupId"><option value="">Business-specific schedule</option>${schedulerV2State.groups.map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join("")}</select></label>
-            ${renderSubscriptionTextInput("Business ID", "v2ScheduleBusinessId", "", "Used when no group is selected")}
-            ${renderJsonTextarea("Calendar Rules JSON", "v2ScheduleRules", { daysOfWeek: ["MO","TU","WE","TH","FR","SA","SU"], times: ["00:00"] }, 7)}
-            ${renderJsonTextarea("Scrape Options JSON", "v2ScheduleOptions", { lookaheadHours: 48 }, 5)}
-          </div>
-          <div class="settings-actions"><button id="saveV2ScheduleBtn" class="primary-btn">Save Schedule</button></div>
-          <div class="business-summary-list">${schedulerV2State.schedules.map((schedule) => `<article class="business-summary-card"><div><h3>${escapeHtml(schedule.name)}</h3><p>${escapeHtml(schedule.group_name || schedule.business_id || "No target")}</p><small>${escapeHtml(schedule.timezone)} - next ${escapeHtml(schedule.next_run_at || "evaluation pending")}</small></div><div><button class="secondary-btn" data-edit-v2-schedule="${escapeHtml(schedule.id)}">Edit</button><button class="danger-btn" data-delete-v2-schedule="${escapeHtml(schedule.id)}">Delete</button></div></article>`).join("") || `<p class="empty-note">No schedules configured.</p>`}</div>
-        </div>
-        <div class="settings-panel settings-panel-full">
-          <h3>Schedule Exception</h3>
-          <div class="business-edit-grid"><label class="admin-field"><span>Schedule</span><select id="v2ExceptionScheduleId">${schedulerV2State.schedules.map((schedule) => `<option value="${escapeHtml(schedule.id)}">${escapeHtml(schedule.name)}</option>`).join("")}</select></label><label class="admin-field"><span>Date</span><input id="v2ExceptionDate" type="date" /></label><label class="admin-field"><span>Action</span><select id="v2ExceptionAction"><option value="skip">Skip</option><option value="run">Force Run</option><option value="override">Override</option></select></label>${renderSubscriptionTextInput("Override Time", "v2ExceptionTime", "", "HH:MM")}${renderSubscriptionTextInput("Reason", "v2ExceptionReason", "")}</div>
-          <div class="settings-actions"><button id="saveV2ExceptionBtn" class="primary-btn">Save Exception</button></div>
-          <details class="raw-json-box"><summary>Exceptions</summary><pre>${escapeHtml(JSON.stringify(schedulerV2State.exceptions, null, 2))}</pre></details>
-        </div>
-        <div class="settings-panel settings-panel-full"><h3>Scheduler History</h3><div class="inventory-list">${schedulerV2State.history.map((row) => `<article class="inventory-card"><div><strong>${escapeHtml(row.schedule_name || row.schedule_id || "Deleted schedule")}</strong><p>${escapeHtml(row.occurrence_key)}</p></div><div><strong>${escapeHtml(row.status)}</strong><p>${escapeHtml(row.started_at || "")}</p></div><span class="platform-pill">${escapeHtml(row.jobs_built || 0)} jobs</span></article>`).join("") || `<p class="empty-note">No scheduler history.</p>`}</div></div>
-      </div>`;
+      <div class="scheduler-dashboard">
+        ${renderSchedulerHealth()}
+        ${renderScheduleEditor()}
+        ${renderScheduleList()}
+        ${renderGroupEditor()}
+        ${renderExceptionManager()}
+        ${renderWorkerAndQueuePanels()}
+        ${renderSchedulerHistory()}
+      </div>
+    `;
+
     attachSchedulerV2Listeners();
-    setStatus("Scheduler V2 loaded.", "success");
+    updateScheduleTargetFields();
+    updateScheduleTimingFields();
+    updateExceptionTimeField();
+    setStatus("Loaded PostgreSQL scheduler, queue, and worker status.", "success");
   } catch (error) {
-    content.innerHTML = `<h3>Could Not Load Scheduler V2</h3><p>${escapeHtml(error.message)}</p>`;
-    setStatus("Failed to load Scheduler V2.", "error");
+    content.innerHTML = `
+      <section class="scheduler-section">
+        <h3>Could Not Load PostgreSQL Scheduler</h3>
+        <p>${escapeHtml(error.message)}</p>
+        <p class="empty-note">Confirm migrations 006 and 007 are installed and that <code>/api/admin/v2</code> is mounted.</p>
+      </section>
+    `;
+    setStatus(`Scheduler failed to load: ${error.message}`, "error");
   }
 }
 
+function updateScheduleTargetFields() {
+  const type = getInputValue("scheduleTargetType") || "business";
+  document.getElementById("scheduleBusinessField")?.classList.toggle("scheduler-hidden", type !== "business");
+  document.getElementById("scheduleGroupField")?.classList.toggle("scheduler-hidden", type !== "group");
+}
+
+function updateScheduleTimingFields() {
+  const mode = getInputValue("scheduleTimingMode") || "times";
+  document.getElementById("scheduleTimesField")?.classList.toggle("scheduler-hidden", mode !== "times");
+  document.getElementById("scheduleIntervalField")?.classList.toggle("scheduler-hidden", mode !== "interval");
+  document.getElementById("scheduleWindowStartField")?.classList.toggle("scheduler-hidden", mode !== "interval");
+  document.getElementById("scheduleWindowEndField")?.classList.toggle("scheduler-hidden", mode !== "interval");
+}
+
+function updateExceptionTimeField() {
+  const action = getInputValue("exceptionAction") || "skip";
+  const field = document.getElementById("exceptionTime")?.closest("label");
+  field?.classList.toggle("scheduler-hidden", action === "skip");
+}
+
+function resetScheduleForm() {
+  const id = (name) => document.getElementById(name);
+  if (id("scheduleId")) id("scheduleId").value = "";
+  if (id("scheduleName")) id("scheduleName").value = "";
+  if (id("scheduleTimezone")) id("scheduleTimezone").value = "America/Chicago";
+  if (id("scheduleEnabled")) id("scheduleEnabled").checked = true;
+  if (id("scheduleTargetType")) id("scheduleTargetType").value = "business";
+  if (id("scheduleBusinessId")) id("scheduleBusinessId").value = "";
+  if (id("scheduleGroupId")) id("scheduleGroupId").value = "";
+  setCheckedSchedulerDays(SCHEDULER_WEEKDAYS.map((day) => day.value));
+  if (id("scheduleTimingMode")) id("scheduleTimingMode").value = "times";
+  if (id("scheduleTimes")) id("scheduleTimes").value = "00:00";
+  if (id("scheduleIntervalMinutes")) id("scheduleIntervalMinutes").value = "30";
+  if (id("scheduleWindowStart")) id("scheduleWindowStart").value = "00:00";
+  if (id("scheduleWindowEnd")) id("scheduleWindowEnd").value = "23:59";
+  if (id("scheduleLookaheadHours")) id("scheduleLookaheadHours").value = "48";
+  if (id("scheduleDaysForward")) id("scheduleDaysForward").value = "";
+  if (id("schedulePlatform")) id("schedulePlatform").value = "";
+  if (id("scheduleQueuePriority")) id("scheduleQueuePriority").value = "100";
+  if (id("scheduleMaxAttempts")) id("scheduleMaxAttempts").value = "3";
+  if (id("scheduleTimeoutSeconds")) id("scheduleTimeoutSeconds").value = "1800";
+  ["scheduleForceRefresh", "scheduleForceDirectScrape", "scheduleIgnoreServiceRules"].forEach((name) => { if (id(name)) id(name).checked = false; });
+  if (id("scheduleSkipVagaroDiscovery")) id("scheduleSkipVagaroDiscovery").checked = true;
+  if (id("scheduleEditorTitle")) id("scheduleEditorTitle").textContent = "Create Schedule";
+  if (id("saveScheduleBtn")) id("saveScheduleBtn").textContent = "Save Schedule";
+  updateScheduleTargetFields();
+  updateScheduleTimingFields();
+}
+
+function populateScheduleForm(schedule) {
+  const rules = schedule.calendar_rules || {};
+  const options = schedule.scrape_options || {};
+  document.getElementById("scheduleId").value = schedule.id || "";
+  document.getElementById("scheduleName").value = schedule.name || "";
+  document.getElementById("scheduleTimezone").value = schedule.timezone || "America/Chicago";
+  document.getElementById("scheduleEnabled").checked = schedule.enabled !== false;
+  const targetType = schedule.group_id ? "group" : "business";
+  document.getElementById("scheduleTargetType").value = targetType;
+  document.getElementById("scheduleGroupId").value = schedule.group_id || "";
+  document.getElementById("scheduleBusinessId").value = schedule.public_business_id || schedule.business_id || "";
+  setCheckedSchedulerDays(Array.isArray(rules.daysOfWeek) && rules.daysOfWeek.length ? rules.daysOfWeek : SCHEDULER_WEEKDAYS.map((day) => day.value));
+  const timingMode = rules.intervalMinutes ? "interval" : "times";
+  document.getElementById("scheduleTimingMode").value = timingMode;
+  document.getElementById("scheduleTimes").value = Array.isArray(rules.times) ? rules.times.join(", ") : "00:00";
+  document.getElementById("scheduleIntervalMinutes").value = rules.intervalMinutes || 30;
+  document.getElementById("scheduleWindowStart").value = rules.windowStart || "00:00";
+  document.getElementById("scheduleWindowEnd").value = rules.windowEnd || "23:59";
+  document.getElementById("scheduleLookaheadHours").value = options.lookaheadHours ?? 48;
+  document.getElementById("scheduleDaysForward").value = options.daysForward ?? "";
+  document.getElementById("schedulePlatform").value = options.platform || "";
+  document.getElementById("scheduleQueuePriority").value = options.queuePriority ?? 100;
+  document.getElementById("scheduleMaxAttempts").value = options.maxAttempts ?? 3;
+  document.getElementById("scheduleTimeoutSeconds").value = options.timeoutSeconds ?? 1800;
+  document.getElementById("scheduleForceRefresh").checked = schedulerBoolean(options.forceRefresh);
+  document.getElementById("scheduleForceDirectScrape").checked = schedulerBoolean(options.forceDirectScrape);
+  document.getElementById("scheduleIgnoreServiceRules").checked = schedulerBoolean(options.ignoreServiceRules);
+  document.getElementById("scheduleSkipVagaroDiscovery").checked = schedulerBoolean(options.skipVagaroDiscovery, true);
+  document.getElementById("scheduleEditorTitle").textContent = `Edit ${schedule.name || "Schedule"}`;
+  document.getElementById("saveScheduleBtn").textContent = "Update Schedule";
+  updateScheduleTargetFields();
+  updateScheduleTimingFields();
+  document.getElementById("scheduleEditorTitle")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function buildSchedulePayload(overrides = {}) {
+  const timingMode = getInputValue("scheduleTimingMode") || "times";
+  const daysOfWeek = getCheckedSchedulerDays();
+  if (!daysOfWeek.length) throw new Error("Choose at least one day of the week.");
+
+  const calendarRules = { daysOfWeek };
+  if (timingMode === "interval") {
+    const intervalMinutes = schedulerNumber(getInputValue("scheduleIntervalMinutes"));
+    if (!intervalMinutes || intervalMinutes < 1) throw new Error("Interval minutes must be at least 1.");
+    calendarRules.intervalMinutes = intervalMinutes;
+    calendarRules.windowStart = getInputValue("scheduleWindowStart") || "00:00";
+    calendarRules.windowEnd = getInputValue("scheduleWindowEnd") || "23:59";
+    calendarRules.times = [];
+  } else {
+    const times = schedulerStringList(getInputValue("scheduleTimes"));
+    if (!times.length) throw new Error("Enter at least one run time.");
+    calendarRules.times = times;
+    calendarRules.intervalMinutes = 0;
+  }
+
+  const scrapeOptions = {};
+  const numericOptions = {
+    lookaheadHours: schedulerNumber(getInputValue("scheduleLookaheadHours")),
+    daysForward: schedulerNumber(getInputValue("scheduleDaysForward")),
+    queuePriority: schedulerNumber(getInputValue("scheduleQueuePriority"), 100),
+    maxAttempts: schedulerNumber(getInputValue("scheduleMaxAttempts"), 3),
+    timeoutSeconds: schedulerNumber(getInputValue("scheduleTimeoutSeconds"), 1800)
+  };
+  Object.entries(numericOptions).forEach(([key, value]) => {
+    if (value !== null) scrapeOptions[key] = value;
+  });
+  const platform = getInputValue("schedulePlatform");
+  if (platform) scrapeOptions.platform = platform;
+  scrapeOptions.forceRefresh = getInputChecked("scheduleForceRefresh");
+  scrapeOptions.forceDirectScrape = getInputChecked("scheduleForceDirectScrape");
+  scrapeOptions.ignoreServiceRules = getInputChecked("scheduleIgnoreServiceRules");
+  scrapeOptions.skipVagaroDiscovery = getInputChecked("scheduleSkipVagaroDiscovery");
+
+  const targetType = getInputValue("scheduleTargetType") || "business";
+  const groupId = targetType === "group" ? getInputValue("scheduleGroupId") : null;
+  const businessId = targetType === "business" ? getInputValue("scheduleBusinessId") : null;
+  if (!groupId && !businessId) throw new Error(`Choose a ${targetType}.`);
+
+  const name = getInputValue("scheduleName").trim();
+  if (!name) throw new Error("Schedule name is required.");
+
+  return {
+    id: getInputValue("scheduleId") || null,
+    name,
+    enabled: getInputChecked("scheduleEnabled"),
+    timezone: getInputValue("scheduleTimezone") || "America/Chicago",
+    groupId: groupId || null,
+    businessId: businessId || null,
+    calendarRules,
+    scrapeOptions,
+    ...overrides
+  };
+}
+
+function resetGroupForm() {
+  document.getElementById("groupId").value = "";
+  document.getElementById("groupName").value = "";
+  document.getElementById("groupEnabled").checked = true;
+  document.getElementById("groupDescription").value = "";
+  setSchedulerSelectedValues("groupBusinessIds", []);
+  ["groupPlatforms", "groupIndustries", "groupMetros", "groupPriorities", "groupDiscoveryStatuses", "groupNameContains"].forEach((id) => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("groupEditorTitle").textContent = "Create Scrape Group";
+  document.getElementById("saveGroupBtn").textContent = "Save Group";
+}
+
+function populateGroupForm(group) {
+  const selector = group.selector || {};
+  document.getElementById("groupId").value = group.id || "";
+  document.getElementById("groupName").value = group.name || "";
+  document.getElementById("groupEnabled").checked = group.enabled !== false;
+  document.getElementById("groupDescription").value = group.description || "";
+  setSchedulerSelectedValues("groupBusinessIds", (group.businesses || []).map(getSchedulerBusinessPublicId));
+  document.getElementById("groupPlatforms").value = schedulerStringList(selector.platforms || selector.platform).join(", ");
+  document.getElementById("groupIndustries").value = schedulerStringList(selector.businessCategories || selector.industries || selector.industry).join(", ");
+  document.getElementById("groupMetros").value = schedulerStringList(selector.metros || selector.metro || selector.cities || selector.city).join(", ");
+  document.getElementById("groupPriorities").value = schedulerStringList(selector.priorities || selector.priority).join(", ");
+  document.getElementById("groupDiscoveryStatuses").value = schedulerStringList(selector.discoveryStatuses || selector.discoveryStatus).join(", ");
+  document.getElementById("groupNameContains").value = selector.nameContains || selector.businessName || "";
+  document.getElementById("groupEditorTitle").textContent = `Edit ${group.name || "Group"}`;
+  document.getElementById("saveGroupBtn").textContent = "Update Group";
+  document.getElementById("groupEditorTitle")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function buildGroupPayload(overrides = {}) {
+  const selector = {};
+  const mappings = [
+    ["platforms", "groupPlatforms"],
+    ["businessCategories", "groupIndustries"],
+    ["metros", "groupMetros"],
+    ["priorities", "groupPriorities"],
+    ["discoveryStatuses", "groupDiscoveryStatuses"]
+  ];
+  mappings.forEach(([key, id]) => {
+    const values = schedulerStringList(getInputValue(id));
+    if (values.length) selector[key] = values;
+  });
+  const nameContains = getInputValue("groupNameContains").trim();
+  if (nameContains) selector.nameContains = nameContains;
+
+  const name = getInputValue("groupName").trim();
+  if (!name) throw new Error("Group name is required.");
+  return {
+    id: getInputValue("groupId") || null,
+    name,
+    description: getInputValue("groupDescription").trim(),
+    enabled: getInputChecked("groupEnabled"),
+    businessIds: getSchedulerSelectedValues("groupBusinessIds"),
+    selector,
+    ...overrides
+  };
+}
+
+async function saveSchedulerRecord(url, payload, successMessage) {
+  setStatus("Saving...", "info");
+  await fetchJson(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  setStatus(successMessage, "success");
+  await loadSchedulerV2();
+}
+
 function attachSchedulerV2Listeners() {
-  document.getElementById("refreshSchedulerV2Btn")?.addEventListener("click", loadSchedulerV2);
-  document.getElementById("runSchedulerV2Btn")?.addEventListener("click", async () => { await fetchJson("/api/admin/v2/scheduler/run-v2", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force: false }) }); await loadSchedulerV2(); });
-  document.getElementById("saveV2GroupBtn")?.addEventListener("click", async () => { try { await fetchJson("/api/admin/v2/scheduler/groups", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: getInputValue("v2GroupId") || null, name: getInputValue("v2GroupName"), description: getInputValue("v2GroupDescription"), businessIds: getInputValue("v2GroupBusinessIds").split(",").map((item) => item.trim()).filter(Boolean), selector: parseJsonInput("v2GroupSelector", {}) }) }); await loadSchedulerV2(); } catch (error) { setStatus(error.message, "error"); } });
-  document.getElementById("saveV2ScheduleBtn")?.addEventListener("click", async () => { try { await fetchJson("/api/admin/v2/scheduler/schedules", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: getInputValue("v2ScheduleId") || null, name: getInputValue("v2ScheduleName"), timezone: getInputValue("v2ScheduleTimezone") || "America/Chicago", groupId: getInputValue("v2ScheduleGroupId") || null, businessId: getInputValue("v2ScheduleBusinessId") || null, calendarRules: parseJsonInput("v2ScheduleRules", {}), scrapeOptions: parseJsonInput("v2ScheduleOptions", {}) }) }); await loadSchedulerV2(); } catch (error) { setStatus(error.message, "error"); } });
-  document.getElementById("saveV2ExceptionBtn")?.addEventListener("click", async () => { await fetchJson("/api/admin/v2/scheduler/exceptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scheduleId: getInputValue("v2ExceptionScheduleId"), exceptionDate: getInputValue("v2ExceptionDate"), action: getInputValue("v2ExceptionAction"), overrideTime: getInputValue("v2ExceptionTime") || null, reason: getInputValue("v2ExceptionReason") }) }); await loadSchedulerV2(); });
-  document.querySelectorAll("[data-delete-v2-group]").forEach((button) => button.addEventListener("click", async () => { if (confirm("Delete this scrape group?")) { await fetchJson(`/api/admin/v2/scheduler/groups/${button.dataset.deleteV2Group}`, { method: "DELETE" }); await loadSchedulerV2(); } }));
-  document.querySelectorAll("[data-delete-v2-schedule]").forEach((button) => button.addEventListener("click", async () => { if (confirm("Delete this schedule?")) { await fetchJson(`/api/admin/v2/scheduler/schedules/${button.dataset.deleteV2Schedule}`, { method: "DELETE" }); await loadSchedulerV2(); } }));
-  document.querySelectorAll("[data-edit-v2-group]").forEach((button) => button.addEventListener("click", () => { const group = schedulerV2State.groups.find((item) => String(item.id) === button.dataset.editV2Group); if (!group) return; document.getElementById("v2GroupId").value = group.id; document.getElementById("v2GroupName").value = group.name || ""; document.getElementById("v2GroupDescription").value = group.description || ""; document.getElementById("v2GroupBusinessIds").value = (group.businesses || []).map((item) => item.businessId).join(", "); document.getElementById("v2GroupSelector").value = JSON.stringify(group.selector || {}, null, 2); }));
-  document.querySelectorAll("[data-edit-v2-schedule]").forEach((button) => button.addEventListener("click", () => { const schedule = schedulerV2State.schedules.find((item) => String(item.id) === button.dataset.editV2Schedule); if (!schedule) return; document.getElementById("v2ScheduleId").value = schedule.id; document.getElementById("v2ScheduleName").value = schedule.name || ""; document.getElementById("v2ScheduleTimezone").value = schedule.timezone || "America/Chicago"; document.getElementById("v2ScheduleGroupId").value = schedule.group_id || ""; document.getElementById("v2ScheduleBusinessId").value = schedule.business_id || ""; document.getElementById("v2ScheduleRules").value = JSON.stringify(schedule.calendar_rules || {}, null, 2); document.getElementById("v2ScheduleOptions").value = JSON.stringify(schedule.scrape_options || {}, null, 2); }));
+  document.getElementById("refreshSchedulerBtn")?.addEventListener("click", loadSchedulerV2);
+  document.getElementById("runDueSchedulesBtn")?.addEventListener("click", async () => {
+    try {
+      setStatus("Checking due schedules...", "info");
+      const result = await fetchJson("/api/admin/v2/scheduler/run-v2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force: false })
+      });
+      setStatus(result.message || "Due schedules checked.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Scheduler run failed: ${error.message}`, "error");
+    }
+  });
+  document.getElementById("runAllSchedulesBtn")?.addEventListener("click", async () => {
+    if (!window.confirm("Queue every enabled schedule now? Duplicate locks still apply.")) return;
+    try {
+      setStatus("Queueing all enabled schedules...", "info");
+      const result = await fetchJson("/api/admin/v2/scheduler/run-v2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force: true })
+      });
+      setStatus(result.message || "Enabled schedules queued.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Forced scheduler run failed: ${error.message}`, "error");
+    }
+  });
+
+  document.getElementById("scheduleTargetType")?.addEventListener("change", updateScheduleTargetFields);
+  document.getElementById("scheduleTimingMode")?.addEventListener("change", updateScheduleTimingFields);
+  document.getElementById("exceptionAction")?.addEventListener("change", updateExceptionTimeField);
+  document.getElementById("resetScheduleFormBtn")?.addEventListener("click", resetScheduleForm);
+  document.getElementById("resetGroupFormBtn")?.addEventListener("click", resetGroupForm);
+
+  document.getElementById("saveScheduleBtn")?.addEventListener("click", async () => {
+    try {
+      await saveSchedulerRecord("/api/admin/v2/scheduler/schedules", buildSchedulePayload(), "Schedule saved to PostgreSQL.");
+    } catch (error) {
+      setStatus(`Schedule save failed: ${error.message}`, "error");
+    }
+  });
+
+  document.getElementById("saveGroupBtn")?.addEventListener("click", async () => {
+    try {
+      await saveSchedulerRecord("/api/admin/v2/scheduler/groups", buildGroupPayload(), "Scrape group saved to PostgreSQL.");
+    } catch (error) {
+      setStatus(`Group save failed: ${error.message}`, "error");
+    }
+  });
+
+  document.getElementById("saveExceptionBtn")?.addEventListener("click", async () => {
+    try {
+      const scheduleId = getInputValue("exceptionScheduleId");
+      const exceptionDate = getInputValue("exceptionDate");
+      if (!scheduleId) throw new Error("Choose a schedule.");
+      if (!exceptionDate) throw new Error("Choose an exception date.");
+      await saveSchedulerRecord("/api/admin/v2/scheduler/exceptions", {
+        scheduleId,
+        exceptionDate,
+        action: getInputValue("exceptionAction") || "skip",
+        overrideTime: getInputValue("exceptionTime") || null,
+        reason: getInputValue("exceptionReason").trim()
+      }, "Schedule exception saved.");
+    } catch (error) {
+      setStatus(`Exception save failed: ${error.message}`, "error");
+    }
+  });
+
+  document.querySelectorAll("[data-edit-schedule]").forEach((button) => button.addEventListener("click", () => {
+    const schedule = schedulerV2State.schedules.find((item) => String(item.id) === String(button.dataset.editSchedule));
+    if (schedule) populateScheduleForm(schedule);
+  }));
+  document.querySelectorAll("[data-toggle-schedule]").forEach((button) => button.addEventListener("click", async () => {
+    const schedule = schedulerV2State.schedules.find((item) => String(item.id) === String(button.dataset.toggleSchedule));
+    if (!schedule) return;
+    try {
+      const payload = {
+        id: schedule.id,
+        name: schedule.name,
+        enabled: schedule.enabled === false,
+        timezone: schedule.timezone,
+        groupId: schedule.group_id || null,
+        businessId: schedule.group_id ? null : (schedule.public_business_id || schedule.business_id),
+        calendarRules: schedule.calendar_rules || {},
+        scrapeOptions: schedule.scrape_options || {},
+        nextRunAt: schedule.next_run_at || null
+      };
+      await saveSchedulerRecord("/api/admin/v2/scheduler/schedules", payload, `Schedule ${payload.enabled ? "enabled" : "disabled"}.`);
+    } catch (error) {
+      setStatus(`Schedule update failed: ${error.message}`, "error");
+    }
+  }));
+  document.querySelectorAll("[data-recalculate-schedule]").forEach((button) => button.addEventListener("click", async () => {
+    try {
+      await fetchJson(`/api/admin/v2/scheduler/schedules/${button.dataset.recalculateSchedule}/recalculate`, { method: "POST" });
+      setStatus("Next run recalculated.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Recalculation failed: ${error.message}`, "error");
+    }
+  }));
+  document.querySelectorAll("[data-delete-schedule]").forEach((button) => button.addEventListener("click", async () => {
+    if (!window.confirm("Delete this schedule and its future configuration?")) return;
+    try {
+      await fetchJson(`/api/admin/v2/scheduler/schedules/${button.dataset.deleteSchedule}`, { method: "DELETE" });
+      setStatus("Schedule deleted.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Schedule delete failed: ${error.message}`, "error");
+    }
+  }));
+
+  document.querySelectorAll("[data-edit-group]").forEach((button) => button.addEventListener("click", () => {
+    const group = schedulerV2State.groups.find((item) => String(item.id) === String(button.dataset.editGroup));
+    if (group) populateGroupForm(group);
+  }));
+  document.querySelectorAll("[data-toggle-group]").forEach((button) => button.addEventListener("click", async () => {
+    const group = schedulerV2State.groups.find((item) => String(item.id) === String(button.dataset.toggleGroup));
+    if (!group) return;
+    try {
+      await saveSchedulerRecord("/api/admin/v2/scheduler/groups", {
+        id: group.id,
+        name: group.name,
+        description: group.description || "",
+        enabled: group.enabled === false,
+        businessIds: (group.businesses || []).map(getSchedulerBusinessPublicId),
+        selector: group.selector || {}
+      }, `Group ${group.enabled === false ? "enabled" : "disabled"}.`);
+    } catch (error) {
+      setStatus(`Group update failed: ${error.message}`, "error");
+    }
+  }));
+  document.querySelectorAll("[data-delete-group]").forEach((button) => button.addEventListener("click", async () => {
+    if (!window.confirm("Delete this scrape group? Schedules using it must be changed first.")) return;
+    try {
+      await fetchJson(`/api/admin/v2/scheduler/groups/${button.dataset.deleteGroup}`, { method: "DELETE" });
+      setStatus("Scrape group deleted.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Group delete failed: ${error.message}`, "error");
+    }
+  }));
+
+  document.querySelectorAll("[data-delete-exception]").forEach((button) => button.addEventListener("click", async () => {
+    if (!window.confirm("Delete this schedule exception?")) return;
+    try {
+      await fetchJson(`/api/admin/v2/scheduler/exceptions/${button.dataset.deleteException}`, { method: "DELETE" });
+      setStatus("Schedule exception deleted.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Exception delete failed: ${error.message}`, "error");
+    }
+  }));
+
+  document.querySelectorAll("[data-retry-job]").forEach((button) => button.addEventListener("click", async () => {
+    try {
+      await fetchJson(`/api/admin/v2/scheduler/jobs/${button.dataset.retryJob}/retry`, { method: "POST" });
+      setStatus("Job requeued.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Job retry failed: ${error.message}`, "error");
+    }
+  }));
+  document.querySelectorAll("[data-cancel-job]").forEach((button) => button.addEventListener("click", async () => {
+    if (!window.confirm("Request cancellation for this job?")) return;
+    try {
+      await fetchJson(`/api/admin/v2/scheduler/jobs/${button.dataset.cancelJob}/cancel`, { method: "POST" });
+      setStatus("Job cancellation requested.", "success");
+      await loadSchedulerV2();
+    } catch (error) {
+      setStatus(`Job cancellation failed: ${error.message}`, "error");
+    }
+  }));
+}
+
+function ensureSchedulerNavButton() {
+  if (document.querySelector(".nav-btn[data-view='schedules']")) {
+    refreshNavButtons();
+    return;
+  }
+  const navContainer = document.querySelector(".nav") || document.querySelector(".admin-nav") || document.querySelector("nav");
+  if (!navContainer) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "nav-btn";
+  button.dataset.view = "schedules";
+  button.textContent = "Schedules";
+  const settingsButton = navContainer.querySelector(".nav-btn[data-view='settings']");
+  if (settingsButton) navContainer.insertBefore(button, settingsButton);
+  else navContainer.appendChild(button);
+  refreshNavButtons();
 }
 
 function refreshNavButtons() {
@@ -2595,16 +3353,6 @@ function ensureSubscriptionsNavButton() {
   refreshNavButtons();
 }
 
-function ensureSchedulerV2NavButton() {
-  if (document.querySelector(".nav-btn[data-view='schedules']")) { refreshNavButtons(); return; }
-  const navContainer = document.querySelector(".admin-nav") || document.querySelector(".sidebar-nav") || document.querySelector("nav") || document.querySelector(".nav-btn")?.parentElement;
-  if (!navContainer) return;
-  const button = document.createElement("button"); button.type = "button"; button.className = "nav-btn"; button.dataset.view = "schedules"; button.textContent = "Schedules";
-  const settingsButton = navContainer.querySelector(".nav-btn[data-view='settings']");
-  if (settingsButton) navContainer.insertBefore(button, settingsButton); else navContainer.appendChild(button);
-  refreshNavButtons();
-}
-
 function setActiveNav(viewName) {
   navButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.view === viewName);
@@ -2624,7 +3372,7 @@ function loadView(viewName) {
 }
 
 ensureSubscriptionsNavButton();
-ensureSchedulerV2NavButton();
+ensureSchedulerNavButton();
 
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {
