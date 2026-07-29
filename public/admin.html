@@ -3,37 +3,57 @@
 <head>
   <link rel="icon" href="/favicon.ico?v=1" sizes="any">
 
-<link
-  rel="icon"
-  type="image/png"
-  sizes="32x32"
-  href="/favicon-32x32.png?v=1"
->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="/favicon-32x32.png?v=1"
+  >
 
-<link
-  rel="icon"
-  type="image/png"
-  sizes="16x16"
-  href="/favicon-16x16.png?v=1"
->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="16x16"
+    href="/favicon-16x16.png?v=1"
+  >
 
-<link
-  rel="apple-touch-icon"
-  sizes="180x180"
-  href="/apple-touch-icon.png?v=1"
->
+  <link
+    rel="apple-touch-icon"
+    sizes="180x180"
+    href="/apple-touch-icon.png?v=1"
+  >
+
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
   <meta name="robots" content="noindex, nofollow" />
+
   <title>NextAppt Admin Portal</title>
-  <link rel="stylesheet" href="/admin.css?v=20260721-scheduler-v2" />
-  <link rel="stylesheet" href="/admin-scheduler.css?v=20260721-scheduler-v2" />
+
+  <link
+    rel="stylesheet"
+    href="/admin.css?v=20260721-scheduler-v2"
+  />
+
+  <link
+    rel="stylesheet"
+    href="/admin-scheduler.css?v=20260721-scheduler-v2"
+  />
+
+  <link
+    rel="stylesheet"
+    href="/businessPlatformEditor.css?v=20260729-platform-config"
+  />
 </head>
+
 <body>
   <div class="admin-shell">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">N</div>
+
         <div>
           <h1>NextAppt</h1>
           <p>Admin Portal</p>
@@ -41,14 +61,69 @@
       </div>
 
       <nav class="nav" aria-label="Admin navigation">
-        <button class="nav-btn active" data-view="businesses" type="button">Businesses</button>
-        <button class="nav-btn" data-view="inventory" type="button">Appointment Inventory</button>
-        <button class="nav-btn" data-view="subscriptions" type="button">Business Subscriptions</button>
-        <button class="nav-btn" data-view="claims" type="button">Business Claims</button>
-        <button class="nav-btn" data-view="results" type="button">Latest Results</button>
-        <button class="nav-btn" data-view="errors" type="button">Error Logs</button>
-        <button class="nav-btn" data-view="schedules" type="button">Schedules</button>
-        <button class="nav-btn" data-view="settings" type="button">Settings</button>
+        <button
+          class="nav-btn active"
+          data-view="businesses"
+          type="button"
+        >
+          Businesses
+        </button>
+
+        <button
+          class="nav-btn"
+          data-view="inventory"
+          type="button"
+        >
+          Appointment Inventory
+        </button>
+
+        <button
+          class="nav-btn"
+          data-view="subscriptions"
+          type="button"
+        >
+          Business Subscriptions
+        </button>
+
+        <button
+          class="nav-btn"
+          data-view="claims"
+          type="button"
+        >
+          Business Claims
+        </button>
+
+        <button
+          class="nav-btn"
+          data-view="results"
+          type="button"
+        >
+          Latest Results
+        </button>
+
+        <button
+          class="nav-btn"
+          data-view="errors"
+          type="button"
+        >
+          Error Logs
+        </button>
+
+        <button
+          class="nav-btn"
+          data-view="schedules"
+          type="button"
+        >
+          Schedules
+        </button>
+
+        <button
+          class="nav-btn"
+          data-view="settings"
+          type="button"
+        >
+          Settings
+        </button>
       </nav>
     </aside>
 
@@ -56,16 +131,41 @@
       <header class="topbar">
         <div>
           <h2 id="pageTitle">Businesses</h2>
-          <p id="pageSubtitle">Search, create, and manage businesses, subscriptions, inventory, claims, and schedules.</p>
+
+          <p id="pageSubtitle">
+            Search, create, and manage businesses, subscriptions,
+            inventory, claims, and schedules.
+          </p>
         </div>
-        <button id="refreshBtn" class="primary-btn" type="button">Refresh</button>
+
+        <button
+          id="refreshBtn"
+          class="primary-btn"
+          type="button"
+        >
+          Refresh
+        </button>
       </header>
 
-      <section id="statusBox" class="status-box" aria-live="polite">Admin portal loaded.</section>
-      <section id="content" class="content-card"><p>Loading...</p></section>
+      <section
+        id="statusBox"
+        class="status-box"
+        aria-live="polite"
+      >
+        Admin portal loaded.
+      </section>
+
+      <section
+        id="content"
+        class="content-card"
+      >
+        <p>Loading...</p>
+      </section>
     </main>
   </div>
 
+  <script src="/platformDefinitions.js?v=20260729-platform-config"></script>
   <script src="/admin.js?v=20260721-scheduler-v2"></script>
+  <script src="/businessPlatformEditor.js?v=20260729-platform-config"></script>
 </body>
 </html>
