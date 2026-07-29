@@ -1,0 +1,93 @@
+.platform-configuration-section {
+  margin-top: 18px;
+  border: 1px solid #d9e2ea;
+  border-radius: 12px;
+  background: #f8fbfd;
+  overflow: hidden;
+}
+
+.platform-configuration-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #12344d;
+  background: #eef5f9;
+}
+
+.platform-configuration-summary small {
+  font-weight: 500;
+  color: #5e7484;
+  text-align: right;
+}
+
+.platform-configuration-inner {
+  padding: 16px;
+}
+
+.platform-configuration-description {
+  margin: 0 0 14px;
+  color: #526978;
+  line-height: 1.45;
+}
+
+.platform-config-grid {
+  margin-top: 0;
+}
+
+.platform-config-field,
+.platform-service-field {
+  align-self: start;
+}
+
+.platform-field-help {
+  display: block;
+  margin-top: 5px;
+  color: #6a7f8d;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.platform-config-checkbox {
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #d7e1e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.platform-config-checkbox .platform-field-help {
+  flex-basis: 100%;
+  padding-left: 24px;
+}
+
+.platform-service-field input:required,
+.platform-config-field input:required,
+[data-platform-select] {
+  border-left-width: 3px;
+}
+
+.platform-service-field input:required:invalid,
+.platform-config-field input:required:invalid,
+[data-platform-select]:invalid {
+  border-left-color: #b42318;
+}
+
+.platform-service-field input:required:valid,
+.platform-config-field input:required:valid {
+  border-left-color: #16803a;
+}
+
+@media (max-width: 760px) {
+  .platform-configuration-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .platform-configuration-summary small {
+    text-align: left;
+  }
+}
