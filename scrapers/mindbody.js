@@ -158,7 +158,13 @@ async function removeBlockingPageOverlays(page) {
       "inbox-online-store-chat",
       ".modal-overlay",
       ".popup-overlay",
-      ".needsclick"
+      ".needsclick",
+      ".yui-popup-container-node",
+      ".sqs-popup-overlay",
+      ".sqs-popup-container",
+      ".sqs-slide-layer",
+      "[data-testid='popup-overlay']",
+      "[data-testid='popup-container']"
     ];
 
     selectors.forEach((selector) => {
@@ -181,46 +187,112 @@ async function clickTextWithFallback(frame, text, options = {}) {
   }
 
   const locator = frame.getByText(text, { exact });
+  const count = await locator.count().catch(() => 0);
 
-  try {
-    await locator.first().click({ timeout });
-    return true;
-  } catch {
-    console.log(`Normal click failed for "${text}", trying JS click fallback...`);
+  for (let index = 0; index < count; index += 1) {
+    const candidate = locator.nth(index);
+    const visible = await candidate.isVisible().catch(() => false);
 
-    const clicked = await frame.evaluate(
-      ({ targetText, exactMatch }) => {
-        const normalize = (value) =>
-          String(value || "").replace(/\s+/g, " ").trim();
+    if (!visible) continue;
 
-        const wanted = normalize(targetText);
-        const elements = Array.from(
-          document.querySelectorAll("button, a, div, span, p, [role='button']")
+    try {
+      await candidate.scrollIntoViewIfNeeded().catch(() => null);
+      await candidate.click({ timeout });
+      return true;
+    } catch {
+      // Try the next visible match before using the DOM fallback.
+    }
+  }
+
+  console.log(
+    `Visible Playwright click failed for "${text}", trying visible JS click fallback...`
+  );
+
+  const clicked = await frame.evaluate(
+    ({ targetText, exactMatch }) => {
+      const normalize = (value) =>
+        String(value || "").replace(/\s+/g, " ").trim();
+
+      const isVisible = (element) => {
+        if (!element) return false;
+
+        const style = window.getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+
+        return (
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          Number(style.opacity) !== 0 &&
+          box.width > 0 &&
+          box.height > 0
         );
+      };
 
-        const match = elements.find((el) => {
-          const text = normalize(el.textContent);
-          if (!text) return false;
-          return exactMatch ? text === wanted : text.includes(wanted);
+      const wanted = normalize(targetText);
+
+      const selectors = [
+        "button",
+        "a",
+        "[role='button']",
+        "div",
+        "span",
+        "p"
+      ];
+
+      for (const selector of selectors) {
+        const elements = Array.from(document.querySelectorAll(selector));
+
+        const match = elements.find((element) => {
+          if (!isVisible(element)) return false;
+
+          const candidateText = normalize(element.textContent);
+          if (!candidateText) return false;
+
+          return exactMatch
+            ? candidateText === wanted
+            : candidateText.includes(wanted);
         });
 
-        if (!match) return false;
+        if (!match) continue;
 
-        match.scrollIntoView({ block: "center", inline: "center" });
-        match.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-        match.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-        match.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        const interactive =
+          match.closest("button, a, [role='button']") || match;
+
+        if (!isVisible(interactive)) continue;
+
+        interactive.scrollIntoView({
+          block: "center",
+          inline: "center"
+        });
+
+        if (typeof interactive.click === "function") {
+          interactive.click();
+        } else {
+          interactive.dispatchEvent(
+            new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            })
+          );
+        }
+
         return true;
-      },
-      { targetText: text, exactMatch: exact }
-    );
+      }
 
-    if (!clicked && required) {
-      throw new Error(`Could not click text: ${text}`);
+      return false;
+    },
+    {
+      targetText: text,
+      exactMatch: exact
     }
+  );
 
-    return clicked;
+  if (!clicked && required) {
+    throw new Error(`Could not click visible text: ${text}`);
   }
+
+  return clicked;
 }
 
 async function clickFirstMatchingText(frame, page, texts = [], options = {}) {
@@ -241,65 +313,196 @@ async function clickFirstMatchingText(frame, page, texts = [], options = {}) {
   return null;
 }
 
-async function expandCategoryIfNeeded(frame, page, categoryText) {
-  const wantedCategory = String(categoryText || "").toLowerCase().trim();
-  if (!wantedCategory) return;
+async function expandCategoryIfNeeded(frame, page, business = {}) {
+  const categoryText =
+    business.categoryText ||
+    business.categoryName ||
+    "";
 
-  const clicked = await frame.evaluate((wantedCategory) => {
-    const normalize = (value) =>
-      String(value || "")
-        .toLowerCase()
-        .replace(/\s+/g, " ")
-        .trim();
+  const serviceId =
+    business.serviceButtonId ||
+    business.platformServiceId ||
+    business.serviceId ||
+    "";
 
-    const bodyText = normalize(document.body.textContent);
+  const wantedCategory = String(categoryText)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 
-    if (bodyText.includes(wantedCategory) && bodyText.includes("collapse")) {
-      return true;
-    }
+  if (!wantedCategory) {
+    throw new Error(
+      `Missing categoryText/categoryName for ${business.serviceName}`
+    );
+  }
 
-    const elements = Array.from(document.querySelectorAll("*"));
+  if (!serviceId) {
+    throw new Error(
+      `Missing serviceButtonId/platformServiceId for ${business.serviceName}`
+    );
+  }
 
-    const expandElement = elements.find((el) => {
-      const text = normalize(el.textContent);
-      if (text !== "expand") return false;
+  const serviceSelector =
+    `button[data-service-id="${serviceId}"]:visible`;
 
-      let parent = el.parentElement;
-      let depth = 0;
+  const alreadyVisible = await frame
+    .locator(serviceSelector)
+    .first()
+    .isVisible()
+    .catch(() => false);
 
-      while (parent && depth < 8) {
-        const parentText = normalize(parent.textContent);
-
-        if (
-          parentText.includes(wantedCategory) &&
-          parentText.includes("expand")
-        ) {
-          return true;
-        }
-
-        parent = parent.parentElement;
-        depth++;
-      }
-
-      return false;
-    });
-
-    if (!expandElement) return false;
-
-    expandElement.scrollIntoView({ block: "center", inline: "center" });
-    expandElement.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-    expandElement.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-    expandElement.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  if (alreadyVisible) {
+    console.log(
+      `[MINDBODY] Category already expanded: ${categoryText}`
+    );
 
     return true;
-  }, wantedCategory);
-
-  if (clicked) {
-    console.log(`Expanded category by JS event: ${categoryText}`);
-    await wait(page, 4000);
-  } else {
-    console.log(`Could not find expandable category: ${categoryText}`);
   }
+
+  const result = await frame.evaluate(
+    ({ wantedCategory }) => {
+      const normalize = (value) =>
+        String(value || "")
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+          .trim();
+
+      const isVisible = (element) => {
+        if (!element) return false;
+
+        const style = window.getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+
+        return (
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          Number(style.opacity) !== 0 &&
+          box.width > 0 &&
+          box.height > 0
+        );
+      };
+
+      const categoryElements = Array.from(
+        document.querySelectorAll(
+          "h1, h2, h3, h4, h5, h6, p, span, div"
+        )
+      ).filter((element) => {
+        return (
+          isVisible(element) &&
+          normalize(element.textContent) === wantedCategory
+        );
+      });
+
+      for (const categoryElement of categoryElements) {
+        let container = categoryElement.parentElement;
+        let depth = 0;
+
+        while (container && depth < 8) {
+          const controls = Array.from(
+            container.querySelectorAll(
+              "button, a, [role='button']"
+            )
+          ).filter((element) => {
+            if (!isVisible(element)) return false;
+
+            const controlText = normalize(element.textContent);
+
+            return (
+              controlText === "expand" ||
+              controlText === "collapse"
+            );
+          });
+
+          if (controls.length === 1) {
+            const control = controls[0];
+            const controlText = normalize(control.textContent);
+
+            if (controlText === "collapse") {
+              return {
+                success: true,
+                alreadyExpanded: true,
+                clickedTag: control.tagName,
+                containerText: normalize(container.textContent)
+              };
+            }
+
+            control.scrollIntoView({
+              block: "center",
+              inline: "center"
+            });
+
+            if (typeof control.click === "function") {
+              control.click();
+            } else {
+              control.dispatchEvent(
+                new MouseEvent("click", {
+                  bubbles: true,
+                  cancelable: true,
+                  view: window
+                })
+              );
+            }
+
+            return {
+              success: true,
+              alreadyExpanded: false,
+              clickedTag: control.tagName,
+              containerText: normalize(container.textContent)
+            };
+          }
+
+          if (controls.length > 1) {
+            break;
+          }
+
+          container = container.parentElement;
+          depth += 1;
+        }
+      }
+
+      return {
+        success: false,
+        alreadyExpanded: false
+      };
+    },
+    {
+      wantedCategory
+    }
+  );
+
+  if (!result.success) {
+    throw new Error(
+      `Could not locate the Expand control for category: ${categoryText}`
+    );
+  }
+
+  if (result.alreadyExpanded) {
+    console.log(
+      `[MINDBODY] Category already expanded: ${categoryText}`
+    );
+  } else {
+    console.log(
+      `[MINDBODY] Expanded intended category: ${categoryText}`
+    );
+  }
+
+  await frame
+    .locator(serviceSelector)
+    .first()
+    .waitFor({
+      state: "visible",
+      timeout: 12000
+    })
+    .catch(() => {
+      throw new Error(
+        `Category "${categoryText}" was clicked, but service ` +
+          `"${business.serviceName}" (${serviceId}) did not become visible.`
+      );
+    });
+
+  await wait(page, 1000);
+
+  return true;
 }
 
 async function clickServiceButton(frame, page, business) {
@@ -310,53 +513,96 @@ async function clickServiceButton(frame, page, business) {
     "";
 
   if (!serviceId) {
-    throw new Error(`Missing serviceButtonId/platformServiceId for ${business.serviceName}`);
+    throw new Error(
+      `Missing serviceButtonId/platformServiceId for ${business.serviceName}`
+    );
   }
 
   console.log(`Clicking service: ${business.serviceName}`);
   console.log(`Service ID: ${serviceId}`);
 
-  const clicked = await frame.evaluate((serviceId) => {
-    const selectors = [
-      `button[data-service-id="${serviceId}"]`,
-      `[data-service-id="${serviceId}"] button`,
-      `[data-service-id="${serviceId}"]`,
-      `button[id="${serviceId}"]`,
-      `#${serviceId}`
-    ];
+  const button = frame
+    .locator(
+      `button[data-service-id="${serviceId}"]:visible`
+    )
+    .first();
 
-    for (const selector of selectors) {
-      const el = document.querySelector(selector);
-      if (!el) continue;
+  const buttonIsVisible = await button
+    .isVisible()
+    .catch(() => false);
 
-      el.scrollIntoView({ block: "center", inline: "center" });
-      el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-      el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-      el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  if (!buttonIsVisible) {
+    throw new Error(
+      `Service button is present but not visible for ` +
+        `${business.serviceName} (${serviceId}).`
+    );
+  }
 
-      return true;
+  await removeBlockingPageOverlays(page);
+  await wait(page, 500);
+  await button.scrollIntoViewIfNeeded();
+
+  try {
+    await button.click({
+      timeout: 6000
+    });
+  } catch (error) {
+    const message = String(error?.message || error);
+    const pointerIntercepted =
+      message.includes("intercepts pointer events") ||
+      message.includes("Timeout");
+
+    if (!pointerIntercepted) {
+      throw error;
     }
 
-    return false;
-  }, serviceId);
+    console.log(
+      "[MINDBODY] Host-page overlay blocked the service click. " +
+        "Removing overlays and retrying with a forced click..."
+    );
 
-  if (clicked) {
-    await wait(page, 5000);
-    return true;
+    await removeBlockingPageOverlays(page);
+    await wait(page, 500);
+
+    await button.click({
+      timeout: 6000,
+      force: true
+    });
   }
 
-  const clickedByText = await clickTextWithFallback(frame, business.serviceName, {
-    required: false,
-    exact: true,
-    timeout: 5000
-  });
+  await wait(page, 5000);
 
-  if (clickedByText) {
-    await wait(page, 5000);
-    return true;
+  const text = await getBodyText(frame);
+  const lower = text.toLowerCase();
+
+  const progressed =
+    lower.includes("first available") ||
+    lower.includes("select employee") ||
+    lower.includes("select staff") ||
+    lower.includes("select provider") ||
+    lower.includes("choose employee") ||
+    lower.includes("choose provider") ||
+    lower.includes("continue") ||
+    lower.includes("add-on") ||
+    lower.includes("addon") ||
+    lower.includes("select date & time") ||
+    lower.includes("availability for") ||
+    lower.includes("next available appointment") ||
+    lower.includes("no appointments available") ||
+    lower.includes("fully booked");
+
+  if (!progressed) {
+    throw new Error(
+      `Clicked ${business.serviceName}, but the Mindbody widget ` +
+        `did not advance beyond service selection.`
+    );
   }
 
-  throw new Error(`Service button not found for ${business.serviceName} (${serviceId})`);
+  console.log(
+    `[MINDBODY] Successfully selected service: ${business.serviceName}`
+  );
+
+  return true;
 }
 
 async function handleAddOnsIfPresent(frame, page) {
@@ -575,17 +821,11 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
     throw new Error("Mindbody iframe not found.");
   }
 
-  console.log(`Opening category: ${business.categoryText}`);
+  console.log(
+    `Opening category: ${business.categoryText || business.categoryName || ""}`
+  );
 
-  await clickTextWithFallback(frame, business.categoryText, {
-    required: false,
-    exact: true,
-    timeout: 5000
-  }).catch(() => null);
-
-  await wait(page, 3000);
-
-  await expandCategoryIfNeeded(frame, page, business.categoryText);
+  await expandCategoryIfNeeded(frame, page, business);
 
   await clickServiceButton(frame, page, business);
 
