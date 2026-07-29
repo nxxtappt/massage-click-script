@@ -16,6 +16,7 @@ body {
 .business-hero,
 .info-card,
 .deal-card,
+.booking-widget-card,
 .inventory-card,
 .locked-card {
   background: #ffffff;
@@ -146,7 +147,8 @@ h2 {
 .info-card p,
 .locked-card p,
 .inventory-card p,
-.deal-card p {
+.deal-card p,
+.booking-widget-card p {
   line-height: 1.55;
 }
 
@@ -164,6 +166,89 @@ h2 {
   padding: 8px 11px;
   font-weight: 700;
   font-size: 13px;
+}
+
+.booking-widget-card {
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.booking-widget-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.booking-provider-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 220px;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  background: #f0f9ff;
+  color: #075985;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.booking-widget-host {
+  min-height: 88px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fbff;
+  padding: 18px;
+  overflow: hidden;
+}
+
+.booking-widget-host iframe {
+  display: block;
+  width: 100%;
+  min-height: 680px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.booking-widget-host .healcode,
+.booking-widget-host [data-url],
+.booking-widget-host [data-widget-id] {
+  max-width: 100%;
+}
+
+.booking-link-button,
+.booking-widget-error a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #0075b9;
+  color: #ffffff;
+  padding: 12px 18px;
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.booking-link-button:hover,
+.booking-widget-error a:hover {
+  background: #005f95;
+}
+
+.booking-widget-error {
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fff7f7;
+  color: #7f1d1d;
+  padding: 16px;
+}
+
+.booking-widget-error p {
+  margin-top: 0;
 }
 
 .inventory-card {
@@ -274,6 +359,16 @@ h2 {
   font-weight: 900;
 }
 
+.business-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.business-title-link:hover h2 {
+  color: #0075b9;
+  text-decoration: underline;
+}
+
 @media (max-width: 800px) {
   .business-hero {
     flex-direction: column;
@@ -283,16 +378,19 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .booking-widget-header {
+    flex-direction: column;
+  }
+
+  .booking-widget-host {
+    padding: 12px;
+  }
+
+  .booking-widget-host iframe {
+    min-height: 760px;
+  }
+
   h1 {
     font-size: 28px;
   }
-}
-.business-title-link {
-  color: inherit;
-  text-decoration: none;
-}
-
-.business-title-link:hover h2 {
-  color: #0075b9;
-  text-decoration: underline;
 }

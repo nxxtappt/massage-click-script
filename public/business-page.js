@@ -51,9 +51,9 @@ function formatAppointmentButton(appointment = {}) {
 function formatAppointmentService(appointment = {}) {
   const serviceName = String(
     appointment.serviceName ||
-    appointment.service ||
-    appointment.serviceCategory ||
-    "Appointment"
+      appointment.service ||
+      appointment.serviceCategory ||
+      "Appointment"
   ).trim();
   const durationMinutes = Number(appointment.durationMinutes);
 
@@ -122,6 +122,321 @@ function renderPills(items = [], emptyText = "None listed yet.") {
   `;
 }
 
+function normalizeWidgetType(integration = {}) {
+  const requested = String(
+    integration.widgetType ||
+      integration.type ||
+      (integration.embedCode || integration.code || integration.html
+        ? "html"
+        : integration.iframeUrl || integration.widgetUrl
+          ? "iframe"
+          : "url")
+  )
+    .trim()
+    .toLowerCase();
+
+  return ["html", "iframe", "url"].includes(requested)
+    ? requested
+    : "url";
+}
+
+function renderBookingWidget(page) {
+  const integration = page.bookingIntegration || {};
+
+  if (integration.enabled !== true) return "";
+
+  const widgetType = normalizeWidgetType(integration);
+  const provider = String(integration.provider || page.platform || "booking")
+    .trim()
+    .replace(/[_-]+/g, " ");
+
+  return `
+    <section class="booking-widget-card">
+      <div class="booking-widget-header">
+        <div>
+          <p class="section-label">Book Online</p>
+          <h2>Schedule with ${escapeHtml(page.businessName)}</h2>
+        </div>
+        <span class="booking-provider-pill">${escapeHtml(provider)}</span>
+      </div>
+
+      <div
+        id="businessBookingWidget"
+        class="booking-widget-host"
+        data-widget-type="${escapeAttribute(widgetType)}"
+      >
+        <p>Loading booking options...</p>
+      </div>
+    </section>
+  `;
+}
+
+function isSafePublicUrl(value, allowedProtocols = ["https:"]) {
+  try {
+    const parsed = new URL(String(value || ""), window.location.origin);
+    return allowedProtocols.includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
+function getProviderScriptSuffixes(provider = "") {
+  const normalizedProvider = String(provider || "").trim().toLowerCase();
+  const suffixesByProvider = {
+    mindbody: ["mindbodyonline.com", "healcode.com"],
+    vagaro: ["vagaro.com"],
+    zenoti: ["zenoti.com"],
+    booker: ["booker.com"],
+    meevo: ["meevo.com", "millenniumsi.com"],
+    mangomint: ["mangomint.com"]
+  };
+
+  return suffixesByProvider[normalizedProvider] || [];
+}
+
+function hostnameMatchesSuffix(hostname, suffix) {
+  const normalizedHostname = String(hostname || "").toLowerCase();
+  const normalizedSuffix = String(suffix || "").toLowerCase();
+
+  return (
+    normalizedHostname === normalizedSuffix ||
+    normalizedHostname.endsWith(`.${normalizedSuffix}`)
+  );
+}
+
+function isAllowedWidgetScriptUrl(value, provider) {
+  try {
+    const parsed = new URL(String(value || ""), window.location.origin);
+
+    if (parsed.protocol !== "https:") return false;
+    if (parsed.origin === window.location.origin) return true;
+
+    return getProviderScriptSuffixes(provider).some((suffix) =>
+      hostnameMatchesSuffix(parsed.hostname, suffix)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeWidgetElement(element) {
+  const blockedTags = new Set([
+    "BASE",
+    "EMBED",
+    "IFRAME",
+    "LINK",
+    "META",
+    "OBJECT",
+    "STYLE",
+    "SVG",
+    "MATH"
+  ]);
+
+  if (blockedTags.has(element.tagName)) {
+    element.remove();
+    return;
+  }
+
+  for (const attribute of [...element.attributes]) {
+    const name = attribute.name.toLowerCase();
+    const value = attribute.value;
+
+    if (name.startsWith("on") || name === "srcdoc") {
+      element.removeAttribute(attribute.name);
+      continue;
+    }
+
+    if (["href", "src", "action", "formaction"].includes(name)) {
+      const allowedProtocols = name === "href"
+        ? ["https:", "http:", "mailto:", "tel:"]
+        : ["https:", "http:"];
+
+      if (!isSafePublicUrl(value, allowedProtocols)) {
+        element.removeAttribute(attribute.name);
+      }
+    }
+  }
+
+  if (element.tagName === "A") {
+    element.setAttribute("rel", "noopener noreferrer");
+
+    if (element.getAttribute("target") === "_blank") {
+      element.setAttribute("target", "_blank");
+    }
+  }
+}
+
+function buildSanitizedWidgetFragment(embedCode) {
+  const template = document.createElement("template");
+  template.innerHTML = String(embedCode || "");
+
+  const scriptDescriptors = [...template.content.querySelectorAll("script")]
+    .map((script) => ({
+      src: script.getAttribute("src") || "",
+      attributes: [...script.attributes]
+        .filter((attribute) => attribute.name.toLowerCase() !== "src")
+        .map((attribute) => ({
+          name: attribute.name,
+          value: attribute.value
+        }))
+    }));
+
+  template.content.querySelectorAll("script").forEach((script) => script.remove());
+  [...template.content.querySelectorAll("*")].forEach(sanitizeWidgetElement);
+
+  return {
+    fragment: template.content.cloneNode(true),
+    scriptDescriptors
+  };
+}
+
+function copyAllowedScriptAttributes(sourceAttributes, targetScript) {
+  const allowedNames = new Set([
+    "async",
+    "crossorigin",
+    "defer",
+    "integrity",
+    "nomodule",
+    "referrerpolicy",
+    "type"
+  ]);
+
+  for (const attribute of sourceAttributes) {
+    const lowerName = String(attribute.name || "").toLowerCase();
+
+    if (allowedNames.has(lowerName) || lowerName.startsWith("data-")) {
+      targetScript.setAttribute(attribute.name, attribute.value);
+    }
+  }
+}
+
+function mountHtmlBookingWidget(container, integration) {
+  const embedCode =
+    integration.embedCode ||
+    integration.code ||
+    integration.html ||
+    "";
+  const provider = integration.provider || "";
+
+  if (!embedCode) {
+    throw new Error("Booking embed code is missing.");
+  }
+
+  const { fragment, scriptDescriptors } = buildSanitizedWidgetFragment(embedCode);
+  container.replaceChildren(fragment);
+
+  let loadedScriptCount = 0;
+
+  for (const descriptor of scriptDescriptors) {
+    if (!descriptor.src || !isAllowedWidgetScriptUrl(descriptor.src, provider)) {
+      continue;
+    }
+
+    const script = document.createElement("script");
+    script.src = new URL(descriptor.src, window.location.origin).href;
+    copyAllowedScriptAttributes(descriptor.attributes, script);
+    script.async = script.hasAttribute("async") ? script.async : true;
+    script.dataset.nextapptBookingWidget = "true";
+    container.appendChild(script);
+    loadedScriptCount += 1;
+  }
+
+  if (!container.childNodes.length) {
+    throw new Error("The saved booking embed did not contain displayable content.");
+  }
+
+  if (scriptDescriptors.length && loadedScriptCount === 0) {
+    throw new Error(
+      "The booking script host is not approved for the selected provider."
+    );
+  }
+}
+
+function mountIframeBookingWidget(container, integration) {
+  const iframeUrl = integration.iframeUrl || integration.widgetUrl || "";
+
+  if (!isSafePublicUrl(iframeUrl)) {
+    throw new Error("The saved booking iframe URL is invalid.");
+  }
+
+  const iframe = document.createElement("iframe");
+  iframe.src = iframeUrl;
+  iframe.title = "Online booking widget";
+  iframe.loading = "lazy";
+  iframe.referrerPolicy = "strict-origin-when-cross-origin";
+  iframe.allow = "payment";
+  iframe.setAttribute(
+    "sandbox",
+    [
+      "allow-forms",
+      "allow-modals",
+      "allow-popups",
+      "allow-popups-to-escape-sandbox",
+      "allow-same-origin",
+      "allow-scripts",
+      "allow-top-navigation-by-user-activation"
+    ].join(" ")
+  );
+
+  container.replaceChildren(iframe);
+}
+
+function mountBookingLink(container, integration, page) {
+  const bookingUrl =
+    integration.bookingUrl ||
+    integration.url ||
+    page.bookingUrl ||
+    "";
+
+  if (!isSafePublicUrl(bookingUrl)) {
+    throw new Error("The saved booking URL is invalid.");
+  }
+
+  const link = document.createElement("a");
+  link.className = "booking-link-button";
+  link.href = bookingUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "Open online booking";
+
+  container.replaceChildren(link);
+}
+
+function mountBookingWidget(page) {
+  const container = document.getElementById("businessBookingWidget");
+  const integration = page.bookingIntegration || {};
+
+  if (!container || integration.enabled !== true) return;
+
+  try {
+    const widgetType = normalizeWidgetType(integration);
+
+    if (widgetType === "html") {
+      mountHtmlBookingWidget(container, integration);
+      return;
+    }
+
+    if (widgetType === "iframe") {
+      mountIframeBookingWidget(container, integration);
+      return;
+    }
+
+    mountBookingLink(container, integration, page);
+  } catch (error) {
+    console.error("Could not render booking widget:", error);
+    container.innerHTML = `
+      <div class="booking-widget-error">
+        <p>Online booking could not be loaded here.</p>
+        ${
+          isSafePublicUrl(integration.bookingUrl || page.bookingUrl || "")
+            ? `<a href="${escapeAttribute(integration.bookingUrl || page.bookingUrl)}" target="_blank" rel="noopener noreferrer">Open the booking page</a>`
+            : ""
+        }
+      </div>
+    `;
+  }
+}
+
 function renderVerifiedPage(page) {
   const profile = page.publicProfile || {};
 
@@ -163,6 +478,8 @@ function renderVerifiedPage(page) {
         ${renderPills(profile.amenities, "No amenities listed yet.")}
       </article>
     </section>
+
+    ${renderBookingWidget(page)}
 
     <section class="inventory-card">
       <div class="inventory-header">
@@ -239,14 +556,25 @@ async function loadBusinessInventory(page) {
     const appointments = (Array.isArray(data.appointments)
       ? data.appointments
       : []).filter((appointment) => {
-        if (appointment.businessEnabled === false || appointment.enabled === false) return false;
+      if (
+        appointment.businessEnabled === false ||
+        appointment.enabled === false
+      ) {
+        return false;
+      }
 
-        const status = String(
-          appointment.inventoryStatus || appointment.status || ""
-        ).toLowerCase();
+      const status = String(
+        appointment.inventoryStatus || appointment.status || ""
+      ).toLowerCase();
 
-        return !["inactive", "expired", "archived", "deleted", "disabled"].includes(status);
-      });
+      return ![
+        "inactive",
+        "expired",
+        "archived",
+        "deleted",
+        "disabled"
+      ].includes(status);
+    });
 
     if (!appointments.length) {
       inventory.innerHTML = `<p>No appointment inventory found for this business yet.</p>`;
@@ -276,8 +604,11 @@ async function loadBusinessInventory(page) {
                     appointment.sourceStatus ||
                     "";
 
-                  const isInferred = String(sourceType).toLowerCase() === "inferred";
-                  const availabilityLabel = isInferred ? "Inferred" : "Confirmed";
+                  const isInferred =
+                    String(sourceType).toLowerCase() === "inferred";
+                  const availabilityLabel = isInferred
+                    ? "Inferred"
+                    : "Confirmed";
                   const serviceLabel = formatAppointmentService(appointment);
 
                   return `
@@ -302,6 +633,7 @@ async function loadBusinessInventory(page) {
       })
       .join("");
   } catch (error) {
+    console.error("Could not load business inventory:", error);
     inventory.innerHTML = `<p>Could not load appointment inventory.</p>`;
   }
 }
@@ -331,12 +663,13 @@ async function loadBusinessPage() {
       page.verificationStatus === "verified" ||
       page.verificationStatus === "claimed_verified";
 
-      updateBusinessMetadata(page);
+    updateBusinessMetadata(page);
 
     root.innerHTML = page.isVerified
       ? renderVerifiedPage(page)
       : renderUnverifiedPage(page);
 
+    mountBookingWidget(page);
     await loadBusinessInventory(page);
   } catch (error) {
     root.innerHTML = `
@@ -347,6 +680,7 @@ async function loadBusinessPage() {
     `;
   }
 }
+
 function updateBusinessMetadata(page = {}) {
   const businessName =
     page.businessName ||
@@ -386,9 +720,7 @@ function updateBusinessMetadata(page = {}) {
     ? `View appointment availability for ${businessName}, a local ${industry} provider in ${location}. Find services and book through NextAppt.ai.`
     : `View appointment availability, services, and booking information for ${businessName} through NextAppt.ai.`;
 
-  let descriptionTag = document.querySelector(
-    'meta[name="description"]'
-  );
+  let descriptionTag = document.querySelector('meta[name="description"]');
 
   if (!descriptionTag) {
     descriptionTag = document.createElement("meta");
@@ -408,9 +740,7 @@ function updateBusinessMetadata(page = {}) {
 
   robotsTag.setAttribute("content", "index,follow");
 
-  let canonicalTag = document.querySelector(
-    'link[rel="canonical"]'
-  );
+  let canonicalTag = document.querySelector('link[rel="canonical"]');
 
   if (!canonicalTag) {
     canonicalTag = document.createElement("link");
@@ -420,9 +750,8 @@ function updateBusinessMetadata(page = {}) {
 
   canonicalTag.setAttribute(
     "href",
-    `${window.location.origin}/business/${encodeURIComponent(
-      getSlugFromPath()
-    )}`
+    `${window.location.origin}/business/${encodeURIComponent(getSlugFromPath())}`
   );
 }
+
 loadBusinessPage();

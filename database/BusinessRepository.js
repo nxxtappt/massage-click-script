@@ -80,6 +80,8 @@ function normalizeBusiness(input = {}) {
     business_category: input.businessCategory || "wellness",
     platform: input.platform || null,
     booking_url: input.bookingUrl || null,
+    logo_url: input.logoUrl || input.logo_url || null,
+    logo_alt: input.logoAlt || input.logo_alt || null,
     website: input.website || input.websiteUrl || null,
     phone: input.phone || null,
     email: input.email || input.contactEmail || null,
@@ -598,7 +600,19 @@ async function updateBusiness(idOrBusinessId, updates = {}) {
     ...(existing.raw_json || {}),
     ...updates,
     businessId: existing.business_id,
-    businessName: updates.businessName || updates.business_name || existing.business_name
+    businessName: updates.businessName || updates.business_name || existing.business_name,
+    logoUrl:
+      updates.logoUrl !== undefined
+        ? updates.logoUrl
+        : updates.logo_url !== undefined
+          ? updates.logo_url
+          : existing.logo_url,
+    logoAlt:
+      updates.logoAlt !== undefined
+        ? updates.logoAlt
+        : updates.logo_alt !== undefined
+          ? updates.logo_alt
+          : existing.logo_alt
   };
 
   return upsertBusiness(merged);
