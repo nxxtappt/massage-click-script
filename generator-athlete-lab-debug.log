@@ -1,0 +1,121 @@
+◇ injected env (2) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Loaded 22 businesses from businessManager
+Built 1 service-level scrape job(s)
+Filters applied:
+{
+  "platform": "mindbody",
+  "business": "Generator Athlete Lab",
+  "manual": "true",
+  "forceRefresh": "true",
+  "ignoreServiceRules": "true",
+  "daysForward": 2
+}
+[SCRAPE WINDOW SAMPLE]
+{
+  "businessName": "Generator Athlete Lab",
+  "serviceName": "Massage Therapy - 90 minutes",
+  "scrapeStartDate": "2026-07-29",
+  "scrapeEndDate": "2026-07-30",
+  "lookaheadHours": 48,
+  "daysForward": 2,
+  "scrapeWindowMode": "days_forward"
+}
+[INVENTORY] PostgreSQL is the only runtime appointment store.
+[INVENTORY] Starting a new PostgreSQL-backed scrape run.
+[SCRAPE WINDOW] {
+  businessName: 'Generator Athlete Lab',
+  serviceName: 'Massage Therapy - 90 minutes',
+  scrapeStartDate: '2026-07-29',
+  scrapeEndDate: '2026-07-30',
+  lookaheadHours: 48,
+  daysForward: 2,
+  scrapeWindowMode: 'days_forward'
+}
+
+===== Scraping Generator Athlete Lab | Massage Therapy - 90 minutes | Attempt 1 =====
+[MINDBODY] Scrape window: {
+  scrapeStartDate: '2026-07-29',
+  scrapeEndDate: '2026-07-30',
+  lookaheadHours: 48,
+  daysForward: 2,
+  scrapeWindowMode: 'days_forward'
+}
+Opening category: Massage
+Normal click failed for "Massage", trying JS click fallback...
+Expanded category by JS event: Massage
+Clicking service: Massage Therapy - 90 minutes
+Service ID: asrv_1153kMBP4YwuFQCxib
+Trying provider selection: First Available
+Normal click failed for "First Available", trying JS click fallback...
+Clicked optional step: First Available
+Normal click failed for "Continue", trying JS click fallback...
+Clicked optional step: Continue
+Provider step not detected. Continuing...
+Normal click failed for "Continue", trying JS click fallback...
+Normal click failed for "Next", trying JS click fallback...
+Normal click failed for "Select Date & Time", trying JS click fallback...
+Normal click failed for "View Availability", trying JS click fallback...
+Provider step not detected. Continuing...
+Normal click failed for "Continue", trying JS click fallback...
+Normal click failed for "Next", trying JS click fallback...
+Normal click failed for "Select Date & Time", trying JS click fallback...
+Normal click failed for "View Availability", trying JS click fallback...
+Provider step not detected. Continuing...
+Normal click failed for "Continue", trying JS click fallback...
+Normal click failed for "Next", trying JS click fallback...
+Normal click failed for "Select Date & Time", trying JS click fallback...
+Normal click failed for "View Availability", trying JS click fallback...
+Provider step not detected. Continuing...
+Normal click failed for "Continue", trying JS click fallback...
+Normal click failed for "Next", trying JS click fallback...
+Normal click failed for "Select Date & Time", trying JS click fallback...
+Normal click failed for "View Availability", trying JS click fallback...
+Provider step not detected. Continuing...
+Normal click failed for "Continue", trying JS click fallback...
+Normal click failed for "Next", trying JS click fallback...
+Normal click failed for "Select Date & Time", trying JS click fallback...
+Normal click failed for "View Availability", trying JS click fallback...
+----- FINAL WIDGET TEXT -----
+My Account
+Book your appointment
+1 On 1 Personal Training
+Expand
+Massage
+Expand
+Red Light Therapy
+Expand
+[INVENTORY] Removed 0 previous inventory row(s) for this service and scrape window.
+[INVENTORY] Saved 0 confirmed appointment(s) to PostgreSQL inventory.
+----- RESULT -----
+{
+  "businessName": "Generator Athlete Lab",
+  "bookingUrl": "https://www.generatorathletelab.com/book-treatment-session",
+  "platform": "mindbody",
+  "service": "Massage Therapy - 90 minutes",
+  "serviceName": "Massage Therapy - 90 minutes",
+  "serviceType": "massage",
+  "durationMinutes": 90,
+  "platformServiceId": "asrv_1153kMBP4YwuFQCxib",
+  "provider": "First Available",
+  "date": null,
+  "times": [],
+  "status": "unknown",
+  "attemptNumber": 1,
+  "scrapeDurationMs": 126665,
+  "lastChecked": "2026-07-29T20:30:57.636Z",
+  "rawWidgetText": "My Account\nBook your appointment\n1 On 1 Personal Training\nExpand\nMassage\nExpand\nRed Light Therapy\nExpand",
+  "scrapeStartDate": "2026-07-29",
+  "scrapeEndDate": "2026-07-30",
+  "lookaheadHours": 48,
+  "daysForward": 2,
+  "scrapeWindowMode": "days_forward",
+  "scrapeWindowFiltered": false,
+  "distanceMiles": null,
+  "lookaheadHoursApplied": 48,
+  "lookaheadCutoff": "2026-07-31T20:30:57.658Z",
+  "businessServiceId": "1144"
+}
+
+===== SCRAPE COMPLETE =====
+Total results: 1

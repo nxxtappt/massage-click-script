@@ -825,35 +825,6 @@ function initMap() {
   markerLayer = L.layerGroup().addTo(map);
 }
 
-function parseMapCoordinate(value, minimum, maximum) {
-  if (value === undefined || value === null || String(value).trim() === "") {
-    return null;
-  }
-
-  const number = Number(value);
-
-  if (!Number.isFinite(number) || number < minimum || number > maximum) {
-    return null;
-  }
-
-  return number;
-}
-
-function getAppointmentMapCoordinates(appointment = {}) {
-  const latitude = parseMapCoordinate(appointment.latitude, -90, 90);
-  const longitude = parseMapCoordinate(appointment.longitude, -180, 180);
-
-  if (latitude === null || longitude === null) {
-    return null;
-  }
-
-  if (latitude === 0 && longitude === 0) {
-    return null;
-  }
-
-  return { latitude, longitude };
-}
-
 function renderMapMarkers(appointments) {
   if (!map || !markerLayer || typeof L === "undefined") return;
 
@@ -863,14 +834,7 @@ function renderMapMarkers(appointments) {
 
   const businessesWithCoordinates = groupedBusinesses
     .map((group) => {
-      const firstAppointment = Array.isArray(group.appointments)
-        ? group.appointments[0]
-        : null;
-      const coordinates = getAppointmentMapCoordinates(firstAppointment || {});
-
-      if (!firstAppointment || !coordinates) {
-        return null;
-      }
+      const firstAppointment = group.appointments[0];
 
       return {
         businessName: firstAppointment.businessName || "Unknown Business",
@@ -879,11 +843,14 @@ function renderMapMarkers(appointments) {
         logoUrl: firstAppointment.logoUrl || "",
         verificationStatus:
           firstAppointment.verificationStatus || "unclaimed",
-        ...coordinates,
+        latitude: Number(firstAppointment.latitude),
+        longitude: Number(firstAppointment.longitude),
         appointments: group.appointments
       };
     })
-    .filter(Boolean);
+    .filter((business) => {
+      return Number.isFinite(business.latitude) && Number.isFinite(business.longitude);
+    });
 
   if (!businessesWithCoordinates.length) {
     map.setView([30.2672, -97.7431], 11);

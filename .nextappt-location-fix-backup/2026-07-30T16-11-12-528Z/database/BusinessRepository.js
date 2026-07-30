@@ -120,76 +120,6 @@ function normalizeLocation(input = {}, numericBusinessId) {
   };
 }
 
-function hasOwn(object, key) {
-  return Object.prototype.hasOwnProperty.call(object || {}, key);
-}
-
-function getExplicitValue(object, keys, fallback) {
-  for (const key of keys) {
-    if (hasOwn(object, key) && object[key] !== undefined) {
-      return object[key];
-    }
-  }
-
-  return fallback;
-}
-
-function buildLocationsForSave(business = {}) {
-  const suppliedLocations = Array.isArray(business.locations)
-    ? business.locations.filter(
-        (location) => location && typeof location === "object" && !Array.isArray(location)
-      )
-    : [];
-
-  const primarySource = suppliedLocations[0] || cleanObject(business.location);
-
-  const primaryLocation = {
-    ...primarySource,
-    locationName: getExplicitValue(
-      business,
-      ["locationName"],
-      primarySource.locationName || business.businessName || business.name || null
-    ),
-    address: getExplicitValue(
-      business,
-      ["address"],
-      primarySource.address || null
-    ),
-    city: getExplicitValue(
-      business,
-      ["city"],
-      primarySource.city || null
-    ),
-    state: getExplicitValue(
-      business,
-      ["state"],
-      primarySource.state || null
-    ),
-    postalCode: getExplicitValue(
-      business,
-      ["postalCode", "postal_code", "zip"],
-      primarySource.postalCode || primarySource.postal_code || primarySource.zip || null
-    ),
-    latitude: getExplicitValue(
-      business,
-      ["latitude", "lat"],
-      primarySource.latitude ?? null
-    ),
-    longitude: getExplicitValue(
-      business,
-      ["longitude", "lng", "lon"],
-      primarySource.longitude ?? null
-    ),
-    timezone: getExplicitValue(
-      business,
-      ["timezone"],
-      primarySource.timezone || "America/Chicago"
-    )
-  };
-
-  return [primaryLocation, ...suppliedLocations.slice(1)];
-}
-
 function normalizeService(input = {}, business = {}, numericBusinessId) {
   const inference = input.searchInference && typeof input.searchInference === "object"
     ? input.searchInference
@@ -897,7 +827,9 @@ async function saveBusinessFull(business) {
     const savedBusiness = await upsertBusiness(business, client);
     const numericBusinessId = savedBusiness.id;
 
-    const locations = buildLocationsForSave(business);
+    const locations = Array.isArray(business.locations) && business.locations.length
+      ? business.locations
+      : [business];
 
     const integration = Array.isArray(business.integrations) && business.integrations.length
       ? business.integrations[0]

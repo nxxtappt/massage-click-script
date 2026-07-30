@@ -192,11 +192,6 @@ function slugifyBusinessName(value = "") {
 let cachedBusinessMetadataMap = null;
 let cachedBusinessMetadataAt = 0;
 
-function clearBusinessMetadataCache() {
-  cachedBusinessMetadataMap = null;
-  cachedBusinessMetadataAt = 0;
-}
-
 function getBusinessMetadataMap() {
   const now = Date.now();
 
@@ -277,7 +272,6 @@ function normalizeInventoryRow(row = {}) {
 
   const businessName = row.businessName || row.business_name || "";
   const metadata = getBusinessMetadata(businessName);
-  const hasBusinessMetadata = Boolean(metadata.businessName);
 
   const rawAppointmentStart =
     row.appointmentStart ||
@@ -303,19 +297,19 @@ function normalizeInventoryRow(row = {}) {
       ? `${localDateKey}T${localTimeKey}:00`
       : rawAppointmentStart || "";
 
-  const latitude = hasBusinessMetadata
-    ? metadata.latitude ?? null
-    : toNumber(row.latitude) ??
-      toNumber(row.businessLatitude) ??
-      toNumber(row.business_latitude) ??
-      null;
+  const latitude =
+    toNumber(row.latitude) ??
+    toNumber(row.businessLatitude) ??
+    toNumber(row.business_latitude) ??
+    metadata.latitude ??
+    null;
 
-  const longitude = hasBusinessMetadata
-    ? metadata.longitude ?? null
-    : toNumber(row.longitude) ??
-      toNumber(row.businessLongitude) ??
-      toNumber(row.business_longitude) ??
-      null;
+  const longitude =
+    toNumber(row.longitude) ??
+    toNumber(row.businessLongitude) ??
+    toNumber(row.business_longitude) ??
+    metadata.longitude ??
+    null;
 
   const displayDate = row.date || row.displayDate || formatDisplayDate(localDateKey);
   const displayTime = row.time || row.displayTime || formatDisplayTime(localTimeKey);
@@ -417,28 +411,24 @@ function normalizeInventoryRow(row = {}) {
 
     status: row.status || row.inventoryStatus || row.inventory_status || "active",
 
-    enabled: hasBusinessMetadata
-      ? metadata.enabled !== false
-      : row.enabled !== undefined && row.enabled !== null
+    enabled:
+      row.enabled !== undefined && row.enabled !== null
         ? row.enabled !== false
-        : true,
-    businessEnabled: hasBusinessMetadata
-      ? metadata.businessEnabled !== false
-      : row.businessEnabled !== undefined && row.businessEnabled !== null
+        : metadata.enabled !== false,
+    businessEnabled:
+      row.businessEnabled !== undefined && row.businessEnabled !== null
         ? row.businessEnabled !== false
-        : true,
+        : metadata.businessEnabled !== false,
 
     latitude,
     longitude,
-    address: hasBusinessMetadata
-      ? metadata.address || ""
-      : row.address || row.businessAddress || row.business_address || "",
-    logoUrl: hasBusinessMetadata
-      ? metadata.logoUrl || ""
-      : row.logoUrl || row.logo_url || "",
-    logoAlt: hasBusinessMetadata
-      ? metadata.logoAlt || `${businessName || "Business"} logo`
-      : row.logoAlt || row.logo_alt || `${businessName || "Business"} logo`,
+    address: row.address || row.businessAddress || row.business_address || metadata.address || "",
+    logoUrl: row.logoUrl || row.logo_url || metadata.logoUrl || "",
+    logoAlt:
+      row.logoAlt ||
+      row.logo_alt ||
+      metadata.logoAlt ||
+      `${businessName || "Business"} logo`,
 
     claimed: row.claimed === true || metadata.claimed === true,
     verificationStatus:
@@ -898,6 +888,5 @@ module.exports = {
 
   normalizeInventoryRow,
   normalizeFilters,
-  getAppointmentIdentityKey,
-  clearBusinessMetadataCache
+  getAppointmentIdentityKey
 };

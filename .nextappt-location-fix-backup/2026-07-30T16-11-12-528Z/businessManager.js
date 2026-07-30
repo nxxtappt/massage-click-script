@@ -19,18 +19,6 @@ try {
 let businessCache = null;
 let businessCacheLoadedAt = null;
 
-function clearInventoryBusinessMetadataCache() {
-  try {
-    const inventoryManager = require("./inventoryManager");
-
-    if (typeof inventoryManager.clearBusinessMetadataCache === "function") {
-      inventoryManager.clearBusinessMetadataCache();
-    }
-  } catch (_) {
-    // inventoryManager may not be initialized yet during application startup.
-  }
-}
-
 function requireRepository() {
   if (!BusinessRepository) {
     throw new Error("PostgreSQL BusinessRepository is unavailable.");
@@ -395,7 +383,6 @@ function toLegacyBusiness(row = {}) {
 function setBusinessCache(businesses = []) {
   businessCache = Array.isArray(businesses) ? businesses : [];
   businessCacheLoadedAt = new Date().toISOString();
-  clearInventoryBusinessMetadataCache();
   return businessCache;
 }
 

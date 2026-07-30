@@ -1,0 +1,10 @@
+{
+  "createdAt": "2026-07-30T16:11:12.530Z",
+  "repositoryRoot": "/workspaces/massage-click-script",
+  "files": [
+    "database/BusinessRepository.js",
+    "businessManager.js",
+    "inventoryManager.js",
+    "public/app.js"
+  ]
+}
