@@ -1300,6 +1300,9 @@ const endTimeKey = intent.endTimeKey || "";
       appointment.date,
       appointment.time,
       appointment.serviceCategory,
+      appointment.categorySlug,
+      appointment.marketplaceCategory,
+      query.categoryMatchedAlias,
       appointment.durationMinutes,
       appointment.address
     ].join(" ")
@@ -1405,7 +1408,15 @@ if (
             "appointment",
             "appointments",
             "available",
-            "availability"
+            "availability",
+            "this",
+            "morning",
+            "afternoon",
+            "evening",
+            "need",
+            "find",
+            "looking",
+            "please"
           ].includes(word)
       );
 
@@ -1885,6 +1896,9 @@ function serviceMatchesIntent(service, query) {
     [
       service.serviceName,
       service.serviceType,
+      service.categorySlug,
+      service.marketplaceCategory,
+      query.categoryMatchedAlias,
       service.durationMinutes,
       service.platformServiceId,
       service.serviceButtonId
@@ -1965,21 +1979,50 @@ function getRequestedCategorySlug(query = {}) {
 }
 
 async function resolveRequestedCategory(query = {}) {
-  const categorySlug = getRequestedCategorySlug(query);
+  const explicitCategorySlug =
+    getRequestedCategorySlug(query);
 
-  if (!categorySlug) {
+  if (explicitCategorySlug) {
+    const category =
+      await serviceCategoryRepository
+        .getCategoryBySlug(
+          explicitCategorySlug
+        );
+
     return {
-      categorySlug: "",
-      category: null
+      categorySlug:
+        explicitCategorySlug,
+      category,
+      source: "explicit",
+      matchedAlias: ""
     };
   }
 
-  const category =
-    await serviceCategoryRepository.getCategoryBySlug(categorySlug);
+  const inferred =
+    await serviceCategoryRepository
+      .inferCategoryFromText(
+        query.search ||
+        query.query ||
+        ""
+      );
+
+  if (!inferred) {
+    return {
+      categorySlug: "",
+      category: null,
+      source: "",
+      matchedAlias: ""
+    };
+  }
 
   return {
-    categorySlug,
-    category
+    categorySlug:
+      inferred.categorySlug,
+    category:
+      inferred.category,
+    source: "inferred",
+    matchedAlias:
+      inferred.matchedAlias
   };
 }
 
@@ -2017,6 +2060,10 @@ app.get("/api/service-categories", async (req, res) => {
         slug: category.slug,
         displayName: category.display_name,
         description: category.description || "",
+        searchAliases:
+          Array.isArray(category.search_aliases)
+            ? category.search_aliases
+            : [],
         enabled: category.enabled !== false,
         sortOrder: Number(category.sort_order || 0),
         businessCount: countsBySlug.get(category.slug) || 0
@@ -2050,7 +2097,10 @@ app.get("/api/search", async (req, res) => {
 
     const searchQuery = {
       ...req.query,
-      categorySlug: categorySelection.categorySlug
+      categorySlug:
+        categorySelection.categorySlug,
+      categoryMatchedAlias:
+        categorySelection.matchedAlias
     };
 
     const orchestrationSummary = {
@@ -2102,6 +2152,10 @@ app.get("/api/search", async (req, res) => {
               categorySelection.category.description || ""
           }
         : null,
+      categorySource:
+        categorySelection.source || "",
+      categoryMatchedAlias:
+        categorySelection.matchedAlias || "",
       appointmentTimeZone: APPOINTMENT_TIME_ZONE,
       liveSearchRunning,
       inferredIntent: intent,
@@ -2119,6 +2173,10 @@ app.get("/api/search", async (req, res) => {
         business: req.query.business || "",
         platform: req.query.platform || "",
         categorySlug: categorySelection.categorySlug,
+        categorySource:
+          categorySelection.source || "",
+        categoryMatchedAlias:
+          categorySelection.matchedAlias || "",
         service: req.query.service || intent.service || "",
         serviceCategory: req.query.serviceCategory || intent.serviceCategory || "",
         duration: req.query.duration || intent.duration || "",

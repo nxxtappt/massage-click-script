@@ -18,6 +18,15 @@ function toPositiveInteger(value, fallback, maximum = 1000) {
   return Math.min(parsed, maximum);
 }
 
+function normalizeSearchText(value = "") {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normalizeMetroQuery(value = "") {
   return String(value || "")
     .trim()
@@ -36,6 +45,7 @@ async function listCategories(options = {}) {
         slug,
         display_name,
         description,
+        search_aliases,
         enabled,
         sort_order,
         created_at,
@@ -65,6 +75,7 @@ async function getCategoryBySlug(slug, options = {}) {
         slug,
         display_name,
         description,
+        search_aliases,
         enabled,
         sort_order,
         created_at,
@@ -78,6 +89,82 @@ async function getCategoryBySlug(slug, options = {}) {
   );
 
   return result.rows[0] || null;
+}
+
+async function inferCategoryFromText(
+  searchText = "",
+  options = {}
+) {
+  const normalizedText =
+    normalizeSearchText(searchText);
+
+  if (!normalizedText) {
+    return null;
+  }
+
+  const categories = await listCategories({
+    includeDisabled:
+      options.includeDisabled === true
+  });
+
+  const paddedText =
+    ` ${normalizedText} `;
+
+  const candidates = [];
+
+  for (const category of categories) {
+    const aliases = [
+      category.slug,
+      category.display_name,
+      ...(
+        Array.isArray(category.search_aliases)
+          ? category.search_aliases
+          : []
+      )
+    ];
+
+    for (const alias of aliases) {
+      const normalizedAlias =
+        normalizeSearchText(alias);
+
+      if (!normalizedAlias) {
+        continue;
+      }
+
+      candidates.push({
+        category,
+        alias: String(alias),
+        normalizedAlias
+      });
+    }
+  }
+
+  candidates.sort(
+    (left, right) =>
+      right.normalizedAlias.length -
+      left.normalizedAlias.length
+  );
+
+  const match = candidates.find(
+    (candidate) =>
+      paddedText.includes(
+        ` ${candidate.normalizedAlias} `
+      )
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    category: match.category,
+    categorySlug:
+      match.category.slug,
+    matchedAlias:
+      match.alias,
+    normalizedAlias:
+      match.normalizedAlias
+  };
 }
 
 async function requireCategory(slug, options = {}) {
@@ -446,8 +533,10 @@ async function assignBusinessServicesCategory(
 
 module.exports = {
   normalizeCategorySlug,
+  normalizeSearchText,
   normalizeMetroQuery,
   listCategories,
+  inferCategoryFromText,
   getCategoryBySlug,
   requireCategory,
   isEnabledCategory,

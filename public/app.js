@@ -7,6 +7,7 @@ let resultPollingTimer = null;
 let resultPollingAttempts = 0;
 let lastGoodAppointments = [];
 let currentSearchResults = [];
+let inferredSearchCategory = null;
 let userLatitude = null;
 let userLongitude = null;
 let maxDistanceMiles = 5;
@@ -69,9 +70,23 @@ function getAustinPageContext() {
 const currentPageContext =
   getAustinPageContext();
 
+function getResolvedCategoryName() {
+  return (
+    currentPageContext.categoryName ||
+    inferredSearchCategory?.displayName ||
+    ""
+  );
+}
+
 function getCurrentAppointmentPhrase() {
-  if (currentPageContext.categoryName) {
-    return currentPageContext.categoryName.toLowerCase() + " appointments";
+  const categoryName =
+    getResolvedCategoryName();
+
+  if (categoryName) {
+    return (
+      categoryName.toLowerCase() +
+      " appointments"
+    );
   }
 
   return "appointments";
@@ -89,12 +104,15 @@ function buildCategoryPageUrl(
 }
 
 function getCategoryEmptyStateCopy() {
-  if (currentPageContext.categoryName) {
+  const categoryName =
+    getResolvedCategoryName();
+
+  if (categoryName) {
     return {
       title:
-        `No ${currentPageContext.categoryName} appointments available right now`,
+        `No ${categoryName} appointments available right now`,
       message:
-        `This category is active, but no fresh ${currentPageContext.categoryName.toLowerCase()} appointment times are currently stored. Try another category or check back after the next inventory update.`
+        `This category is active, but no fresh ${categoryName.toLowerCase()} appointment times are currently stored. Try another category or check back after the next inventory update.`
     };
   }
 
@@ -155,6 +173,7 @@ function renderCategoryNavigation(
           slug ===
           String(
             currentPageContext.categorySlug ||
+            inferredSearchCategory?.slug ||
             ""
           );
 
@@ -194,9 +213,76 @@ function renderCategoryNavigation(
 
   if (categoryNavigationStatus) {
     categoryNavigationStatus.textContent =
-      enabledCategories.length
-        ? `${enabledCategories.length} categories available`
-        : "";
+      inferredSearchCategory?.displayName
+        ? `Recognized ${inferredSearchCategory.displayName} from your search`
+        : enabledCategories.length
+          ? `${enabledCategories.length} categories available`
+          : "";
+  }
+}
+
+function applyResolvedSearchCategory(
+  data = {}
+) {
+  if (
+    currentPageContext.categorySlug
+  ) {
+    inferredSearchCategory = null;
+    return;
+  }
+
+  inferredSearchCategory =
+    data.categorySource === "inferred" &&
+    data.category
+      ? data.category
+      : null;
+
+  if (!categoryNavigation) {
+    return;
+  }
+
+  const resolvedSlug =
+    inferredSearchCategory?.slug || "";
+
+  categoryNavigation
+    .querySelectorAll(
+      ".category-nav-link"
+    )
+    .forEach((link) => {
+      const linkPath = new URL(
+        link.href,
+        window.location.origin
+      ).pathname;
+
+      const isActive =
+        linkPath ===
+        buildCategoryPageUrl(
+          resolvedSlug
+        );
+
+      link.classList.toggle(
+        "is-active",
+        isActive
+      );
+
+      if (isActive) {
+        link.setAttribute(
+          "aria-current",
+          "page"
+        );
+      } else {
+        link.removeAttribute(
+          "aria-current"
+        );
+      }
+    });
+
+  if (
+    categoryNavigationStatus &&
+    inferredSearchCategory
+  ) {
+    categoryNavigationStatus.textContent =
+      `Recognized ${inferredSearchCategory.displayName} from your search`;
   }
 }
 
@@ -486,8 +572,15 @@ function updateAssistantMessage(data, appointments, promptText = "", isPollingRe
   }
 
   if (promptText) {
+    const inferredCategoryText =
+      data?.categorySource ===
+        "inferred" &&
+      data?.category?.displayName
+        ? ` I recognized this as ${data.category.displayName}.`
+        : "";
+
     setAssistantMessage(
-      `I searched for "${promptText}" and found ${appointments.length} appointment${appointments.length === 1 ? "" : "s"} across ${businessCount} business${businessCount === 1 ? "" : "es"}.`
+      `I searched for "${promptText}".${inferredCategoryText} I found ${appointments.length} appointment${appointments.length === 1 ? "" : "s"} across ${businessCount} business${businessCount === 1 ? "" : "es"}.`
     );
     return;
   }
@@ -619,6 +712,8 @@ async function loadAppointments(options = {}) {
     if (!data.success) {
       throw new Error(data.error || "Failed to load appointments");
     }
+
+    applyResolvedSearchCategory(data);
 
     const incomingAppointments = Array.isArray(data.appointments)
       ? data.appointments

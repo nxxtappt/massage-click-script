@@ -4,6 +4,9 @@ const path = require("path");
 const OpenAI = require("openai");
 
 const businessManager = require("../businessManager");
+const serviceCategoryRepository = require(
+  "../database/serviceCategoryRepository"
+);
 
 const router = express.Router();
 const TIME_ZONE = "America/Chicago";
@@ -123,6 +126,7 @@ function inferDirectServiceFromQuery(query = "") {
   if (text.includes("sauna")) return "infrared_sauna";
   if (text.includes("facial")) return "facial";
   if (text.includes("chiropractor") || text.includes("chiropractic")) return "chiropractic";
+  if (text.includes("acupuncture") || text.includes("acupuncturist")) return "acupuncture";
 
   return "";
 }
@@ -605,7 +609,13 @@ function dedupeAppointments(appointments = []) {
   return output;
 }
 
-function buildNextApptSearchParams(query = "", matchedIntent = null, previousParams = {}, businessKnowledge = []) {
+function buildNextApptSearchParams(
+  query = "",
+  matchedIntent = null,
+  previousParams = {},
+  businessKnowledge = [],
+  categoryMatch = null
+) {
   const params = new URLSearchParams();
   params.set("limitPerBusiness", "999");
   params.set("fresh", String(Date.now()));
@@ -615,9 +625,27 @@ function buildNextApptSearchParams(query = "", matchedIntent = null, previousPar
     ? matchedIntent.recommendedServices.map(toServiceCategory).filter(Boolean)
     : [];
 
-  const directService = inferDirectServiceFromQuery(query);
-  const previousService = previousParams.serviceCategory || previousParams.service || "";
-  const serviceCategory = recommendedServices[0] || directService || previousService || "";
+  const directService =
+    inferDirectServiceFromQuery(query);
+  const previousService =
+    previousParams.serviceCategory ||
+    previousParams.service ||
+    "";
+  const categorySlug =
+    categoryMatch?.categorySlug ||
+    previousParams.category ||
+    previousParams.categorySlug ||
+    "";
+  const serviceCandidate =
+    recommendedServices[0] ||
+    directService ||
+    previousService ||
+    "";
+  const serviceCategory =
+    toServiceCategory(serviceCandidate) ===
+    toServiceCategory(categorySlug)
+      ? ""
+      : serviceCandidate;
 
   const duration = inferDurationFromQuery(query) || previousParams.duration || "";
   const time = inferTimeWindowFromQuery(query);
@@ -625,6 +653,12 @@ function buildNextApptSearchParams(query = "", matchedIntent = null, previousPar
   const businessName = inferBusinessNameFromQuery(query, businessKnowledge) || previousParams.business || "";
 
   if (businessName) params.set("business", businessName);
+  if (categorySlug) {
+    params.set(
+      "category",
+      categorySlug
+    );
+  }
 
   if (serviceCategory) {
     params.set("serviceCategory", serviceCategory);
@@ -656,9 +690,36 @@ function shouldUseStrictBusinessFilter(query = "", relevantBusinesses = [], busi
 }
 
 async function fetchLiveAppointments(req, query, intent, relevantBusinesses = [], previousParams = {}, businessKnowledge = []) {
-  const searchParams = buildNextApptSearchParams(query, intent, previousParams, businessKnowledge);
+  const categoryMatch =
+    await serviceCategoryRepository
+      .inferCategoryFromText(query);
+
+  const searchParams = buildNextApptSearchParams(
+    query,
+    intent,
+    previousParams,
+    businessKnowledge,
+    categoryMatch
+  );
   const primaryUrl = `${req.protocol}://${req.get("host")}/api/search?${searchParams.toString()}`;
   const primaryData = await fetchSearchUrl(primaryUrl);
+  const resolvedCategoryMatch =
+    categoryMatch ||
+    (primaryData?.category
+      ? {
+          categorySlug:
+            primaryData.category.slug,
+          category: {
+            slug:
+              primaryData.category.slug,
+            display_name:
+              primaryData.category.displayName
+          },
+          matchedAlias:
+            primaryData.categoryMatchedAlias ||
+            ""
+        }
+      : null);
 
   const serviceCategory = searchParams.get("serviceCategory") || "";
   const duration = searchParams.get("duration") || "";
@@ -728,7 +789,9 @@ async function fetchLiveAppointments(req, query, intent, relevantBusinesses = []
     appointments,
     fallbackUrls,
     fallbackResults,
-    dateTimeFilters: inferDateTimeFilters(query)
+    dateTimeFilters: inferDateTimeFilters(query),
+    categoryMatch:
+      resolvedCategoryMatch
   };
 }
 
@@ -768,15 +831,15 @@ function buildRuleBasedIntro(context = {}) {
 
   if (appointments.length > 0) {
     if (needsDisclaimer) {
-      return "I can’t give medical advice, but people commonly look for massage to help with muscle tension, soreness, stress, and recovery. Here are live appointment cards that match your search.";
+      return "I can’t give medical advice, but people commonly use appointment-based wellness services for concerns such as tension, soreness, stress, mobility, and recovery. Here are live appointment cards that match your search.";
     }
 
     if (isFollowUp) return "I updated the appointment cards using your follow-up.";
     return "Here are live appointment cards that match your search.";
   }
 
-  if (hasDateTimeFilter) return "I didn’t find live appointment cards matching that date or time window. Try a broader time window or a more general massage search.";
-  return "I didn’t find live appointment cards matching that search yet. Try a broader appointment request like ‘massage today’ or ‘60 minute massage tomorrow.’";
+  if (hasDateTimeFilter) return "I didn’t find live appointment cards matching that date or time window. Try a broader time window or another appointment category.";
+  return "I didn’t find live appointment cards matching that search yet. Try a broader request like ‘massage today,’ ‘chiropractor tomorrow,’ or ‘facial this afternoon.’";
 }
 
 function buildRuleBasedTextOnlyAnswer(context = {}) {
@@ -808,7 +871,7 @@ function buildRuleBasedTextOnlyAnswer(context = {}) {
   if (service === "ashiatsu") return "Ashiatsu is a massage style where the therapist uses their feet, often with overhead support bars, to apply broad and deep pressure.";
   if (service === "infrared_sauna") return "Infrared sauna sessions use infrared heat and are often promoted for relaxation and recovery. Check each business’s details before booking because availability and rules vary.";
 
-  return "I can answer questions about massage styles, Austin wellness businesses, reviews, amenities, and NextAppt. When you want live appointment cards, ask something like ‘deep tissue massage near me today’ or ‘60 minute massage tomorrow after 4.’";
+  return "I can answer questions about appointment services, Austin wellness businesses, reviews, amenities, and how NextAppt works. For live cards, ask for a service and time, such as ‘deep tissue massage today,’ ‘chiropractor tomorrow,’ or ‘facial after 4.’";
 }
 
 async function buildTextOnlyAnswer(context = {}) {
@@ -822,7 +885,7 @@ async function buildTextOnlyAnswer(context = {}) {
         {
           role: "system",
           content:
-            "You are the AI assistant for NextAppt.ai. Answer informational questions about massage, wellness businesses, reviews, amenities, and how NextAppt works. Do not claim live availability was searched. Do not list appointment times. If discussing pain, injury, pregnancy, symptoms, or medical conditions, include a short medical disclaimer. Keep the answer under 5 sentences."
+            "You are the AI assistant for NextAppt.ai. Answer informational questions about appointment services, wellness businesses, reviews, amenities, and how NextAppt works. Supported broad categories are supplied by NextAppt data and may include massage, chiropractic, acupuncture, recovery, and skin services. Do not claim live availability was searched. Do not list appointment times. If discussing pain, injury, pregnancy, symptoms, or medical conditions, include a short medical disclaimer. Keep the answer under 5 sentences."
         },
         {
           role: "user",
@@ -943,6 +1006,8 @@ router.post("/search", async (req, res) => {
       appointments,
       searchParamsUsed: liveAppointments.searchParams,
       dateTimeFilters: liveAppointments.dateTimeFilters,
+      categoryMatch:
+        liveAppointments.categoryMatch || null,
       reviewSignals: getRelevantReviewSignals(relevantBusinesses, reviewSignals)
     };
 
@@ -957,6 +1022,17 @@ router.post("/search", async (req, res) => {
       matchedIntent,
       searchUrlUsed: liveAppointments.url,
       searchParamsUsed: liveAppointments.searchParams,
+      category:
+        liveAppointments.categoryMatch
+          ? {
+              slug:
+                liveAppointments.categoryMatch.categorySlug,
+              displayName:
+                liveAppointments.categoryMatch.category.display_name,
+              matchedAlias:
+                liveAppointments.categoryMatch.matchedAlias
+            }
+          : null,
       answer,
       appointments,
       relevantBusinesses,
@@ -982,6 +1058,15 @@ router.post("/search", async (req, res) => {
         directServiceDetected: inferDirectServiceFromQuery(resolvedQuery),
         businessDetected: inferBusinessNameFromQuery(resolvedQuery, businessKnowledge),
         amenityDetected: inferAmenityFromQuery(resolvedQuery),
+        categoryDetected:
+          liveAppointments.categoryMatch
+            ? {
+                slug:
+                  liveAppointments.categoryMatch.categorySlug,
+                matchedAlias:
+                  liveAppointments.categoryMatch.matchedAlias
+              }
+            : null,
         needsMedicalDisclaimer: queryNeedsMedicalDisclaimer(resolvedQuery, matchedIntent),
         followUpDetected: query !== resolvedQuery
       }
