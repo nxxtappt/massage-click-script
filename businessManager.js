@@ -177,6 +177,14 @@ function normalizeServiceRow(service = {}) {
     canonicalKey: service.canonical_key || raw.canonicalKey || "",
     serviceName: service.service_name || raw.serviceName || "",
     serviceType: service.service_type || raw.serviceType || "",
+    categorySlug:
+      service.category_slug ||
+      raw.categorySlug ||
+      "",
+    marketplaceCategory:
+      service.category_slug ||
+      raw.categorySlug ||
+      "",
     serviceCategory: service.service_type || raw.serviceType || "",
     durationMinutes:
       service.duration_minutes === null || service.duration_minutes === undefined

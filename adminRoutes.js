@@ -9,6 +9,7 @@ const { getCacheStats } = require("./cacheManager");
 const router = express.Router();
 
 const businessManager = require("./businessManager");
+const serviceCategoryRepository = require("./database/serviceCategoryRepository");
 const inventoryRepository = require("./database/inventoryRepository");
 const runtimeStateRepository = require("./database/runtimeStateRepository");
 const { loadClaims, getClaimStats } = require("./businessClaimManager");
@@ -92,6 +93,13 @@ function normalizeAdminService(service = {}) {
     ...service,
     serviceName: cleanText(service.serviceName, 300),
     serviceType: cleanText(service.serviceType || service.serviceCategory, 120),
+    categorySlug:
+      serviceCategoryRepository.normalizeCategorySlug(
+        service.categorySlug ||
+        service.category_slug ||
+        service.marketplaceCategory ||
+        ""
+      ),
     durationMinutes: cleanNumberOrNull(service.durationMinutes),
     price: cleanNumberOrNull(service.price),
     enabled: service.enabled !== false && service.enabled !== "false",
@@ -128,6 +136,43 @@ function normalizeAdminBusiness(business = {}) {
     longitude: cleanNumberOrNull(business.longitude),
     services
   };
+}
+
+async function validateAdminBusinessCategories(
+  business = {}
+) {
+  const categorySlugs = [
+    ...new Set(
+      (Array.isArray(business.services)
+        ? business.services
+        : []
+      )
+        .map((service) =>
+          serviceCategoryRepository
+            .normalizeCategorySlug(
+              service.categorySlug || ""
+            )
+        )
+        .filter(Boolean)
+    )
+  ];
+
+  for (const categorySlug of categorySlugs) {
+    const category =
+      await serviceCategoryRepository
+        .getCategoryBySlug(categorySlug);
+
+    if (!category) {
+      const error = new Error(
+        `Unknown or disabled service category: ${categorySlug}`
+      );
+
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  return business;
 }
 
 function cleanText(value, maxLength = 5000) {
@@ -224,6 +269,7 @@ router.get("/debug/routes", (req, res) => {
       "GET /api/admin/businesses/search",
       "GET /api/admin/businesses/facets",
       "GET /api/admin/businesses/:id",
+      "GET /api/admin/service-categories",
       "POST /api/admin/businesses/create",
       "POST /api/admin/businesses/save",
       "GET /api/admin/business-subscriptions",
@@ -244,6 +290,44 @@ router.get("/debug/routes", (req, res) => {
       "POST /api/admin/scrape/jobs/:id/cancel"
     ]
   });
+});
+
+router.get("/service-categories", async (req, res) => {
+  try {
+    const categories =
+      await serviceCategoryRepository
+        .listCategories();
+
+    res.json({
+      success: true,
+      source: "postgres",
+      categories: categories.map(
+        (category) => ({
+          slug: category.slug,
+          displayName:
+            category.display_name,
+          description:
+            category.description || "",
+          enabled:
+            category.enabled !== false,
+          sortOrder:
+            Number(
+              category.sort_order || 0
+            )
+        })
+      )
+    });
+  } catch (error) {
+    console.error(
+      "[ADMIN SERVICE CATEGORIES ERROR]",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 router.get("/businesses", async (req, res) => {
@@ -462,6 +546,10 @@ router.post("/businesses/create", async (req, res) => {
       return res.status(400).json({ success: false, error: "businessName is required." });
     }
 
+    await validateAdminBusinessCategories(
+      business
+    );
+
     const existing = await businessManager.getBusinessByName(business.businessName);
     if (existing) {
       return res.status(409).json({
@@ -481,7 +569,7 @@ router.post("/businesses/create", async (req, res) => {
     });
   } catch (error) {
     console.error("[ADMIN BUSINESS CREATE ERROR]", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(error.statusCode || 500).json({ success: false, error: error.message });
   }
 });
 
@@ -499,11 +587,15 @@ router.post("/businesses/:id/save", async (req, res) => {
       normalizedBusiness.businessId = routeId;
     }
 
+    await validateAdminBusinessCategories(
+      normalizedBusiness
+    );
+
     const business = await businessManager.saveBusiness(normalizedBusiness);
     res.json({ success: true, source: "postgres", business });
   } catch (error) {
     console.error("[ADMIN SINGLE BUSINESS SAVE ERROR]", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(error.statusCode || 500).json({ success: false, error: error.message });
   }
 });
 
@@ -537,6 +629,10 @@ router.post("/businesses/save", async (req, res) => {
         });
       }
 
+      await validateAdminBusinessCategories(
+        normalizedBusiness
+      );
+
       savedBusinesses.push(await businessManager.saveBusiness(normalizedBusiness));
     }
 
@@ -553,7 +649,7 @@ router.post("/businesses/save", async (req, res) => {
   } catch (error) {
     console.error("[ADMIN BUSINESS SAVE ERROR]", error);
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       error: error.message
     });

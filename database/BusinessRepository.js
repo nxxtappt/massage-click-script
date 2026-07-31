@@ -1,4 +1,7 @@
 const db = require("../db");
+const {
+  normalizeCategorySlug
+} = require("./serviceCategoryRepository");
 
 function getQuery() {
   if (typeof db.query === "function") return db.query.bind(db);
@@ -202,6 +205,14 @@ function normalizeService(input = {}, business = {}, numericBusinessId) {
     business.serviceType ||
     business.serviceCategory ||
     null;
+  const categorySlug =
+    normalizeCategorySlug(
+      input.categorySlug ||
+      input.category_slug ||
+      input.marketplaceCategory ||
+      input.marketplace_category ||
+      ""
+    ) || null;
   const durationMinutes = input.durationMinutes ?? business.durationMinutes ?? null;
   const platformServiceId = input.platformServiceId || business.platformServiceId || null;
   const serviceButtonId = input.serviceButtonId || business.serviceButtonId || null;
@@ -230,6 +241,7 @@ function normalizeService(input = {}, business = {}, numericBusinessId) {
   const rawJson = {
     serviceName,
     serviceType,
+    categorySlug,
     durationMinutes,
     price: input.price ?? input.servicePrice ?? business.price ?? business.servicePrice ?? null,
     platformServiceId,
@@ -277,6 +289,7 @@ function normalizeService(input = {}, business = {}, numericBusinessId) {
     canonical_key: canonicalKey,
     service_name: serviceName,
     service_type: serviceType,
+    category_slug: categorySlug,
     duration_minutes: durationMinutes,
     price: rawJson.price,
     platform_service_id: platformServiceId,
@@ -774,7 +787,7 @@ async function saveServices(numericBusinessId, businessOrServices = [], client =
     const result = await execute(
       `
         INSERT INTO business_services (
-          business_id, canonical_key, service_name, service_type,
+          business_id, canonical_key, service_name, service_type, category_slug,
           duration_minutes, price, platform_service_id, service_button_id,
           service_id, category_text, parent_service_text, session_type_id, provider_text, enabled, priority,
           discovery_status, days_forward, lookahead_hours, scrape_directly,
@@ -784,13 +797,14 @@ async function saveServices(numericBusinessId, businessOrServices = [], client =
           booking_interval_minutes, raw_json, updated_at
         )
         VALUES (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-          $19,$20,$21,$22,$23,$24,$25::text[],$26,$27,$28,$29,NOW()
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,
+          $20,$21,$22,$23,$24,$25,$26::text[],$27,$28,$29,$30,NOW()
         )
         ON CONFLICT (business_id, canonical_key)
         DO UPDATE SET
           service_name = EXCLUDED.service_name,
           service_type = EXCLUDED.service_type,
+          category_slug = EXCLUDED.category_slug,
           duration_minutes = EXCLUDED.duration_minutes,
           price = EXCLUDED.price,
           platform_service_id = EXCLUDED.platform_service_id,
@@ -821,7 +835,7 @@ async function saveServices(numericBusinessId, businessOrServices = [], client =
       `,
       [
         row.business_id, row.canonical_key, row.service_name, row.service_type,
-        row.duration_minutes, row.price, row.platform_service_id,
+        row.category_slug, row.duration_minutes, row.price, row.platform_service_id,
         row.service_button_id, row.service_id, row.category_text,
         row.parent_service_text, row.session_type_id, row.provider_text, row.enabled, row.priority, row.discovery_status,
         row.days_forward, row.lookahead_hours, row.scrape_directly,

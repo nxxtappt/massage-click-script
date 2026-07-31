@@ -8,6 +8,7 @@ let navButtons = document.querySelectorAll(".nav-btn");
 let currentView = "businesses";
 let businessesCache = [];
 let settingsBusinessesCache = [];
+let serviceCategoriesCache = [];
 let businessSearchState = {
   name: "",
   industry: "",
@@ -149,6 +150,116 @@ async function fetchJson(url, options = {}) {
   return response.json();
 }
 
+async function loadAdminServiceCategories(
+  options = {}
+) {
+  const force = options.force === true;
+
+  if (
+    serviceCategoriesCache.length &&
+    !force
+  ) {
+    return serviceCategoriesCache;
+  }
+
+  try {
+    const data = await fetchJson(
+      "/api/admin/service-categories"
+    );
+
+    serviceCategoriesCache =
+      Array.isArray(data.categories)
+        ? data.categories
+        : [];
+
+    return serviceCategoriesCache;
+  } catch (error) {
+    console.warn(
+      "Could not load service categories:",
+      error
+    );
+
+    return serviceCategoriesCache;
+  }
+}
+
+function getServiceCategoryOptions(
+  currentValue = ""
+) {
+  const normalizedCurrent =
+    String(currentValue || "")
+      .trim()
+      .toLowerCase();
+
+  const options = [
+    {
+      value: "",
+      label:
+        "Auto-detect from service"
+    },
+    ...serviceCategoriesCache.map(
+      (category) => ({
+        value: category.slug,
+        label: category.displayName
+      })
+    )
+  ];
+
+  if (
+    normalizedCurrent &&
+    !options.some(
+      (option) =>
+        option.value === normalizedCurrent
+    )
+  ) {
+    options.push({
+      value: normalizedCurrent,
+      label:
+        `${titleCaseAdminSlug(
+          normalizedCurrent
+        )} (unavailable)`
+    });
+  }
+
+  return options;
+}
+
+function titleCaseAdminSlug(value = "") {
+  return String(value || "")
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() +
+        word.slice(1)
+    )
+    .join(" ");
+}
+
+function getServiceCategoryLabel(
+  service = {}
+) {
+  const categorySlug =
+    service.categorySlug ||
+    service.marketplaceCategory ||
+    "";
+
+  if (!categorySlug) {
+    return "Auto";
+  }
+
+  const category =
+    serviceCategoriesCache.find(
+      (item) =>
+        item.slug === categorySlug
+    );
+
+  return (
+    category?.displayName ||
+    titleCaseAdminSlug(categorySlug)
+  );
+}
+
 async function loadBusinessSubscriptions() {
   const response = await fetch("/api/admin/business-subscriptions");
   const data = await response.json();
@@ -208,6 +319,7 @@ function normalizeInferServiceTypes(value) {
 function createBlankService() {
   return {
     serviceType: "",
+    categorySlug: "",
     durationMinutes: null,
     serviceName: "",
     platformServiceId: "",
@@ -275,6 +387,10 @@ function getAllServicesForBusiness(business) {
       {
         serviceName: business.serviceName,
         serviceType: business.serviceType || "",
+        categorySlug:
+          business.categorySlug ||
+          business.marketplaceCategory ||
+          "",
         durationMinutes: business.durationMinutes || "",
         priority: business.priority || "",
         discoveryStatus: business.discoveryStatus || ""
@@ -405,7 +521,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
       <div class="service-card-header">
         <div>
           <h4>${escapeHtml(service.serviceName || "Unnamed Service")}</h4>
-          <p>${escapeHtml(service.serviceType || "unknown")}  -  ${escapeHtml(service.durationMinutes || "unknown")} min  -  ${escapeHtml(service.priority || "no priority")}  -  ${escapeHtml(service.discoveryStatus || "no status")}</p>
+          <p>${escapeHtml(getServiceCategoryLabel(service))}  -  ${escapeHtml(service.serviceType || "unknown")}  -  ${escapeHtml(service.durationMinutes || "unknown")} min  -  ${escapeHtml(service.priority || "no priority")}  -  ${escapeHtml(service.discoveryStatus || "no status")}</p>
         </div>
 
         <div class="service-card-actions">
@@ -420,6 +536,20 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
 
       <div class="service-edit-grid">
         ${renderServiceInput("Service Name", "serviceName", service.serviceName, businessIndex, serviceIndex)}
+        ${renderServiceSelect(
+          "Marketplace Category",
+          "categorySlug",
+          service.categorySlug ||
+            service.marketplaceCategory ||
+            "",
+          businessIndex,
+          serviceIndex,
+          getServiceCategoryOptions(
+            service.categorySlug ||
+            service.marketplaceCategory ||
+            ""
+          )
+        )}
         ${renderServiceInput("Service Type", "serviceType", service.serviceType, businessIndex, serviceIndex)}
         ${renderServiceInput("Duration", "durationMinutes", service.durationMinutes, businessIndex, serviceIndex, "number")}
         ${renderServiceInput("Platform Service ID", "platformServiceId", service.platformServiceId, businessIndex, serviceIndex)}
@@ -794,7 +924,8 @@ function renderBusinessSearchResults() {
     await loadBusinesses();
   });
 
-  document.getElementById("addBusinessBtn")?.addEventListener("click", () => {
+  document.getElementById("addBusinessBtn")?.addEventListener("click", async () => {
+    await loadAdminServiceCategories();
     businessEditorMode = true;
     businessesCache = [createBlankBusiness()];
     renderBusinessesFromCache();
@@ -909,7 +1040,15 @@ async function loadBusinessEditor(businessId) {
   try {
     businessEditorMode = true;
     setLoading("Loading business details and services...");
-    const data = await fetchJson(`/api/admin/businesses/${encodeURIComponent(businessId)}`);
+
+    const [data] = await Promise.all([
+      fetchJson(
+        `/api/admin/businesses/${encodeURIComponent(
+          businessId
+        )}`
+      ),
+      loadAdminServiceCategories()
+    ]);
     businessesCache = [normalizeBusinessDefaults(data.business || {})];
     renderBusinessesFromCache();
     setStatus(`Loaded ${businessesCache[0]?.businessName || "business"}.`, "success");
