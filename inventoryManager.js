@@ -275,6 +275,15 @@ function normalizeInventoryRow(row = {}) {
     row.service_type ||
     "";
 
+  const categorySlug =
+    row.categorySlug ||
+    row.category_slug ||
+    row.marketplaceCategory ||
+    row.marketplace_category ||
+    row.rawJson?.categorySlug ||
+    row.raw_json?.categorySlug ||
+    "";
+
   const businessName = row.businessName || row.business_name || "";
   const metadata = getBusinessMetadata(businessName);
   const hasBusinessMetadata = Boolean(metadata.businessName);
@@ -343,6 +352,8 @@ function normalizeInventoryRow(row = {}) {
 
     serviceName,
     service: serviceName,
+    categorySlug,
+    marketplaceCategory: categorySlug,
     serviceCategory,
     serviceType: serviceCategory,
     durationMinutes: toNumberOrNull(row.durationMinutes || row.duration_minutes),
@@ -470,8 +481,14 @@ function normalizeFilters(filters = {}) {
     businessName: filters.businessName || filters.business || "",
     platform: filters.platform || "",
     serviceName: filters.serviceName || filters.service || "",
+    categorySlug:
+      filters.categorySlug ||
+      filters.marketplaceCategory ||
+      filters.topLevelCategory ||
+      filters.category ||
+      "",
     serviceCategory:
-      filters.serviceCategory || filters.serviceType || filters.category || "",
+      filters.serviceCategory || filters.serviceType || "",
     durationMinutes: toNumberOrNull(filters.durationMinutes || filters.duration),
     providerName: filters.providerName || filters.therapistName || filters.provider || "",
     startDate: filters.startDate || filters.localDateStart || filters.fromDate || "",
@@ -636,6 +653,14 @@ function filterInventory(appointments = [], filters = {}) {
     }
 
     if (
+      normalizedFilters.categorySlug &&
+      normalizeText(normalized.categorySlug) !==
+        normalizeText(normalizedFilters.categorySlug)
+    ) {
+      return false;
+    }
+
+    if (
       normalizedFilters.serviceName &&
       !normalizeText(normalized.serviceName).includes(
         normalizeText(normalizedFilters.serviceName)
@@ -784,6 +809,12 @@ async function getInventory(filters = {}) {
           businessName: appointment.businessName || result.businessName,
           platform: appointment.platform || result.platform,
           serviceName: appointment.serviceName || result.serviceName || result.service,
+          categorySlug:
+            appointment.categorySlug ||
+            appointment.category_slug ||
+            result.categorySlug ||
+            result.category_slug ||
+            "",
           serviceCategory:
             appointment.serviceCategory || result.serviceCategory || result.serviceType,
           durationMinutes: appointment.durationMinutes || result.durationMinutes,

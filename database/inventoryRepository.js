@@ -798,6 +798,10 @@ async function getInventory(filters = {}) {
     addWhere("LOWER(platform) = LOWER(?)", filters.platform);
   }
 
+  if (filters.categorySlug && columns.has("category_slug")) {
+    addWhere("LOWER(category_slug) = LOWER(?)", filters.categorySlug);
+  }
+
   if (filters.serviceCategory) {
     addWhere("LOWER(service_category) = LOWER(?)", filters.serviceCategory);
   }
@@ -877,6 +881,7 @@ async function searchInventory(filters = {}) {
   const add = (sql, value) => { values.push(value); where.push(sql.replace("?", `$${values.length}`)); };
   if (filters.businessName) add("LOWER(business_name) LIKE LOWER(?)", `%${filters.businessName}%`);
   if (filters.platform) add("LOWER(platform) = LOWER(?)", filters.platform);
+  if (filters.categorySlug && columns.has("category_slug")) add("LOWER(category_slug) = LOWER(?)", filters.categorySlug);
   if (filters.serviceCategory) add("LOWER(service_category) LIKE LOWER(?)", `%${filters.serviceCategory}%`);
   if (filters.serviceName) add("LOWER(service_name) LIKE LOWER(?)", `%${filters.serviceName}%`);
   if (filters.targetLocalDateKey) add("local_date = ?::date", filters.targetLocalDateKey);

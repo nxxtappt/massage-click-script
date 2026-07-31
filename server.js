@@ -31,6 +31,7 @@ const {
 } = safeRequire("./apiSyncRouter") || {};
 
 const inventoryManager = require("./inventoryManager");
+const serviceCategoryRepository = require("./database/serviceCategoryRepository");
 const { saveEmailCapture } = require("./database/runtimeStateRepository");
 const {
   createFeedbackEntry
@@ -1649,6 +1650,15 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
       ? Number(metadata.longitude)
       : null;
 
+  const categorySlug =
+    serviceCategoryRepository.normalizeCategorySlug(
+      rawAppointment.categorySlug ||
+      rawAppointment.category_slug ||
+      rawAppointment.marketplaceCategory ||
+      rawAppointment.marketplace_category ||
+      ""
+    );
+
   return {
     ...rawAppointment,
     businessName,
@@ -1664,6 +1674,8 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
       rawAppointment.service_name ||
       rawAppointment.service ||
       "",
+    categorySlug,
+    marketplaceCategory: categorySlug,
     serviceCategory:
       rawAppointment.serviceCategory ||
       rawAppointment.service_category ||
@@ -1751,6 +1763,11 @@ function getInventoryFiltersForSearch(query = {}, intent = {}) {
   return {
     business: query.business || "",
     platform: query.platform || "",
+    categorySlug:
+      query.categorySlug ||
+      query.category ||
+      query.marketplaceCategory ||
+      "",
     serviceCategory: query.serviceCategory || query.serviceType || intent.serviceCategory || "",
     serviceType: query.serviceType || query.serviceCategory || intent.serviceCategory || "",
     durationMinutes: query.durationMinutes || query.duration || intent.duration || null,
@@ -1940,6 +1957,34 @@ function serviceMatchesIntent(service, query) {
   return true;
 }
 
+function getRequestedCategorySlug(query = {}) {
+  return serviceCategoryRepository.normalizeCategorySlug(
+    query.categorySlug ||
+    query.category ||
+    query.marketplaceCategory ||
+    ""
+  );
+}
+
+async function resolveRequestedCategory(query = {}) {
+  const categorySlug = getRequestedCategorySlug(query);
+
+  if (!categorySlug) {
+    return {
+      categorySlug: "",
+      category: null
+    };
+  }
+
+  const category =
+    await serviceCategoryRepository.getCategoryBySlug(categorySlug);
+
+  return {
+    categorySlug,
+    category
+  };
+}
+
 app.get("/api/settings/public", (req, res) => {
   const settings = loadAdminSettings();
 
@@ -1948,8 +1993,68 @@ app.get("/api/settings/public", (req, res) => {
     searchEnabled: settings.searchEnabled !== false
   });
 });
+
+app.get("/api/service-categories", async (req, res) => {
+  try {
+    const metro = String(req.query.metro || "").trim();
+
+    const [categories, categoryCounts] = await Promise.all([
+      serviceCategoryRepository.listCategories(),
+      serviceCategoryRepository.getCategoryBusinessCounts({
+        metro
+      })
+    ]);
+
+    const countsBySlug = new Map(
+      categoryCounts.map((row) => [
+        row.slug,
+        Number(row.business_count || 0)
+      ])
+    );
+
+    res.json({
+      success: true,
+      metro,
+      categories: categories.map((category) => ({
+        slug: category.slug,
+        displayName: category.display_name,
+        description: category.description || "",
+        enabled: category.enabled !== false,
+        sortOrder: Number(category.sort_order || 0),
+        businessCount: countsBySlug.get(category.slug) || 0
+      }))
+    });
+  } catch (error) {
+    console.error("SERVICE CATEGORY API ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.get("/api/search", async (req, res) => {
   try {
+    const categorySelection =
+      await resolveRequestedCategory(req.query);
+
+    if (
+      categorySelection.categorySlug &&
+      !categorySelection.category
+    ) {
+      return res.status(404).json({
+        success: false,
+        error: "Unknown or disabled service category.",
+        categorySlug: categorySelection.categorySlug
+      });
+    }
+
+    const searchQuery = {
+      ...req.query,
+      categorySlug: categorySelection.categorySlug
+    };
+
     const orchestrationSummary = {
       databaseOnly: true,
       usedOrchestration: false,
@@ -1970,7 +2075,7 @@ app.get("/api/search", async (req, res) => {
       totalAppointmentsBeforeTimingEvaluation,
       timingBreakdown,
       cacheBusinessesLoaded
-    } = await loadNormalizedAppointments(req.query, {
+    } = await loadNormalizedAppointments(searchQuery, {
   includeAppointmentCache: false
 });
 
@@ -1985,11 +2090,20 @@ app.get("/api/search", async (req, res) => {
       appointments.map((appointment) => appointment.businessName)
     ).size;
 
-    const intent = inferSearchIntent(req.query);
+    const intent = inferSearchIntent(searchQuery);
 
     res.json({
       success: true,
       endpoint: "/api/search",
+      category: categorySelection.category
+        ? {
+            slug: categorySelection.category.slug,
+            displayName:
+              categorySelection.category.display_name,
+            description:
+              categorySelection.category.description || ""
+          }
+        : null,
       appointmentTimeZone: APPOINTMENT_TIME_ZONE,
       liveSearchRunning,
       inferredIntent: intent,
@@ -2006,6 +2120,7 @@ app.get("/api/search", async (req, res) => {
         search: req.query.search || "",
         business: req.query.business || "",
         platform: req.query.platform || "",
+        categorySlug: categorySelection.categorySlug,
         service: req.query.service || intent.service || "",
         serviceCategory: req.query.serviceCategory || intent.serviceCategory || "",
         duration: req.query.duration || intent.duration || "",
