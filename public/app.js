@@ -13,6 +13,70 @@ let maxDistanceMiles = 5;
 const MAX_POLLING_ATTEMPTS = 30;
 const POLLING_INTERVAL_MS = 2000;
 
+function titleCaseRouteSlug(value = "") {
+  return String(value || "")
+    .split("-")
+    .filter(Boolean)
+    .map((word) =>
+      word.charAt(0).toUpperCase() +
+      word.slice(1)
+    )
+    .join(" ");
+}
+
+function getAustinPageContext() {
+  const pathnameParts =
+    window.location.pathname
+      .split("/")
+      .filter(Boolean);
+
+  const body = document.body;
+
+  const metroSlug =
+    body?.dataset.metroSlug ||
+    pathnameParts[0] ||
+    "";
+
+  const metroName =
+    body?.dataset.metroName ||
+    titleCaseRouteSlug(metroSlug);
+
+  const categorySlug =
+    body?.dataset.categorySlug ||
+    (
+      metroSlug === "austin"
+        ? pathnameParts[1] || ""
+        : ""
+    );
+
+  const categoryName =
+    body?.dataset.categoryName ||
+    titleCaseRouteSlug(categorySlug);
+
+  const categoryDescription =
+    body?.dataset.categoryDescription ||
+    "";
+
+  return {
+    metroSlug,
+    metroName,
+    categorySlug,
+    categoryName,
+    categoryDescription
+  };
+}
+
+const currentPageContext =
+  getAustinPageContext();
+
+function getCurrentAppointmentPhrase() {
+  if (currentPageContext.categoryName) {
+    return currentPageContext.categoryName.toLowerCase() + " appointments";
+  }
+
+  return "appointments";
+}
+
 const appointmentsGrid = document.getElementById("appointmentsGrid");
 const resultsSummary = document.getElementById("resultsSummary");
 const searchInput = document.getElementById("searchInput");
@@ -28,6 +92,13 @@ function buildSearchUrl() {
 
   params.set("limitPerBusiness", "999");
   params.set("fresh", String(Date.now()));
+
+  if (currentPageContext.categorySlug) {
+    params.set(
+      "category",
+      currentPageContext.categorySlug
+    );
+  }
 
   if (searchInput.value.trim()) {
     params.set("search", searchInput.value.trim());
@@ -1134,12 +1205,19 @@ const heroSubtitle =
 
 if (heroTitle) {
   heroTitle.textContent =
-    "Available Massage Appointments in Austin";
+    currentPageContext.categoryName
+      ? `Available ${currentPageContext.categoryName} Appointments in Austin`
+      : "Available Appointments in Austin";
 }
 
 if (heroSubtitle) {
   heroSubtitle.textContent =
-    "Freshly updated appointment availability from massage businesses across the Austin area.";
+    currentPageContext.categoryDescription ||
+    (
+      currentPageContext.categoryName
+        ? `Freshly updated ${currentPageContext.categoryName.toLowerCase()} appointment availability across the Austin area.`
+        : "Freshly updated appointment availability from businesses across the Austin area."
+    );
 }
       if (chatSearchForm) {
         chatSearchForm.style.display =
@@ -1149,7 +1227,7 @@ if (heroSubtitle) {
       if (assistantResponse) {
         assistantResponse.innerHTML = `
           <div class="assistant-bubble">
-            Find massage appointments available right now across Austin
+            Find ${getCurrentAppointmentPhrase()} available right now across Austin
           </div>
         `;
       }
@@ -1249,7 +1327,7 @@ function showSearchEmailPopup() {
   });
 }
 
-if (window.location.pathname === "/austin/massage") {
+if (currentPageContext.metroSlug === "austin") {
   setTimeout(showSearchEmailPopup, 10000);
 }
 document.addEventListener("click", async (event) => {

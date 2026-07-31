@@ -3,63 +3,104 @@
 <head>
   <link rel="icon" href="/favicon.ico?v=1" sizes="any">
 
-<link
-  rel="icon"
-  type="image/png"
-  sizes="32x32"
-  href="/favicon-32x32.png?v=1"
->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="/favicon-32x32.png?v=1"
+  >
 
-<link
-  rel="icon"
-  type="image/png"
-  sizes="16x16"
-  href="/favicon-16x16.png?v=1"
->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="16x16"
+    href="/favicon-16x16.png?v=1"
+  >
 
-<link
-  rel="apple-touch-icon"
-  sizes="180x180"
-  href="/apple-touch-icon.png?v=1"
->
+  <link
+    rel="apple-touch-icon"
+    sizes="180x180"
+    href="/apple-touch-icon.png?v=1"
+  >
+
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>Massage Appointments in Austin, TX | Live Availability | NextAppt.ai</title>
 
   <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Appointments in Austin, TX | Live Availability | NextAppt.ai</title>
+
+  <meta
+    id="metaDescription"
     name="description"
-    content="Search live massage appointment availability across Austin, Texas. Compare openings from local massage therapists and book your next massage with NextAppt.ai."
+    content="Search live appointment availability across Austin, Texas. Compare fresh openings from local appointment-based businesses with NextAppt.ai."
   />
 
   <meta
+    id="metaKeywords"
     name="keywords"
-    content="massage Austin, massage appointments Austin, massage near me, massage availability, deep tissue massage Austin, sports massage Austin, prenatal massage Austin, massage booking"
+    content="appointments Austin, appointment availability Austin, appointments near me, Austin appointment booking"
   />
 
-  <meta name="robots" content="index,follow" />
+  <meta
+    id="metaRobots"
+    name="robots"
+    content="index,follow"
+  />
 
-  <link rel="canonical" href="https://nextappt.ai/austin/massage" />
+  <link
+    id="canonicalUrl"
+    rel="canonical"
+    href="https://nextappt.ai/austin"
+  />
 
   <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="NextAppt.ai" />
-  <meta property="og:title" content="Massage Appointments in Austin, TX | Live Availability" />
   <meta
-    property="og:description"
-    content="Find live massage appointment openings throughout Austin, Texas."
+    property="og:type"
+    content="website"
   />
-  <meta property="og:url" content="https://nextappt.ai/austin/massage" />
+
+  <meta
+    property="og:site_name"
+    content="NextAppt.ai"
+  />
+
+  <meta
+    id="openGraphTitle"
+    property="og:title"
+    content="Appointments in Austin, TX | Live Availability"
+  />
+
+  <meta
+    id="openGraphDescription"
+    property="og:description"
+    content="Search live appointment availability across Austin, Texas."
+  />
+
+  <meta
+    id="openGraphUrl"
+    property="og:url"
+    content="https://nextappt.ai/austin"
+  />
 
   <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
   <meta
-    name="twitter:title"
-    content="Massage Appointments in Austin, TX | Live Availability"
+    name="twitter:card"
+    content="summary_large_image"
   />
+
   <meta
+    id="twitterTitle"
+    name="twitter:title"
+    content="Appointments in Austin, TX | Live Availability"
+  />
+
+  <meta
+    id="twitterDescription"
     name="twitter:description"
-    content="Search live massage appointment availability across Austin with NextAppt.ai."
+    content="Search live appointment availability across Austin with NextAppt.ai."
   />
 
   <link
@@ -67,48 +108,80 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
 
-  <link rel="stylesheet" href="/styles.css" />
+  <link
+    rel="stylesheet"
+    href="/styles.css"
+  />
 </head>
 
-<body>
+<body
+  data-metro-slug="austin"
+  data-metro-name="Austin"
+  data-category-slug=""
+  data-category-name=""
+  data-category-description=""
+>
   <main class="page">
     <section class="hero">
-      <p class="eyebrow">NextAppt.ai</p>
+      <p class="eyebrow">
+        NextAppt.ai
+      </p>
 
-      <h1 id="heroTitle">Tell us what appointment you need.</h1>
+      <h1 id="heroTitle">
+        Available Appointments in Austin
+      </h1>
 
       <p id="heroSubtitle">
-        Ask for massage availability by service, time, duration, location, or urgency.
+        Search freshly updated appointment availability from businesses across the Austin area.
       </p>
     </section>
 
     <section class="chat-panel">
-      <form id="chatSearchForm" class="chat-search-form">
+      <form
+        id="chatSearchForm"
+        class="chat-search-form"
+      >
         <input
           id="searchInput"
           type="text"
           autocomplete="off"
-          placeholder="Example: I need a prenatal massage tomorrow between 2 and 6..."
+          placeholder="Example: I need an appointment tomorrow between 2 and 6..."
         />
 
-        <button id="searchLiveBtn" type="submit">Search</button>
+        <button
+          id="searchLiveBtn"
+          type="submit"
+        >
+          Search
+        </button>
       </form>
 
-      <div id="assistantResponse" class="assistant-response">
+      <div
+        id="assistantResponse"
+        class="assistant-response"
+      >
         <div class="assistant-bubble">
           Hi — tell me what kind of appointment you need, or browse the fresh openings below.
         </div>
       </div>
 
-      <div id="liveSearchResults" class="live-search-results"></div>
+      <div
+        id="liveSearchResults"
+        class="live-search-results"
+      ></div>
     </section>
 
     <section class="summary">
-      <p id="resultsSummary">Loading fresh appointments...</p>
+      <p id="resultsSummary">
+        Loading fresh appointments...
+      </p>
     </section>
 
     <section class="content-layout">
-      <section id="appointmentsGrid" class="appointments-list"></section>
+      <section
+        id="appointmentsGrid"
+        class="appointments-list"
+      ></section>
 
       <aside class="map-panel">
         <div id="map"></div>
@@ -116,11 +189,20 @@
     </section>
   </main>
 
-  <select id="businessFilter" class="hidden-control">
-    <option value="">All businesses</option>
+  <select
+    id="businessFilter"
+    class="hidden-control"
+  >
+    <option value="">
+      All businesses
+    </option>
   </select>
 
-  <button id="clearFiltersBtn" class="hidden-control" type="button">
+  <button
+    id="clearFiltersBtn"
+    class="hidden-control"
+    type="button"
+  >
     Clear
   </button>
 

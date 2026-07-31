@@ -4,6 +4,7 @@ const { initializeAdminSettings, loadAdminSettings } = require("./adminSettingsM
 const express = require("express");
 const path = require("path");
 const seoRoutes = require("./seoRoutes");
+const austinSearchRoutes = require("./austinSearchRoutes");
 const businessManager = require("./businessManager");
 const { spawn } = require("child_process");
 const { storagePath } = require("./storagePaths");
@@ -79,6 +80,7 @@ function requireAdminAuth(req, res, next) {
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/ai", aiSearchRoutes);
 app.use(seoRoutes);
+app.use(austinSearchRoutes);
 
 app.use(
   [
@@ -91,10 +93,6 @@ app.use(
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "landing.html"));
-});
-
-app.get("/austin/massage", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.get("/ai", (req, res) => {
