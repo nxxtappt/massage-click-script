@@ -77,6 +77,200 @@ function getCurrentAppointmentPhrase() {
   return "appointments";
 }
 
+function buildCategoryPageUrl(
+  categorySlug = ""
+) {
+  const metroSlug =
+    currentPageContext.metroSlug || "austin";
+
+  return categorySlug
+    ? `/${metroSlug}/${categorySlug}`
+    : `/${metroSlug}`;
+}
+
+function getCategoryEmptyStateCopy() {
+  if (currentPageContext.categoryName) {
+    return {
+      title:
+        `No ${currentPageContext.categoryName} appointments available right now`,
+      message:
+        `This category is active, but no fresh ${currentPageContext.categoryName.toLowerCase()} appointment times are currently stored. Try another category or check back after the next inventory update.`
+    };
+  }
+
+  return {
+    title: "No appointments found",
+    message:
+      "Try a broader prompt, choose an appointment category, or search again."
+  };
+}
+
+function renderCategoryNavigation(
+  categories = []
+) {
+  if (!categoryNavigation) {
+    return;
+  }
+
+  const enabledCategories =
+    Array.isArray(categories)
+      ? categories.filter(
+          (category) =>
+            category &&
+            category.enabled !== false &&
+            category.slug
+        )
+      : [];
+
+  const allLink = {
+    slug: "",
+    displayName: "All",
+    businessCount: null
+  };
+
+  const navigationItems = [
+    allLink,
+    ...enabledCategories
+  ];
+
+  categoryNavigation.innerHTML =
+    navigationItems
+      .map((category) => {
+        const slug =
+          String(category.slug || "");
+        const displayName =
+          category.displayName ||
+          titleCaseRouteSlug(slug) ||
+          "All";
+
+        const businessCount =
+          category.businessCount === null ||
+          category.businessCount === undefined
+            ? null
+            : Number(
+                category.businessCount || 0
+              );
+
+        const isActive =
+          slug ===
+          String(
+            currentPageContext.categorySlug ||
+            ""
+          );
+
+        const isEmpty =
+          businessCount !== null &&
+          businessCount === 0;
+
+        let countLabel =
+          "All appointment types";
+
+        if (businessCount !== null) {
+          countLabel =
+            businessCount > 0
+              ? `${businessCount} business${businessCount === 1 ? "" : "es"}`
+              : "Coming soon";
+        }
+
+        return `
+          <a
+            class="category-nav-link${isActive ? " is-active" : ""}${isEmpty ? " is-empty" : ""}"
+            href="${escapeAttribute(
+              buildCategoryPageUrl(slug)
+            )}"
+            ${isActive ? 'aria-current="page"' : ""}
+          >
+            <span class="category-nav-name">
+              ${escapeHtml(displayName)}
+            </span>
+
+            <span class="category-nav-count">
+              ${escapeHtml(countLabel)}
+            </span>
+          </a>
+        `;
+      })
+      .join("");
+
+  if (categoryNavigationStatus) {
+    categoryNavigationStatus.textContent =
+      enabledCategories.length
+        ? `${enabledCategories.length} categories available`
+        : "";
+  }
+}
+
+async function loadCategoryNavigation() {
+  if (!categoryNavigation) {
+    return [];
+  }
+
+  try {
+    const metroName =
+      currentPageContext.metroName ||
+      "Austin";
+
+    const response = await fetch(
+      `/api/service-categories?metro=${encodeURIComponent(
+        metroName
+      )}`
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.error ||
+        "Category list request failed."
+      );
+    }
+
+    const categories =
+      Array.isArray(data.categories)
+        ? data.categories
+        : [];
+
+    renderCategoryNavigation(categories);
+
+    return categories;
+  } catch (error) {
+    console.error(
+      "Failed to load service categories:",
+      error
+    );
+
+    categoryNavigation.innerHTML = `
+      <a
+        class="category-nav-link is-active"
+        href="${escapeAttribute(
+          buildCategoryPageUrl(
+            currentPageContext.categorySlug
+          )
+        )}"
+        aria-current="page"
+      >
+        <span class="category-nav-name">
+          ${escapeHtml(
+            currentPageContext.categoryName ||
+            "All"
+          )}
+        </span>
+
+        <span class="category-nav-count">
+          Current category
+        </span>
+      </a>
+    `;
+
+    if (categoryNavigationStatus) {
+      categoryNavigationStatus.textContent =
+        "Category list temporarily unavailable";
+    }
+
+    return [];
+  }
+}
+
 const appointmentsGrid = document.getElementById("appointmentsGrid");
 const resultsSummary = document.getElementById("resultsSummary");
 const searchInput = document.getElementById("searchInput");
@@ -86,6 +280,8 @@ const assistantResponse = document.getElementById("assistantResponse");
 const liveSearchResults = document.getElementById("liveSearchResults");
 const chatSearchForm = document.getElementById("chatSearchForm");
 const searchLiveBtn = document.getElementById("searchLiveBtn");
+const categoryNavigation = document.getElementById("categoryNavigation");
+const categoryNavigationStatus = document.getElementById("categoryNavigationStatus");
 
 function buildSearchUrl() {
   const params = new URLSearchParams();
@@ -270,9 +466,14 @@ function updateAssistantMessage(data, appointments, promptText = "", isPollingRe
       return;
     }
 
+    const emptyState =
+      getCategoryEmptyStateCopy();
+
     setAssistantMessage(
-      "I couldn't find matching appointments yet. Try a broader search.",
-      "error"
+      emptyState.message,
+      currentPageContext.categorySlug
+        ? ""
+        : "error"
     );
     return;
   }
@@ -633,10 +834,17 @@ function renderBusinessCards(appointments) {
   const businessGroups = Object.values(groupedBusinesses);
 
   if (!businessGroups.length) {
+    const emptyState =
+      getCategoryEmptyStateCopy();
+
     appointmentsGrid.innerHTML = `
       <div class="empty-state">
-        <h2>No appointments found</h2>
-        <p>Try a broader prompt or search again.</p>
+        <h2>${escapeHtml(
+          emptyState.title
+        )}</h2>
+        <p>${escapeHtml(
+          emptyState.message
+        )}</p>
       </div>
     `;
     return;
@@ -1186,6 +1394,8 @@ document.addEventListener("click", async (event) => {
 });
 
 async function initializeApp() {
+  loadCategoryNavigation();
+
   try {
     const response = await fetch(
       "/api/settings/public"
@@ -1306,7 +1516,9 @@ function showSearchEmailPopup() {
     <p class="email-capture-title">Want appointment alerts?</p>
 
     <p class="email-capture-copy">
-      Get updates as NextAppt adds more live appointment inventory in Austin.
+      Get updates as NextAppt adds more live ${escapeHtml(
+        getCurrentAppointmentPhrase()
+      )} in Austin.
     </p>
 
     <form data-email-capture-form data-email-source="search_popup">

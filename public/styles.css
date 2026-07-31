@@ -804,3 +804,116 @@ body {
   font-weight: 900;
   color: #0075b9;
 }
+
+/* NEXTAPPT CATEGORY NAVIGATION START */
+.category-navigation {
+  margin: 0 auto 24px;
+  max-width: 1200px;
+}
+
+.category-navigation-header {
+  align-items: flex-end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.category-navigation-title {
+  color: #17324d;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.category-navigation-status {
+  color: #60758a;
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.category-nav-list {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  scrollbar-width: thin;
+}
+
+.category-nav-link {
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid #d8e2ea;
+  border-radius: 14px;
+  color: #17324d;
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 132px;
+  padding: 11px 14px;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.category-nav-link:hover,
+.category-nav-link:focus-visible {
+  border-color: #005f95;
+  box-shadow: 0 5px 16px rgba(0, 43, 73, 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.category-nav-link.is-active {
+  background: linear-gradient(135deg, #002b49, #005f95);
+  border-color: #005f95;
+  box-shadow: 0 6px 18px rgba(0, 43, 73, 0.2);
+  color: #ffffff;
+}
+
+.category-nav-link.is-empty:not(.is-active) {
+  background: #f8fafc;
+  color: #5d6f80;
+}
+
+.category-nav-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.category-nav-count {
+  font-size: 0.72rem;
+  line-height: 1.25;
+  opacity: 0.78;
+}
+
+.category-nav-loading {
+  color: #60758a;
+  font-size: 0.82rem;
+  margin: 0;
+  padding: 10px 2px;
+}
+
+@media (max-width: 700px) {
+  .category-navigation {
+    margin-bottom: 18px;
+  }
+
+  .category-navigation-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .category-nav-link {
+    min-width: 116px;
+    padding: 10px 12px;
+  }
+}
+/* NEXTAPPT CATEGORY NAVIGATION END */
