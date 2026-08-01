@@ -394,3 +394,207 @@ h2 {
     font-size: 28px;
   }
 }
+
+/* NEXTAPPT BUSINESS CATEGORY UI START */
+.service-catalog-card {
+  margin-bottom: 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  box-shadow:
+    0 14px 36px
+    rgba(15, 23, 42, 0.08);
+  padding: 24px;
+}
+
+.service-catalog-header,
+.business-category-header,
+.inventory-category-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.service-category-total,
+.business-category-header > span,
+.inventory-category-header > span {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  color: #075985;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 11px;
+}
+
+.business-category-links {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 20px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+}
+
+.business-category-links a {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #dbe4ed;
+  border-radius: 999px;
+  color: #17324d;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 7px;
+  padding: 9px 12px;
+  text-decoration: none;
+}
+
+.business-category-links a:hover,
+.business-category-links a:focus-visible {
+  border-color: #0075b9;
+  color: #005f95;
+  outline: none;
+}
+
+.business-category-links span {
+  align-items: center;
+  background: #e0f2fe;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  justify-content: center;
+  min-height: 20px;
+  min-width: 20px;
+  padding: 0 5px;
+}
+
+.business-category-list {
+  display: grid;
+  gap: 18px;
+}
+
+.business-category-section {
+  border: 1px solid #dce6ee;
+  border-radius: 18px;
+  padding: 18px;
+  scroll-margin-top: 18px;
+}
+
+.business-category-header {
+  border-bottom: 1px solid #e7edf2;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+}
+
+.business-category-header h3,
+.inventory-category-header h3 {
+  font-size: 19px;
+  margin: 0;
+}
+
+.business-category-header p {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 5px 0 0;
+}
+
+.business-service-list {
+  display: grid;
+  gap: 8px;
+}
+
+.business-service-row {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e7edf2;
+  border-radius: 14px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.business-service-row h4 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.business-service-row p {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 4px 0 0;
+  text-transform: capitalize;
+}
+
+.business-service-book-link {
+  align-items: center;
+  background: #0075b9;
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 34px;
+  padding: 0 13px;
+  text-decoration: none;
+}
+
+.business-service-book-link:hover {
+  background: #005f95;
+}
+
+.inventory-category {
+  border-bottom:
+    1px solid #dce6ee;
+  margin-bottom: 24px;
+  padding-bottom: 4px;
+}
+
+.inventory-category:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.inventory-category-header {
+  margin-bottom: 16px;
+}
+
+.inventory-category .inventory-day {
+  margin-left: 10px;
+}
+
+.inventory-category .inventory-day h4 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+@media (max-width: 620px) {
+  .service-catalog-header,
+  .business-category-header,
+  .inventory-category-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .business-service-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .business-service-book-link {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .inventory-category .inventory-day {
+    margin-left: 0;
+  }
+}
+/* NEXTAPPT BUSINESS CATEGORY UI END */

@@ -81,6 +81,631 @@ function groupAppointmentsByDate(appointments = []) {
   }, {});
 }
 
+function normalizeMarketplaceCategorySlug(
+  value = ""
+) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-")
+    .replace(/[^a-z0-9-]+/g, "")
+    .replace(/-+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function titleCaseCategorySlug(
+  value = ""
+) {
+  return normalizeMarketplaceCategorySlug(
+    value
+  )
+    .split("-")
+    .filter(Boolean)
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() +
+        word.slice(1)
+    )
+    .join(" ");
+}
+
+function getServiceCategoryGroups(
+  page = {}
+) {
+  const apiGroups =
+    Array.isArray(
+      page.servicesByCategory
+    )
+      ? page.servicesByCategory
+          .filter(
+            (group) =>
+              group &&
+              Array.isArray(
+                group.services
+              ) &&
+              group.services.length
+          )
+      : [];
+
+  if (apiGroups.length) {
+    return apiGroups;
+  }
+
+  const categoryMetadata =
+    new Map(
+      (Array.isArray(page.categories)
+        ? page.categories
+        : []
+      ).map((category) => [
+        normalizeMarketplaceCategorySlug(
+          category.slug
+        ),
+        category
+      ])
+    );
+
+  const groups = new Map();
+
+  for (
+    const service
+    of Array.isArray(page.services)
+      ? page.services
+      : []
+  ) {
+    const slug =
+      normalizeMarketplaceCategorySlug(
+        service.categorySlug ||
+        service.marketplaceCategory ||
+        service.category?.slug ||
+        ""
+      ) || "massage";
+
+    const metadata =
+      categoryMetadata.get(slug) ||
+      {};
+
+    if (!groups.has(slug)) {
+      groups.set(slug, {
+        slug,
+        displayName:
+          metadata.displayName ||
+          titleCaseCategorySlug(slug),
+        description:
+          metadata.description || "",
+        sortOrder:
+          Number(
+            metadata.sortOrder || 100
+          ),
+        services: []
+      });
+    }
+
+    groups.get(slug)
+      .services.push(service);
+  }
+
+  return [...groups.values()]
+    .sort((left, right) => {
+      if (
+        left.sortOrder !==
+        right.sortOrder
+      ) {
+        return (
+          left.sortOrder -
+          right.sortOrder
+        );
+      }
+
+      return String(
+        left.displayName
+      ).localeCompare(
+        String(
+          right.displayName
+        )
+      );
+    });
+}
+
+function formatServiceDetails(
+  service = {}
+) {
+  const details = [];
+
+  const duration =
+    Number(
+      service.durationMinutes
+    );
+
+  if (
+    Number.isFinite(duration) &&
+    duration > 0
+  ) {
+    details.push(
+      `${duration} min`
+    );
+  }
+
+  const serviceType =
+    String(
+      service.serviceType || ""
+    )
+      .trim()
+      .replace(/[_-]+/g, " ");
+
+  const serviceName =
+    String(
+      service.serviceName || ""
+    ).trim();
+
+  if (
+    serviceType &&
+    serviceType.toLowerCase() !==
+      serviceName.toLowerCase()
+  ) {
+    details.push(serviceType);
+  }
+
+  const rawPrice =
+    service.price ??
+    service.servicePrice ??
+    null;
+
+  if (
+    rawPrice !== null &&
+    rawPrice !== undefined &&
+    rawPrice !== ""
+  ) {
+    const numericPrice =
+      Number(rawPrice);
+
+    details.push(
+      Number.isFinite(numericPrice)
+        ? `$${numericPrice.toFixed(
+            Number.isInteger(
+              numericPrice
+            )
+              ? 0
+              : 2
+          )}`
+        : String(rawPrice)
+    );
+  }
+
+  return details.join(" • ");
+}
+
+function renderServiceCatalog(
+  page = {}
+) {
+  if (page.isVerified !== true) {
+    return "";
+  }
+
+  const groups =
+    getServiceCategoryGroups(page);
+
+  if (!groups.length) {
+    return "";
+  }
+
+  const categoryLinks =
+    groups.length > 1
+      ? `
+        <nav
+          class="business-category-links"
+          aria-label="Services by category"
+        >
+          ${groups
+            .map(
+              (group) => `
+                <a href="#business-category-${escapeAttribute(
+                  group.slug
+                )}">
+                  ${escapeHtml(
+                    group.displayName
+                  )}
+                  <span>${group.services.length}</span>
+                </a>
+              `
+            )
+            .join("")}
+        </nav>
+      `
+      : "";
+
+  return `
+    <section class="service-catalog-card">
+      <div class="service-catalog-header">
+        <div>
+          <p class="section-label">
+            Services
+          </p>
+          <h2>
+            Services by category
+          </h2>
+        </div>
+
+        <span class="service-category-total">
+          ${groups.length}
+          ${groups.length === 1
+            ? "category"
+            : "categories"}
+        </span>
+      </div>
+
+      ${categoryLinks}
+
+      <div class="business-category-list">
+        ${groups
+          .map((group) => {
+            const services =
+              Array.isArray(
+                group.services
+              )
+                ? group.services
+                : [];
+
+            return `
+              <section
+                id="business-category-${escapeAttribute(
+                  group.slug
+                )}"
+                class="business-category-section"
+                data-category-slug="${escapeAttribute(
+                  group.slug
+                )}"
+              >
+                <div class="business-category-header">
+                  <div>
+                    <h3>
+                      ${escapeHtml(
+                        group.displayName
+                      )}
+                    </h3>
+
+                    ${
+                      group.description
+                        ? `
+                          <p>
+                            ${escapeHtml(
+                              group.description
+                            )}
+                          </p>
+                        `
+                        : ""
+                    }
+                  </div>
+
+                  <span>
+                    ${services.length}
+                    ${services.length === 1
+                      ? "service"
+                      : "services"}
+                  </span>
+                </div>
+
+                <div class="business-service-list">
+                  ${services
+                    .map((service) => {
+                      const serviceName =
+                        service.serviceName ||
+                        service.name ||
+                        "Service";
+
+                      const details =
+                        formatServiceDetails(
+                          service
+                        );
+
+                      const bookingUrl =
+                        service.bookingUrl ||
+                        page.bookingUrl ||
+                        "";
+
+                      const bookingLink =
+                        bookingUrl &&
+                        isSafePublicUrl(
+                          bookingUrl,
+                          [
+                            "https:",
+                            "http:"
+                          ]
+                        )
+                          ? `
+                            <a
+                              class="business-service-book-link"
+                              href="${escapeAttribute(
+                                bookingUrl
+                              )}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Book
+                            </a>
+                          `
+                          : "";
+
+                      return `
+                        <article class="business-service-row">
+                          <div>
+                            <h4>
+                              ${escapeHtml(
+                                serviceName
+                              )}
+                            </h4>
+
+                            ${
+                              details
+                                ? `
+                                  <p>
+                                    ${escapeHtml(
+                                      details
+                                    )}
+                                  </p>
+                                `
+                                : ""
+                            }
+                          </div>
+
+                          ${bookingLink}
+                        </article>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              </section>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function getAppointmentCategorySlug(
+  appointment = {},
+  page = {}
+) {
+  const pageGroups =
+    getServiceCategoryGroups(page);
+
+  const knownSlugs =
+    new Set(
+      pageGroups.map(
+        (group) =>
+          normalizeMarketplaceCategorySlug(
+            group.slug
+          )
+      )
+    );
+
+  const directCandidates = [
+    appointment.categorySlug,
+    appointment.marketplaceCategory,
+    appointment.category?.slug,
+    appointment.businessCategory
+  ];
+
+  for (
+    const candidate
+    of directCandidates
+  ) {
+    const normalized =
+      normalizeMarketplaceCategorySlug(
+        candidate
+      );
+
+    if (
+      normalized &&
+      (
+        knownSlugs.has(normalized) ||
+        !knownSlugs.size
+      )
+    ) {
+      return normalized;
+    }
+  }
+
+  const serviceCategoryCandidate =
+    normalizeMarketplaceCategorySlug(
+      appointment.serviceCategory
+    );
+
+  if (
+    serviceCategoryCandidate &&
+    knownSlugs.has(
+      serviceCategoryCandidate
+    )
+  ) {
+    return serviceCategoryCandidate;
+  }
+
+  const appointmentServiceId =
+    String(
+      appointment.serviceId ||
+      appointment.platformServiceId ||
+      ""
+    ).trim();
+
+  const appointmentServiceName =
+    String(
+      appointment.serviceName ||
+      appointment.service ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const duration =
+    Number(
+      appointment.durationMinutes
+    );
+
+  for (const group of pageGroups) {
+    const services =
+      Array.isArray(group.services)
+        ? group.services
+        : [];
+
+    const matches =
+      services.some((service) => {
+        const serviceId =
+          String(
+            service.serviceId ||
+            service.platformServiceId ||
+            ""
+          ).trim();
+
+        if (
+          appointmentServiceId &&
+          serviceId &&
+          appointmentServiceId ===
+            serviceId
+        ) {
+          return true;
+        }
+
+        const serviceName =
+          String(
+            service.serviceName ||
+            service.name ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+        if (
+          !appointmentServiceName ||
+          !serviceName ||
+          appointmentServiceName !==
+            serviceName
+        ) {
+          return false;
+        }
+
+        const serviceDuration =
+          Number(
+            service.durationMinutes
+          );
+
+        return (
+          !Number.isFinite(duration) ||
+          !Number.isFinite(
+            serviceDuration
+          ) ||
+          duration === serviceDuration
+        );
+      });
+
+    if (matches) {
+      return normalizeMarketplaceCategorySlug(
+        group.slug
+      );
+    }
+  }
+
+  if (pageGroups.length === 1) {
+    return (
+      normalizeMarketplaceCategorySlug(
+        pageGroups[0].slug
+      ) || "appointments"
+    );
+  }
+
+  return "appointments";
+}
+
+function groupAppointmentsByCategory(
+  appointments = [],
+  page = {}
+) {
+  const serviceGroups =
+    getServiceCategoryGroups(page);
+
+  const metadata =
+    new Map(
+      serviceGroups.map(
+        (group, index) => [
+          normalizeMarketplaceCategorySlug(
+            group.slug
+          ),
+          {
+            slug:
+              normalizeMarketplaceCategorySlug(
+                group.slug
+              ),
+            displayName:
+              group.displayName ||
+              titleCaseCategorySlug(
+                group.slug
+              ),
+            sortOrder:
+              Number(
+                group.sortOrder ??
+                index
+              )
+          }
+        ]
+      )
+    );
+
+  const grouped = new Map();
+
+  for (const appointment of appointments) {
+    const slug =
+      getAppointmentCategorySlug(
+        appointment,
+        page
+      );
+
+    const category =
+      metadata.get(slug) ||
+      {
+        slug,
+        displayName:
+          slug === "appointments"
+            ? "Other Appointments"
+            : titleCaseCategorySlug(
+                slug
+              ),
+        sortOrder: 1000
+      };
+
+    if (!grouped.has(slug)) {
+      grouped.set(slug, {
+        ...category,
+        appointments: []
+      });
+    }
+
+    grouped.get(slug)
+      .appointments.push(
+        appointment
+      );
+  }
+
+  return [...grouped.values()]
+    .sort((left, right) => {
+      if (
+        left.sortOrder !==
+        right.sortOrder
+      ) {
+        return (
+          left.sortOrder -
+          right.sortOrder
+        );
+      }
+
+      return String(
+        left.displayName
+      ).localeCompare(
+        String(
+          right.displayName
+        )
+      );
+    });
+}
+
 function renderLogo(page, muted = false) {
   return `
     <div class="logo-circle ${muted ? "muted" : ""}">
@@ -479,6 +1104,8 @@ function renderVerifiedPage(page) {
       </article>
     </section>
 
+    ${renderServiceCatalog(page)}
+
     ${renderBookingWidget(page)}
 
     <section class="inventory-card">
@@ -540,32 +1167,68 @@ function renderUnverifiedPage(page) {
 }
 
 async function loadBusinessInventory(page) {
-  const inventory = document.getElementById("businessInventory");
+  const inventory =
+    document.getElementById(
+      "businessInventory"
+    );
 
-  if (!inventory || !page?.businessName) return;
+  if (
+    !inventory ||
+    !page?.businessName
+  ) {
+    return;
+  }
 
   try {
-    const params = new URLSearchParams();
-    params.set("business", page.businessName);
-    params.set("limitPerBusiness", page.isVerified ? "999" : "4");
-    params.set("fresh", String(Date.now()));
+    const params =
+      new URLSearchParams();
 
-    const response = await fetch(`/api/search?${params.toString()}`);
-    const data = await response.json();
+    params.set(
+      "business",
+      page.businessName
+    );
 
-    const appointments = (Array.isArray(data.appointments)
-      ? data.appointments
-      : []).filter((appointment) => {
+    params.set(
+      "limitPerBusiness",
+      page.isVerified
+        ? "999"
+        : "4"
+    );
+
+    params.set(
+      "fresh",
+      String(Date.now())
+    );
+
+    const response =
+      await fetch(
+        `/api/search?${params.toString()}`
+      );
+
+    const data =
+      await response.json();
+
+    const appointments = (
+      Array.isArray(
+        data.appointments
+      )
+        ? data.appointments
+        : []
+    ).filter((appointment) => {
       if (
-        appointment.businessEnabled === false ||
+        appointment.businessEnabled ===
+          false ||
         appointment.enabled === false
       ) {
         return false;
       }
 
-      const status = String(
-        appointment.inventoryStatus || appointment.status || ""
-      ).toLowerCase();
+      const status =
+        String(
+          appointment.inventoryStatus ||
+          appointment.status ||
+          ""
+        ).toLowerCase();
 
       return ![
         "inactive",
@@ -577,64 +1240,182 @@ async function loadBusinessInventory(page) {
     });
 
     if (!appointments.length) {
-      inventory.innerHTML = `<p>No appointment inventory found for this business yet.</p>`;
+      inventory.innerHTML = `
+        <p>
+          No appointment inventory found for this business yet.
+        </p>
+      `;
+
       return;
     }
 
-    const visibleAppointments = page.isVerified
-      ? appointments
-      : appointments.slice(0, 4);
+    const visibleAppointments =
+      page.isVerified
+        ? appointments
+        : appointments.slice(0, 4);
 
-    const grouped = groupAppointmentsByDate(visibleAppointments);
+    const categoryGroups =
+      groupAppointmentsByCategory(
+        visibleAppointments,
+        page
+      );
 
-    inventory.innerHTML = Object.entries(grouped)
-      .slice(0, page.isVerified ? 14 : 1)
-      .map(([dateKey, items]) => {
-        return `
-          <div class="inventory-day">
-            <h3>${escapeHtml(dateKey)}</h3>
+    inventory.innerHTML =
+      categoryGroups
+        .map((categoryGroup) => {
+          const groupedDates =
+            groupAppointmentsByDate(
+              categoryGroup.appointments
+            );
 
-            <div class="appointment-button-grid">
-              ${items
-                .slice(0, page.isVerified ? 24 : 4)
-                .map((appointment) => {
-                  const sourceType =
-                    appointment.sourceType ||
-                    appointment.inventorySource ||
-                    appointment.sourceStatus ||
-                    "";
+          const dateGroups =
+            Object.entries(
+              groupedDates
+            ).slice(
+              0,
+              page.isVerified
+                ? 14
+                : 1
+            );
 
-                  const isInferred =
-                    String(sourceType).toLowerCase() === "inferred";
-                  const availabilityLabel = isInferred
-                    ? "Inferred"
-                    : "Confirmed";
-                  const serviceLabel = formatAppointmentService(appointment);
+          return `
+            <section
+              class="inventory-category"
+              data-category-slug="${escapeAttribute(
+                categoryGroup.slug
+              )}"
+            >
+              <div class="inventory-category-header">
+                <h3>
+                  ${escapeHtml(
+                    categoryGroup.displayName
+                  )}
+                </h3>
 
-                  return `
-                    <a
-                      class="appointment-button ${isInferred ? "inferred" : "confirmed"}"
-                      href="${escapeAttribute(appointment.bookingUrl || "#")}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <span class="appointment-date-time">${escapeHtml(formatAppointmentButton(appointment))}</span>
-                      <small class="appointment-details">
-                        <span class="appointment-status">${escapeHtml(availabilityLabel)}</span>
-                        <span class="appointment-service" title="${escapeAttribute(serviceLabel)}">${escapeHtml(serviceLabel)}</span>
-                      </small>
-                    </a>
-                  `;
-                })
+                <span>
+                  ${categoryGroup.appointments.length}
+                  ${
+                    categoryGroup
+                      .appointments
+                      .length === 1
+                      ? "time"
+                      : "times"
+                  }
+                </span>
+              </div>
+
+              ${dateGroups
+                .map(
+                  ([
+                    dateKey,
+                    items
+                  ]) => `
+                    <div class="inventory-day">
+                      <h4>
+                        ${escapeHtml(
+                          dateKey
+                        )}
+                      </h4>
+
+                      <div class="appointment-button-grid">
+                        ${items
+                          .slice(
+                            0,
+                            page.isVerified
+                              ? 24
+                              : 4
+                          )
+                          .map(
+                            (
+                              appointment
+                            ) => {
+                              const sourceType =
+                                appointment.sourceType ||
+                                appointment.inventorySource ||
+                                appointment.sourceStatus ||
+                                "";
+
+                              const isInferred =
+                                String(
+                                  sourceType
+                                ).toLowerCase() ===
+                                "inferred";
+
+                              const availabilityLabel =
+                                isInferred
+                                  ? "Inferred"
+                                  : "Confirmed";
+
+                              const serviceLabel =
+                                formatAppointmentService(
+                                  appointment
+                                );
+
+                              return `
+                                <a
+                                  class="appointment-button ${
+                                    isInferred
+                                      ? "inferred"
+                                      : "confirmed"
+                                  }"
+                                  href="${escapeAttribute(
+                                    appointment.bookingUrl ||
+                                    "#"
+                                  )}"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <span class="appointment-date-time">
+                                    ${escapeHtml(
+                                      formatAppointmentButton(
+                                        appointment
+                                      )
+                                    )}
+                                  </span>
+
+                                  <small class="appointment-details">
+                                    <span class="appointment-status">
+                                      ${escapeHtml(
+                                        availabilityLabel
+                                      )}
+                                    </span>
+
+                                    <span
+                                      class="appointment-service"
+                                      title="${escapeAttribute(
+                                        serviceLabel
+                                      )}"
+                                    >
+                                      ${escapeHtml(
+                                        serviceLabel
+                                      )}
+                                    </span>
+                                  </small>
+                                </a>
+                              `;
+                            }
+                          )
+                          .join("")}
+                      </div>
+                    </div>
+                  `
+                )
                 .join("")}
-            </div>
-          </div>
-        `;
-      })
-      .join("");
+            </section>
+          `;
+        })
+        .join("");
   } catch (error) {
-    console.error("Could not load business inventory:", error);
-    inventory.innerHTML = `<p>Could not load appointment inventory.</p>`;
+    console.error(
+      "Could not load business inventory:",
+      error
+    );
+
+    inventory.innerHTML = `
+      <p>
+        Could not load appointment inventory.
+      </p>
+    `;
   }
 }
 
