@@ -4,6 +4,9 @@ const {
   validateIntegration
 } = require("./platformIntegrationRegistry");
 const { syncBusinessIntegrations } = require("./database/integrationRepository");
+const serviceCategoryRepository = require(
+  "./database/serviceCategoryRepository"
+);
 
 let BusinessRepository = null;
 
@@ -625,67 +628,342 @@ async function getBusinessSubscriptionMap() {
   return subscriptions;
 }
 
-function buildBusinessPageData(business = {}) {
+function normalizeBusinessPageCategory(
+  category = {}
+) {
+  return {
+    slug:
+      category.slug ||
+      category.categorySlug ||
+      "",
+    displayName:
+      category.displayName ||
+      category.display_name ||
+      "",
+    description:
+      category.description || "",
+    sortOrder:
+      Number(
+        category.sortOrder ??
+        category.sort_order ??
+        100
+      )
+  };
+}
+
+function groupBusinessPageServices(
+  services = [],
+  categoryRows = []
+) {
+  const categoryMap = new Map(
+    (Array.isArray(categoryRows)
+      ? categoryRows
+      : []
+    ).map((category) => {
+      const normalized =
+        normalizeBusinessPageCategory(
+          category
+        );
+
+      return [
+        normalized.slug,
+        normalized
+      ];
+    })
+  );
+
+  const groups = new Map();
+
+  for (
+    const service
+    of Array.isArray(services)
+      ? services
+      : []
+  ) {
+    if (!service) continue;
+
+    const categorySlug =
+      serviceCategoryRepository
+        .normalizeCategorySlug(
+          service.categorySlug ||
+          service.category_slug ||
+          service.marketplaceCategory ||
+          service.marketplace_category ||
+          ""
+        ) ||
+      "massage";
+
+    const category =
+      categoryMap.get(categorySlug) ||
+      {
+        slug: categorySlug,
+        displayName:
+          categorySlug
+            .split("-")
+            .filter(Boolean)
+            .map(
+              (word) =>
+                word.charAt(0)
+                  .toUpperCase() +
+                word.slice(1)
+            )
+            .join(" "),
+        description: "",
+        sortOrder: 100
+      };
+
+    if (!groups.has(categorySlug)) {
+      groups.set(categorySlug, {
+        ...category,
+        services: []
+      });
+    }
+
+    groups.get(categorySlug)
+      .services.push({
+        ...service,
+        categorySlug,
+        marketplaceCategory:
+          categorySlug,
+        category: {
+          slug:
+            category.slug,
+          displayName:
+            category.displayName
+        }
+      });
+  }
+
+  const categories =
+    [...groups.values()]
+      .sort((left, right) => {
+        if (
+          left.sortOrder !==
+          right.sortOrder
+        ) {
+          return (
+            left.sortOrder -
+            right.sortOrder
+          );
+        }
+
+        return String(
+          left.displayName
+        ).localeCompare(
+          String(
+            right.displayName
+          )
+        );
+      });
+
+  for (const category of categories) {
+    category.services.sort(
+      (left, right) => {
+        const nameComparison =
+          String(
+            left.serviceName || ""
+          ).localeCompare(
+            String(
+              right.serviceName || ""
+            )
+          );
+
+        if (nameComparison !== 0) {
+          return nameComparison;
+        }
+
+        return (
+          Number(
+            left.durationMinutes ||
+            0
+          ) -
+          Number(
+            right.durationMinutes ||
+            0
+          )
+        );
+      }
+    );
+  }
+
+  return {
+    categories: categories.map(
+      (category) => ({
+        slug: category.slug,
+        displayName:
+          category.displayName,
+        description:
+          category.description,
+        sortOrder:
+          category.sortOrder,
+        serviceCount:
+          category.services.length
+      })
+    ),
+    servicesByCategory:
+      categories.map(
+        (category) => ({
+          slug: category.slug,
+          displayName:
+            category.displayName,
+          description:
+            category.description,
+          sortOrder:
+            category.sortOrder,
+          services:
+            category.services
+        })
+      )
+  };
+}
+
+function buildBusinessPageData(
+  business = {},
+  options = {}
+) {
   if (!business) return null;
 
-  const item = normalizeBusinessShape(business);
-  const businessName = item.businessName || item.name || "Business";
+  const item =
+    normalizeBusinessShape(business);
+
+  const businessName =
+    item.businessName ||
+    item.name ||
+    "Business";
+
   const isVerified =
     item.claimed === true ||
-    ["verified", "claimed_verified"].includes(item.verificationStatus);
+    [
+      "verified",
+      "claimed_verified"
+    ].includes(
+      item.verificationStatus
+    );
 
   const publicProfile = {
     ...item.publicProfile,
-    specialties: Array.isArray(item.publicProfile.specialties)
-      ? item.publicProfile.specialties
-      : item.specialties,
-    amenities: Array.isArray(item.publicProfile.amenities)
-      ? item.publicProfile.amenities
-      : item.amenities
+    specialties:
+      Array.isArray(
+        item.publicProfile.specialties
+      )
+        ? item.publicProfile.specialties
+        : item.specialties,
+    amenities:
+      Array.isArray(
+        item.publicProfile.amenities
+      )
+        ? item.publicProfile.amenities
+        : item.amenities
   };
+
+  const serviceGrouping =
+    groupBusinessPageServices(
+      item.services,
+      options.categories
+    );
 
   return {
-    businessId: item.businessId,
+    businessId:
+      item.businessId,
     businessName,
     name: businessName,
-    displayName: item.displayName || businessName,
-    businessSlug: item.businessSlug,
-    slug: item.businessSlug,
-    businessUrl: item.businessUrl || `/business/${item.businessSlug}`,
-    businessCategory: item.businessCategory || "wellness",
-    platform: item.platform || "",
-    bookingUrl: item.bookingUrl || "",
-    website: item.website || "",
-    phone: item.phone || "",
-    email: item.email || "",
-    address: item.address || "",
-    latitude: item.latitude,
-    longitude: item.longitude,
-    logoUrl: item.logoUrl || "",
-    logoAlt: item.logoAlt || `${businessName} logo`,
-    claimed: isVerified,
+    displayName:
+      item.displayName ||
+      businessName,
+    businessSlug:
+      item.businessSlug,
+    slug:
+      item.businessSlug,
+    businessUrl:
+      item.businessUrl ||
+      `/business/${item.businessSlug}`,
+    businessCategory:
+      item.businessCategory ||
+      "wellness",
+    platform:
+      item.platform || "",
+    bookingUrl:
+      item.bookingUrl || "",
+    website:
+      item.website || "",
+    phone:
+      item.phone || "",
+    email:
+      item.email || "",
+    address:
+      item.address || "",
+    latitude:
+      item.latitude,
+    longitude:
+      item.longitude,
+    logoUrl:
+      item.logoUrl || "",
+    logoAlt:
+      item.logoAlt ||
+      `${businessName} logo`,
+    claimed:
+      isVerified,
     isVerified,
-    verificationStatus: isVerified
-      ? "verified"
-      : item.verificationStatus || "unclaimed",
-    claimedByEmail: item.claimedByEmail || "",
-    claimId: item.claimId || "",
-    plan: item.plan,
-    subscriptionStatus: item.subscriptionStatus,
-    isPremium: item.isPremium,
-    subscription: item.subscription,
+    verificationStatus:
+      isVerified
+        ? "verified"
+        : item.verificationStatus ||
+          "unclaimed",
+    claimedByEmail:
+      item.claimedByEmail || "",
+    claimId:
+      item.claimId || "",
+    plan:
+      item.plan,
+    subscriptionStatus:
+      item.subscriptionStatus,
+    isPremium:
+      item.isPremium,
+    subscription:
+      item.subscription,
     publicProfile,
-    activeDeal: item.isPremium ? item.activeDeal : {},
-    bookingIntegration: item.isPremium ? item.bookingIntegration : {},
-    services: item.services,
-    amenities: publicProfile.amenities || [],
-    specialties: publicProfile.specialties || []
+    activeDeal:
+      item.isPremium
+        ? item.activeDeal
+        : {},
+    bookingIntegration:
+      item.isPremium
+        ? item.bookingIntegration
+        : {},
+    services:
+      item.services,
+    categories:
+      serviceGrouping.categories,
+    servicesByCategory:
+      serviceGrouping.servicesByCategory,
+    amenities:
+      publicProfile.amenities || [],
+    specialties:
+      publicProfile.specialties || []
   };
 }
 
-async function getBusinessPageData(slugOrName) {
-  return buildBusinessPageData(await getBusinessBySlug(slugOrName));
+async function getBusinessPageData(
+  slugOrName
+) {
+  const [
+    business,
+    categories
+  ] = await Promise.all([
+    getBusinessBySlug(slugOrName),
+    serviceCategoryRepository
+      .listCategories()
+  ]);
+
+  return buildBusinessPageData(
+    business,
+    {
+      categories
+    }
+  );
 }
+
+
 
 async function getBusinessPageDataAsync(slugOrName) {
   return getBusinessPageData(slugOrName);
