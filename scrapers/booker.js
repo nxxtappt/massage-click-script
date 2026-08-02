@@ -148,6 +148,49 @@ function getBookerLocationParts(...urls) {
   return null;
 }
 
+function buildDynamicServiceUrl(business, currentUrl) {
+  const location = getBookerLocationParts(currentUrl, business.bookingUrl);
+  const serviceId = String(
+    business.platformServiceId ||
+      business.serviceId ||
+      business.serviceButtonId ||
+      ""
+  ).trim();
+  const serviceName = cleanText(business.serviceName);
+
+  if (!location || !serviceId || !serviceName) {
+    return "";
+  }
+
+  return (
+    `${location.origin}/location/${location.locationSlug}` +
+    `/service/${encodeURIComponent(serviceId)}` +
+    `/${encodeURIComponent(serviceName)}`
+  );
+}
+
+function urlContainsRequestedService(url, business = {}) {
+  const serviceId = String(
+    business.platformServiceId ||
+      business.serviceId ||
+      business.serviceButtonId ||
+      ""
+  ).trim();
+
+  if (!serviceId) {
+    return true;
+  }
+
+  try {
+    const pathname = decodeURIComponent(new URL(url).pathname);
+    return new RegExp(`/service/${serviceId}(?:/|$)`, "i").test(pathname);
+  } catch {
+    return new RegExp(`/service/${serviceId}(?:/|$)`, "i").test(
+      decodeURIComponent(String(url || ""))
+    );
+  }
+}
+
 function buildDynamicAvailabilityFallbackUrl(business, currentUrl, date) {
   const location = getBookerLocationParts(currentUrl, business.bookingUrl);
   const serviceId = String(
@@ -516,10 +559,210 @@ async function clickMatchingBookerService(page, business) {
     };
   }
 
-  async function attemptServiceClick() {
+  async function clickByServiceId() {
+    if (!serviceId) {
+      return {
+        clicked: false,
+        reason: "No Booker service ID was configured."
+      };
+    }
+
     return page
       .evaluate(
-        ({ serviceName, serviceId, durationMinutes }) => {
+        ({ serviceId }) => {
+          function visible(element) {
+            if (!element) return false;
+            const style = window.getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+            return (
+              style.visibility !== "hidden" &&
+              style.display !== "none" &&
+              rect.width > 0 &&
+              rect.height > 0
+            );
+          }
+
+          function enabled(element) {
+            return (
+              !element.disabled &&
+              element.getAttribute("aria-disabled") !== "true"
+            );
+          }
+
+          function clickable(element) {
+            return (
+              element &&
+              visible(element) &&
+              enabled(element) &&
+              element.matches("a, button, input, [role='button']")
+            );
+          }
+
+          function normalizeAttribute(value) {
+            return String(value || "").trim();
+          }
+
+          function hrefHasExactServiceId(element) {
+            const href = normalizeAttribute(element?.getAttribute?.("href"));
+            if (!href) return false;
+
+            try {
+              const parsed = new URL(href, window.location.href);
+              const decodedPath = decodeURIComponent(parsed.pathname);
+              return new RegExp(`/service/${serviceId}(?:/|$)`, "i").test(
+                decodedPath
+              );
+            } catch {
+              return new RegExp(`/service/${serviceId}(?:/|$)`, "i").test(
+                decodeURIComponent(href)
+              );
+            }
+          }
+
+          function elementHasExactServiceId(element) {
+            if (!element) return false;
+
+            const attributes = [
+              "data-service-id",
+              "data-serviceid",
+              "data-service",
+              "data-id",
+              "value"
+            ];
+
+            if (
+              attributes.some(
+                (name) => normalizeAttribute(element.getAttribute(name)) === serviceId
+              )
+            ) {
+              return true;
+            }
+
+            return hrefHasExactServiceId(element);
+          }
+
+          // First preference: a visible clickable element whose URL or data
+          // attribute directly identifies the exact configured Booker service.
+          const allClickable = Array.from(
+            document.querySelectorAll("a, button, input, [role='button']")
+          ).filter(clickable);
+
+          const direct = allClickable.find(elementHasExactServiceId);
+
+          if (direct) {
+            const href = direct.getAttribute("href") || "";
+            direct.click();
+            return {
+              clicked: true,
+              method: "service_id_direct",
+              requestedServiceId: serviceId,
+              href,
+              matchedText: String(
+                direct.innerText ||
+                  direct.value ||
+                  direct.getAttribute("aria-label") ||
+                  ""
+              )
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 500)
+            };
+          }
+
+          // Second preference: an exact ID-bearing metadata element inside a
+          // small service card. The action must stay inside that same card.
+          const idElements = Array.from(document.querySelectorAll("body *")).filter(
+            (element) => elementHasExactServiceId(element)
+          );
+
+          for (const idElement of idElements) {
+            const containers = [];
+            let cursor = idElement;
+
+            while (cursor && cursor !== document.body) {
+              if (
+                cursor.matches(
+                  "article, li, [role='listitem'], [data-service-id], [data-serviceid], [class*='service-card'], [class*='serviceCard'], [class*='service-item'], [class*='serviceItem'], [class*='card']"
+                )
+              ) {
+                containers.push(cursor);
+              }
+              cursor = cursor.parentElement;
+            }
+
+            for (const container of containers) {
+              if (!visible(container)) continue;
+
+              const actions = Array.from(
+                container.querySelectorAll("a, button, input, [role='button']")
+              ).filter(clickable);
+
+              const exactIdAction = actions.find(elementHasExactServiceId);
+              const action = exactIdAction || actions.find((candidate) => {
+                const label = String(
+                  candidate.innerText ||
+                    candidate.value ||
+                    candidate.getAttribute("aria-label") ||
+                    ""
+                )
+                  .replace(/\s+/g, " ")
+                  .trim()
+                  .toLowerCase();
+
+                return [
+                  "book",
+                  "book now",
+                  "select",
+                  "choose",
+                  "schedule"
+                ].includes(label);
+              });
+
+              if (!action) continue;
+
+              const href = action.getAttribute("href") || "";
+              action.click();
+              return {
+                clicked: true,
+                method: "service_id_card",
+                requestedServiceId: serviceId,
+                href,
+                matchedText: String(container.innerText || "")
+                  .replace(/\s+/g, " ")
+                  .trim()
+                  .slice(0, 500)
+              };
+            }
+          }
+
+          return {
+            clicked: false,
+            method: "service_id_not_found",
+            requestedServiceId: serviceId,
+            reason: `No visible Booker control matched service ID ${serviceId}.`
+          };
+        },
+        { serviceId }
+      )
+      .catch((error) => ({
+        clicked: false,
+        method: "service_id_error",
+        requestedServiceId: serviceId,
+        reason: error.message
+      }));
+  }
+
+  async function clickByServiceName() {
+    if (!serviceName) {
+      return {
+        clicked: false,
+        reason: "No Booker service name was configured."
+      };
+    }
+
+    return page
+      .evaluate(
+        ({ serviceName, durationMinutes }) => {
           function normalize(value) {
             return String(value || "")
               .replace(/\u00a0/g, " ")
@@ -560,82 +803,14 @@ async function clickMatchingBookerService(page, business) {
           }
 
           const normalizedServiceName = normalize(serviceName);
-          const idSelectors = serviceId
-            ? [
-                `a[href*="/service/${serviceId}/"]`,
-                `a[href*="service/${serviceId}"]`,
-                `[data-service-id="${serviceId}"]`,
-                `[data-serviceid="${serviceId}"]`,
-                `[data-id="${serviceId}"]`,
-                `[value="${serviceId}"]`
-              ]
-            : [];
 
-          for (const selector of idSelectors) {
-            let elements = [];
-
-            try {
-              elements = Array.from(document.querySelectorAll(selector));
-            } catch {
-              elements = [];
-            }
-
-            const direct = elements.find(clickable);
-
-            if (direct) {
-              const href = direct.getAttribute("href") || "";
-              direct.click();
-              return {
-                clicked: true,
-                method: "service_id_direct",
-                href,
-                matchedText: String(direct.innerText || "")
-                  .replace(/\s+/g, " ")
-                  .trim()
-                  .slice(0, 500)
-              };
-            }
-
-            for (const element of elements) {
-              const container = element.closest(
-                "article, li, section, [role='listitem'], [class*='card'], [class*='service'], div"
-              );
-
-              if (!container || !visible(container)) continue;
-
-              const action = Array.from(
-                container.querySelectorAll("button, a, [role='button']")
-              ).find((candidate) => {
-                if (!clickable(candidate)) return false;
-                const text = normalize(
-                  candidate.innerText ||
-                    candidate.getAttribute("aria-label") ||
-                    ""
-                );
-                return /^(book|book now|select|choose|schedule)$/.test(text);
-              });
-
-              if (action) {
-                const href = action.getAttribute("href") || "";
-                action.click();
-                return {
-                  clicked: true,
-                  method: "service_id_card",
-                  href,
-                  matchedText: String(container.innerText || "")
-                    .replace(/\s+/g, " ")
-                    .trim()
-                    .slice(0, 500)
-                };
-              }
-            }
-          }
-
+          // Text matching is intentionally available only when the business
+          // has no configured Booker service ID.
           const containers = Array.from(
             document.querySelectorAll(
-              "article, li, section, [role='listitem'], [class*='card'], [class*='service'], [class*='item']"
+              "article, li, [role='listitem'], [class*='service-card'], [class*='serviceCard'], [class*='service-item'], [class*='serviceItem']"
             )
-          ).filter((element) => visible(element));
+          ).filter(visible);
 
           const ranked = containers
             .map((container) => {
@@ -644,58 +819,50 @@ async function clickMatchingBookerService(page, business) {
 
               if (!text) return null;
 
-              const nameMatches =
-                normalizedServiceName &&
-                (text === normalizedServiceName ||
-                  text.includes(normalizedServiceName) ||
-                  normalizedServiceName.includes(text));
+              const exactName = text === normalizedServiceName;
+              const containsName = text.includes(normalizedServiceName);
 
-              const idMatches =
-                serviceId &&
-                (text.includes(normalize(serviceId)) ||
-                  container.outerHTML.includes(serviceId));
-
-              if (!nameMatches && !idMatches) return null;
+              if (!exactName && !containsName) return null;
 
               const durationMatches =
                 !durationMinutes ||
-                new RegExp(`(^|\\D)${durationMinutes}\\s*(min|minute|minutes)?($|\\D)`, "i").test(
-                  rawText
-                );
+                new RegExp(
+                  `(^|\\D)${durationMinutes}\\s*(min|minute|minutes)?($|\\D)`,
+                  "i"
+                ).test(rawText);
 
               const actions = Array.from(
-                container.querySelectorAll("button, a, [role='button']")
+                container.querySelectorAll("a, button, input, [role='button']")
               ).filter(clickable);
 
-              const preferredAction =
+              const action =
                 actions.find((candidate) => {
-                  const actionText = normalize(
+                  const label = normalize(
                     candidate.innerText ||
+                      candidate.value ||
                       candidate.getAttribute("aria-label") ||
                       ""
                   );
-                  return /^(book|book now|select|choose|schedule)$/.test(
-                    actionText
-                  );
+                  return [
+                    "book",
+                    "book now",
+                    "select",
+                    "choose",
+                    "schedule"
+                  ].includes(label);
                 }) ||
                 actions.find((candidate) =>
                   /\/service\//i.test(candidate.getAttribute("href") || "")
-                ) ||
-                actions[0] ||
-                (clickable(container) ? container : null);
+                );
 
-              if (!preferredAction) return null;
+              if (!action) return null;
 
-              let score = 0;
-              if (idMatches) score += 200;
-              if (text === normalizedServiceName) score += 150;
-              if (text.includes(normalizedServiceName)) score += 100;
-              if (durationMatches) score += 40;
+              let score = exactName ? 200 : 100;
+              if (durationMatches) score += 50;
               score -= Math.min(text.length, 500) / 100;
 
               return {
-                container,
-                action: preferredAction,
+                action,
                 rawText,
                 score
               };
@@ -705,56 +872,38 @@ async function clickMatchingBookerService(page, business) {
 
           const target = ranked[0];
 
-          if (target) {
-            const href = target.action.getAttribute("href") || "";
-            target.action.click();
+          if (!target) {
             return {
-              clicked: true,
-              method: "service_name_card",
-              href,
-              matchedText: target.rawText
-                .replace(/\s+/g, " ")
-                .trim()
-                .slice(0, 500)
+              clicked: false,
+              method: "service_name_not_found",
+              reason: `No visible Booker service card matched ${serviceName}.`
             };
           }
 
-          const allClickable = Array.from(
-            document.querySelectorAll("button, a, [role='button']")
-          ).filter(clickable);
+          const href = target.action.getAttribute("href") || "";
+          target.action.click();
 
-          const directTextTarget = allClickable.find((candidate) => {
-            const text = normalize(
-              candidate.innerText || candidate.getAttribute("aria-label") || ""
-            );
-            return (
-              normalizedServiceName &&
-              (text === normalizedServiceName || text.includes(normalizedServiceName))
-            );
-          });
-
-          if (directTextTarget) {
-            const href = directTextTarget.getAttribute("href") || "";
-            directTextTarget.click();
-            return {
-              clicked: true,
-              method: "service_name_direct",
-              href,
-              matchedText: String(directTextTarget.innerText || "")
-                .replace(/\s+/g, " ")
-                .trim()
-                .slice(0, 500)
-            };
-          }
-
-          return { clicked: false };
+          return {
+            clicked: true,
+            method: "service_name_card_no_id_configured",
+            href,
+            matchedText: target.rawText
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 500)
+          };
         },
-        { serviceName, serviceId, durationMinutes }
+        { serviceName, durationMinutes }
       )
       .catch((error) => ({
         clicked: false,
+        method: "service_name_error",
         reason: error.message
       }));
+  }
+
+  async function attemptServiceClick() {
+    return serviceId ? clickByServiceId() : clickByServiceName();
   }
 
   let result = await attemptServiceClick();
@@ -1040,6 +1189,48 @@ async function resolveAvailabilityPage(page, business, date, debug) {
       success: false,
       error: `Could not find Booker service "${business.serviceName || "unknown"}".`
     };
+  }
+
+  if (!urlContainsRequestedService(page.url(), business)) {
+    const correctedServiceUrl = buildDynamicServiceUrl(
+      business,
+      page.url()
+    );
+
+    debug.flowSteps.push({
+      step: "correct_wrong_service_selection",
+      requestedServiceId:
+        business.platformServiceId ||
+        business.serviceId ||
+        business.serviceButtonId ||
+        null,
+      wrongUrl: page.url(),
+      correctedUrl: correctedServiceUrl || null
+    });
+
+    if (!correctedServiceUrl) {
+      return {
+        success: false,
+        error:
+          "Booker selected a different service and a deterministic service URL could not be built."
+      };
+    }
+
+    await navigate(page, correctedServiceUrl);
+    await dismissCommonOverlays(page);
+
+    if (!urlContainsRequestedService(page.url(), business)) {
+      return {
+        success: false,
+        error:
+          `Booker opened the wrong service. Expected service ID ${
+            business.platformServiceId ||
+            business.serviceId ||
+            business.serviceButtonId ||
+            "unknown"
+          }, but reached ${page.url()}.`
+      };
+    }
   }
 
   const advanced = await advanceFromServiceToAvailability(
