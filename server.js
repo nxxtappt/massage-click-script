@@ -33,6 +33,12 @@ const {
 
 const inventoryManager = require("./inventoryManager");
 const serviceCategoryRepository = require("./database/serviceCategoryRepository");
+const {
+  getMarketplaceMetro,
+  listMarketplaceMetros,
+  getMarketplaceTimeZone,
+  matchesMarketplaceMetro
+} = require("./marketplaceMetros");
 const { saveEmailCapture } = require("./database/runtimeStateRepository");
 const {
   createFeedbackEntry
@@ -365,6 +371,20 @@ function buildBusinessMetadataMap() {
 
      map[key] = {
   address: business.address || "",
+  metro:
+    business.metro ||
+    business.market ||
+    business.region ||
+    "",
+  city: business.city || "",
+  state: business.state || "",
+  postalCode:
+    business.postalCode ||
+    business.postal_code ||
+    "",
+  timezone:
+    business.timezone ||
+    "America/Chicago",
   platform: business.platform || "",
   bookingUrl: business.bookingUrl || "",
   latitude:
@@ -413,9 +433,11 @@ function buildBusinessMetadataMap() {
   return map;
 }
 
-function getNowPartsInAppointmentTimezone() {
+function getNowPartsInAppointmentTimezone(
+  timeZone = APPOINTMENT_TIME_ZONE
+) {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: APPOINTMENT_TIME_ZONE,
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -441,8 +463,13 @@ function getNowPartsInAppointmentTimezone() {
   };
 }
 
-function getCurrentLocalSortable() {
-  const now = getNowPartsInAppointmentTimezone();
+function getCurrentLocalSortable(
+  timeZone = APPOINTMENT_TIME_ZONE
+) {
+  const now =
+    getNowPartsInAppointmentTimezone(
+      timeZone
+    );
 
   return Number(
     `${now.year}${pad2(now.month)}${pad2(now.day)}${pad2(now.hour)}${pad2(now.minute)}`
@@ -1320,6 +1347,16 @@ const endTimeKey = intent.endTimeKey || "";
     return false;
   }
 
+  if (
+    query.metro &&
+    !matchesMarketplaceMetro(
+      appointment,
+      query.metro
+    )
+  ) {
+    return false;
+  }
+
   if (duration && Number(appointment.durationMinutes) !== duration) {
     return false;
   }
@@ -1430,7 +1467,11 @@ if (
   return true;
 }
 
-function appointmentWithinHours(appointment, hours) {
+function appointmentWithinHours(
+  appointment,
+  hours,
+  query = {}
+) {
   if (!hours) return true;
 
   const parsedHours = Number(hours);
@@ -1438,7 +1479,13 @@ function appointmentWithinHours(appointment, hours) {
 
   if (!appointment.localSortable) return true;
 
-  const nowParts = getNowPartsInAppointmentTimezone();
+  const nowParts =
+    getNowPartsInAppointmentTimezone(
+      appointment.timezone ||
+      getMarketplaceTimeZone(
+        query.metro
+      )
+    );
   const nowDate = new Date(
     nowParts.year,
     nowParts.month - 1,
@@ -1718,7 +1765,36 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
     price: rawAppointment.price || rawAppointment.servicePrice || rawAppointment.service_price || null,
     latitude,
     longitude,
-    address: rawAppointment.address || metadata.address || "",
+    address:
+      rawAppointment.address ||
+      metadata.address ||
+      "",
+    metro:
+      rawAppointment.metro ||
+      rawAppointment.metro_name ||
+      metadata.metro ||
+      "",
+    city:
+      rawAppointment.city ||
+      metadata.city ||
+      "",
+    state:
+      rawAppointment.state ||
+      metadata.state ||
+      "",
+    postalCode:
+      rawAppointment.postalCode ||
+      rawAppointment.postal_code ||
+      metadata.postalCode ||
+      "",
+    timezone:
+      rawAppointment.timezone ||
+      metadata.timezone ||
+      getMarketplaceTimeZone(
+        rawAppointment.metro ||
+        metadata.metro ||
+        ""
+      ),
     logoUrl: rawAppointment.logoUrl || rawAppointment.logo_url || metadata.logoUrl || "",
     logoAlt: rawAppointment.logoAlt || rawAppointment.logo_alt || metadata.logoAlt || `${businessName} logo`,
     claimed: rawAppointment.claimed === true || metadata.claimed === true,
@@ -1764,8 +1840,22 @@ function unpackInventoryPayload(payload) {
 
 function shouldDisplayAppointmentNow(appointment = {}, query = {}) {
   if (query.showPast === "true") return true;
-  if (!appointment.localSortable) return query.showInvalidDates === "true";
-  return appointment.localSortable > getCurrentLocalSortable();
+  if (!appointment.localSortable) {
+    return query.showInvalidDates === "true";
+  }
+
+  const timeZone =
+    appointment.timezone ||
+    getMarketplaceTimeZone(
+      query.metro
+    );
+
+  return (
+    appointment.localSortable >
+    getCurrentLocalSortable(
+      timeZone
+    )
+  );
 }
 
 function getInventoryFiltersForSearch(query = {}, intent = {}) {
@@ -1820,7 +1910,12 @@ async function loadNormalizedAppointments(query, options = {}) {
   );
 
   appointments = appointments.filter((appointment) =>
-    appointmentWithinHours(appointment, query.hours || intent.hours)
+    appointmentWithinHours(
+      appointment,
+      query.hours ||
+        intent.hours,
+      query
+    )
   );
 
   appointments = dedupeAppointments(appointments);
@@ -2035,42 +2130,133 @@ app.get("/api/settings/public", (req, res) => {
   });
 });
 
+app.get("/api/marketplace-metros", (req, res) => {
+  res.json({
+    success: true,
+    metros:
+      listMarketplaceMetros()
+        .map((metro) => ({
+          slug: metro.slug,
+          name: metro.name,
+          seoLabel:
+            metro.seoLabel,
+          stateCode:
+            metro.stateCode,
+          timezone:
+            metro.timezone,
+          latitude:
+            metro.latitude,
+          longitude:
+            metro.longitude,
+          mapZoom:
+            metro.mapZoom,
+          path:
+            `/${metro.slug}`
+        }))
+  });
+});
+
 app.get("/api/service-categories", async (req, res) => {
   try {
-    const metro = String(req.query.metro || "").trim();
+    const requestedMetro =
+      String(
+        req.query.metro || ""
+      ).trim();
 
-    const [categories, categoryCounts] = await Promise.all([
-      serviceCategoryRepository.listCategories(),
-      serviceCategoryRepository.getCategoryBusinessCounts({
-        metro
-      })
+    const metroSelection =
+      requestedMetro
+        ? getMarketplaceMetro(
+            requestedMetro
+          )
+        : null;
+
+    if (
+      requestedMetro &&
+      !metroSelection
+    ) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          error:
+            "Unknown marketplace metro.",
+          metro:
+            requestedMetro
+        });
+    }
+
+    const [
+      categories,
+      categoryCounts
+    ] = await Promise.all([
+      serviceCategoryRepository
+        .listCategories(),
+      serviceCategoryRepository
+        .getCategoryBusinessCounts({
+          metroTerms:
+            metroSelection
+              ?.searchTerms ||
+            []
+        })
     ]);
 
-    const countsBySlug = new Map(
-      categoryCounts.map((row) => [
-        row.slug,
-        Number(row.business_count || 0)
-      ])
-    );
+    const countsBySlug =
+      new Map(
+        categoryCounts.map(
+          (row) => [
+            row.slug,
+            Number(
+              row.business_count ||
+              0
+            )
+          ]
+        )
+      );
 
     res.json({
       success: true,
-      metro,
-      categories: categories.map((category) => ({
-        slug: category.slug,
-        displayName: category.display_name,
-        description: category.description || "",
-        searchAliases:
-          Array.isArray(category.search_aliases)
-            ? category.search_aliases
-            : [],
-        enabled: category.enabled !== false,
-        sortOrder: Number(category.sort_order || 0),
-        businessCount: countsBySlug.get(category.slug) || 0
-      }))
+      metro:
+        metroSelection?.slug ||
+        "",
+      metroName:
+        metroSelection?.name ||
+        "",
+      categories:
+        categories.map(
+          (category) => ({
+            slug:
+              category.slug,
+            displayName:
+              category.display_name,
+            description:
+              category.description ||
+              "",
+            searchAliases:
+              Array.isArray(
+                category.search_aliases
+              )
+                ? category.search_aliases
+                : [],
+            enabled:
+              category.enabled !==
+              false,
+            sortOrder:
+              Number(
+                category.sort_order ||
+                0
+              ),
+            businessCount:
+              countsBySlug.get(
+                category.slug
+              ) || 0
+          })
+        )
     });
   } catch (error) {
-    console.error("SERVICE CATEGORY API ERROR:", error);
+    console.error(
+      "SERVICE CATEGORY API ERROR:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -2095,8 +2281,38 @@ app.get("/api/search", async (req, res) => {
       });
     }
 
+    const requestedMetro =
+      String(
+        req.query.metro || ""
+      ).trim();
+
+    const metroSelection =
+      requestedMetro
+        ? getMarketplaceMetro(
+            requestedMetro
+          )
+        : null;
+
+    if (
+      requestedMetro &&
+      !metroSelection
+    ) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          error:
+            "Unknown marketplace metro.",
+          metro:
+            requestedMetro
+        });
+    }
+
     const searchQuery = {
       ...req.query,
+      metro:
+        metroSelection?.slug ||
+        "",
       categorySlug:
         categorySelection.categorySlug,
       categoryMatchedAlias:
@@ -2143,6 +2359,16 @@ app.get("/api/search", async (req, res) => {
     res.json({
       success: true,
       endpoint: "/api/search",
+      metro: metroSelection
+        ? {
+            slug:
+              metroSelection.slug,
+            name:
+              metroSelection.name,
+            timezone:
+              metroSelection.timezone
+          }
+        : null,
       category: categorySelection.category
         ? {
             slug: categorySelection.category.slug,
@@ -2156,7 +2382,7 @@ app.get("/api/search", async (req, res) => {
         categorySelection.source || "",
       categoryMatchedAlias:
         categorySelection.matchedAlias || "",
-      appointmentTimeZone: APPOINTMENT_TIME_ZONE,
+      appointmentTimeZone: getMarketplaceTimeZone(req.query.metro),
       liveSearchRunning,
       inferredIntent: intent,
       orchestrationSummary,
@@ -2165,10 +2391,15 @@ app.get("/api/search", async (req, res) => {
       totalBusinessesInResults: businesses.length,
       totalBusinesses,
       totalAppointmentsBeforeTimingEvaluation,
-      currentLocalSortable: getCurrentLocalSortable(),
+      currentLocalSortable: getCurrentLocalSortable(
+        getMarketplaceTimeZone(req.query.metro)
+      ),
       timingBreakdown,
       totalAppointments: appointments.length,
       filtersApplied: {
+        metro:
+          metroSelection?.slug ||
+          "",
         search: req.query.search || "",
         business: req.query.business || "",
         platform: req.query.platform || "",
@@ -2248,10 +2479,12 @@ const inferredAppointmentCount = responseAppointments.filter((appointment) => {
 
 res.json({
   success: true,
-  appointmentTimeZone: APPOINTMENT_TIME_ZONE,
+  appointmentTimeZone: getMarketplaceTimeZone(req.query.metro),
   totalBusinessesInResults: businesses.length,
   totalAppointmentsBeforeTimingEvaluation,
-  currentLocalSortable: getCurrentLocalSortable(),
+  currentLocalSortable: getCurrentLocalSortable(
+        getMarketplaceTimeZone(req.query.metro)
+      ),
   timingBreakdown,
   totalAppointments: responseAppointments.length,
   confirmedAppointments: appointments.length,

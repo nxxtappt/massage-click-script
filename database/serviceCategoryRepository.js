@@ -36,6 +36,20 @@ function normalizeMetroQuery(value = "") {
     .trim();
 }
 
+function normalizeMetroQueries(value = "") {
+  const values = Array.isArray(value)
+    ? value
+    : [value];
+
+  return [
+    ...new Set(
+      values
+        .map(normalizeMetroQuery)
+        .filter(Boolean)
+    )
+  ];
+}
+
 async function listCategories(options = {}) {
   const includeDisabled = options.includeDisabled === true;
 
@@ -211,7 +225,11 @@ async function getBusinessCategories(idOrBusinessName) {
 }
 
 async function getCategoryBusinessCounts(options = {}) {
-  const metro = normalizeMetroQuery(options.metro);
+  const metroTerms =
+    normalizeMetroQueries(
+      options.metroTerms ??
+      options.metro
+    );
 
   const result = await db.query(
     `
@@ -221,22 +239,41 @@ async function getCategoryBusinessCounts(options = {}) {
         sc.sort_order,
         COUNT(DISTINCT b.id) FILTER (
           WHERE
-            $1 = ''
-            OR BTRIM(
-              REGEXP_REPLACE(
-                LOWER(
-                  CONCAT_WS(
-                    ' ',
-                    COALESCE(b.raw_json->>'metro', ''),
-                    COALESCE(bl.city, ''),
-                    COALESCE(bl.address, '')
-                  )
-                ),
-                '[^a-z0-9]+',
-                ' ',
-                'g'
+            CARDINALITY($1::text[]) = 0
+            OR EXISTS (
+              SELECT 1
+              FROM UNNEST(
+                $1::text[]
+              ) AS requested_metro(term)
+              WHERE BTRIM(
+                REGEXP_REPLACE(
+                  LOWER(
+                    CONCAT_WS(
+                      ' ',
+                      COALESCE(
+                        b.raw_json->>'metro',
+                        ''
+                      ),
+                      COALESCE(
+                        bl.city,
+                        ''
+                      ),
+                      COALESCE(
+                        bl.address,
+                        ''
+                      )
+                    )
+                  ),
+                  '[^a-z0-9]+',
+                  ' ',
+                  'g'
+                )
+              ) ~ (
+                '(^| )' ||
+                requested_metro.term ||
+                '( |$)'
               )
-            ) ~ ('(^| )' || $1 || '( |$)')
+            )
         )::int AS business_count
       FROM service_categories sc
       LEFT JOIN business_services bs
@@ -253,10 +290,15 @@ async function getCategoryBusinessCounts(options = {}) {
         LIMIT 1
       ) bl ON TRUE
       WHERE sc.enabled IS NOT FALSE
-      GROUP BY sc.slug, sc.display_name, sc.sort_order
-      ORDER BY sc.sort_order ASC, sc.display_name ASC
+      GROUP BY
+        sc.slug,
+        sc.display_name,
+        sc.sort_order
+      ORDER BY
+        sc.sort_order ASC,
+        sc.display_name ASC
     `,
-    [metro]
+    [metroTerms]
   );
 
   return result.rows;
@@ -325,7 +367,11 @@ async function getBusinessesByCategory(categorySlug, options = {}) {
     includeDisabled: options.includeDisabledCategory === true
   });
 
-  const metro = normalizeMetroQuery(options.metro);
+  const metroTerms =
+    normalizeMetroQueries(
+      options.metroTerms ??
+      options.metro
+    );
   const includeDisabledBusinesses =
     options.includeDisabledBusinesses === true;
   const limit = toPositiveInteger(options.limit, 100, 1000);
@@ -408,22 +454,41 @@ async function getBusinessesByCategory(categorySlug, options = {}) {
 
       WHERE ($2::boolean = TRUE OR b.enabled IS NOT FALSE)
         AND (
-          $3 = ''
-          OR BTRIM(
-            REGEXP_REPLACE(
-              LOWER(
-                CONCAT_WS(
-                  ' ',
-                  COALESCE(b.raw_json->>'metro', ''),
-                  COALESCE(bl.city, ''),
-                  COALESCE(bl.address, '')
-                )
-              ),
-              '[^a-z0-9]+',
-              ' ',
-              'g'
+          CARDINALITY($3::text[]) = 0
+          OR EXISTS (
+            SELECT 1
+            FROM UNNEST(
+              $3::text[]
+            ) AS requested_metro(term)
+            WHERE BTRIM(
+              REGEXP_REPLACE(
+                LOWER(
+                  CONCAT_WS(
+                    ' ',
+                    COALESCE(
+                      b.raw_json->>'metro',
+                      ''
+                    ),
+                    COALESCE(
+                      bl.city,
+                      ''
+                    ),
+                    COALESCE(
+                      bl.address,
+                      ''
+                    )
+                  )
+                ),
+                '[^a-z0-9]+',
+                ' ',
+                'g'
+              )
+            ) ~ (
+              '(^| )' ||
+              requested_metro.term ||
+              '( |$)'
             )
-          ) ~ ('(^| )' || $3 || '( |$)')
+          )
         )
 
       ORDER BY
@@ -441,7 +506,7 @@ async function getBusinessesByCategory(categorySlug, options = {}) {
     [
       category.slug,
       includeDisabledBusinesses,
-      metro,
+      metroTerms,
       limit
     ]
   );
@@ -535,6 +600,7 @@ module.exports = {
   normalizeCategorySlug,
   normalizeSearchText,
   normalizeMetroQuery,
+  normalizeMetroQueries,
   listCategories,
   inferCategoryFromText,
   getCategoryBySlug,

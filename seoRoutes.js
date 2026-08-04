@@ -1,14 +1,20 @@
 const express = require("express");
-const businessManager = require("./businessManager");
+const businessManager = require(
+  "./businessManager"
+);
 const serviceCategoryRepository = require(
   "./database/serviceCategoryRepository"
 );
+const {
+  listMarketplaceMetros
+} = require("./marketplaceMetros");
 
 const router = express.Router();
 
 const DEFAULT_PUBLIC_PATHS = [
   "/",
-  "/austin"
+  ...listMarketplaceMetros()
+    .map((metro) => `/${metro.slug}`)
 ];
 
 function getPublicSiteUrl() {
@@ -21,7 +27,8 @@ function getPublicSiteUrl() {
 }
 
 function normalizePublicPath(value) {
-  const pathname = String(value || "").trim();
+  const pathname =
+    String(value || "").trim();
 
   if (!pathname) {
     return "";
@@ -39,7 +46,8 @@ function normalizePublicPath(value) {
 
 function getConfiguredPublicPaths() {
   const configuredPaths = String(
-    process.env.PUBLIC_INDEXABLE_PATHS || ""
+    process.env.PUBLIC_INDEXABLE_PATHS ||
+      ""
   )
     .split(",")
     .map(normalizePublicPath)
@@ -62,7 +70,9 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
-function normalizeBusinessSlug(business = {}) {
+function normalizeBusinessSlug(
+  business = {}
+) {
   return String(
     business.businessSlug ||
       business.slug ||
@@ -77,41 +87,57 @@ async function addIndexableCategoryUrls(
   urls,
   siteUrl
 ) {
-  try {
-    const categoryCounts =
-      await serviceCategoryRepository
-        .getCategoryBusinessCounts({
-          metro: "Austin"
-        });
+  for (
+    const metro
+    of listMarketplaceMetros()
+  ) {
+    try {
+      const categoryCounts =
+        await serviceCategoryRepository
+          .getCategoryBusinessCounts({
+            metroTerms:
+              metro.searchTerms
+          });
 
-    for (
-      const category
-      of Array.isArray(categoryCounts)
-        ? categoryCounts
-        : []
-    ) {
-      if (
-        Number(category.business_count || 0) <= 0
+      for (
+        const category
+        of Array.isArray(
+          categoryCounts
+        )
+          ? categoryCounts
+          : []
       ) {
-        continue;
-      }
+        if (
+          Number(
+            category.business_count ||
+            0
+          ) <= 0
+        ) {
+          continue;
+        }
 
-      urls.add(
-        `${siteUrl}/austin/${encodeURIComponent(
-          category.slug
-        )}`
+        urls.add(
+          `${siteUrl}/${metro.slug}/${encodeURIComponent(
+            category.slug
+          )}`
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "[SITEMAP] Category URLs skipped:",
+        {
+          metro: metro.slug,
+          error: error.message
+        }
       );
     }
-  } catch (error) {
-    console.warn(
-      "[SITEMAP] Category URLs skipped:",
-      error.message
-    );
   }
 }
 
 async function getIndexableUrls() {
-  const siteUrl = getPublicSiteUrl();
+  const siteUrl =
+    getPublicSiteUrl();
+
   const urls = new Set();
 
   for (
@@ -132,9 +158,10 @@ async function getIndexableUrls() {
   );
 
   const businesses =
-    await businessManager.getAllBusinesses({
-      includeDisabled: false
-    });
+    await businessManager
+      .getAllBusinesses({
+        includeDisabled: false
+      });
 
   for (
     const business
@@ -150,7 +177,9 @@ async function getIndexableUrls() {
     }
 
     const slug =
-      normalizeBusinessSlug(business);
+      normalizeBusinessSlug(
+        business
+      );
 
     if (!slug) {
       continue;
@@ -177,7 +206,9 @@ router.get(
         .map(
           (url) =>
             `  <url>\n` +
-            `    <loc>${escapeXml(url)}</loc>\n` +
+            `    <loc>${escapeXml(
+              url
+            )}</loc>\n` +
             `  </url>`
         )
         .join("\n");
@@ -194,16 +225,21 @@ router.get(
         "Content-Type",
         "application/xml; charset=utf-8"
       );
+
       res.set(
         "Cache-Control",
         "public, max-age=300"
       );
-      res.status(200).send(xml);
+
+      res
+        .status(200)
+        .send(xml);
     } catch (error) {
       console.error(
         "[SITEMAP ERROR]",
         error
       );
+
       res
         .status(500)
         .type("text/plain")
@@ -238,11 +274,15 @@ router.get(
       "Content-Type",
       "text/plain; charset=utf-8"
     );
+
     res.set(
       "Cache-Control",
       "public, max-age=300"
     );
-    res.status(200).send(robots);
+
+    res
+      .status(200)
+      .send(robots);
   }
 );
 

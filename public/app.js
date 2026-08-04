@@ -25,7 +25,7 @@ function titleCaseRouteSlug(value = "") {
     .join(" ");
 }
 
-function getAustinPageContext() {
+function getMarketplacePageContext() {
   const pathnameParts =
     window.location.pathname
       .split("/")
@@ -40,27 +40,68 @@ function getAustinPageContext() {
 
   const metroName =
     body?.dataset.metroName ||
-    titleCaseRouteSlug(metroSlug);
+    titleCaseRouteSlug(
+      metroSlug
+    );
+
+  const metroTimezone =
+    body?.dataset.metroTimezone ||
+    "America/Chicago";
+
+  const metroLatitude =
+    Number(
+      body?.dataset.metroLatitude
+    );
+
+  const metroLongitude =
+    Number(
+      body?.dataset.metroLongitude
+    );
+
+  const metroZoom =
+    Number(
+      body?.dataset.metroZoom
+    );
 
   const categorySlug =
     body?.dataset.categorySlug ||
-    (
-      metroSlug === "austin"
-        ? pathnameParts[1] || ""
-        : ""
-    );
+    pathnameParts[1] ||
+    "";
 
   const categoryName =
     body?.dataset.categoryName ||
-    titleCaseRouteSlug(categorySlug);
+    titleCaseRouteSlug(
+      categorySlug
+    );
 
   const categoryDescription =
-    body?.dataset.categoryDescription ||
+    body
+      ?.dataset
+      .categoryDescription ||
     "";
 
   return {
     metroSlug,
     metroName,
+    metroTimezone,
+    metroLatitude:
+      Number.isFinite(
+        metroLatitude
+      )
+        ? metroLatitude
+        : 30.2672,
+    metroLongitude:
+      Number.isFinite(
+        metroLongitude
+      )
+        ? metroLongitude
+        : -97.7431,
+    metroZoom:
+      Number.isFinite(
+        metroZoom
+      )
+        ? metroZoom
+        : 11,
     categorySlug,
     categoryName,
     categoryDescription
@@ -68,7 +109,7 @@ function getAustinPageContext() {
 }
 
 const currentPageContext =
-  getAustinPageContext();
+  getMarketplacePageContext();
 
 function getResolvedCategoryName() {
   return (
@@ -121,6 +162,134 @@ function getCategoryEmptyStateCopy() {
     message:
       "Try a broader prompt, choose an appointment category, or search again."
   };
+}
+
+function renderMetroNavigation(
+  metros = []
+) {
+  if (!metroNavigation) {
+    return;
+  }
+
+  const enabledMetros =
+    Array.isArray(metros)
+      ? metros.filter(
+          (metro) =>
+            metro &&
+            metro.slug &&
+            metro.name
+        )
+      : [];
+
+  metroNavigation.innerHTML =
+    enabledMetros
+      .map((metro) => {
+        const isActive =
+          metro.slug ===
+          currentPageContext
+            .metroSlug;
+
+        const destination =
+          currentPageContext
+            .categorySlug
+            ? `/${metro.slug}/${currentPageContext.categorySlug}`
+            : `/${metro.slug}`;
+
+        return `
+          <a
+            class="metro-nav-link${isActive ? " is-active" : ""}"
+            href="${escapeAttribute(
+              destination
+            )}"
+            ${isActive ? 'aria-current="page"' : ""}
+          >
+            ${escapeHtml(
+              metro.name
+            )}
+          </a>
+        `;
+      })
+      .join("");
+
+  if (
+    metroNavigationStatus
+  ) {
+    metroNavigationStatus
+      .textContent =
+        enabledMetros.length
+          ? `${enabledMetros.length} cities available`
+          : "";
+  }
+}
+
+async function loadMetroNavigation() {
+  if (!metroNavigation) {
+    return [];
+  }
+
+  try {
+    const response =
+      await fetch(
+        "/api/marketplace-metros"
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      throw new Error(
+        data.error ||
+        "Metro list request failed."
+      );
+    }
+
+    const metros =
+      Array.isArray(data.metros)
+        ? data.metros
+        : [];
+
+    renderMetroNavigation(
+      metros
+    );
+
+    return metros;
+  } catch (error) {
+    console.error(
+      "Failed to load marketplace metros:",
+      error
+    );
+
+    metroNavigation.innerHTML = `
+      <a
+        class="metro-nav-link is-active"
+        href="/${escapeAttribute(
+          currentPageContext
+            .metroSlug ||
+          "austin"
+        )}"
+        aria-current="page"
+      >
+        ${escapeHtml(
+          currentPageContext
+            .metroName ||
+          "Austin"
+        )}
+      </a>
+    `;
+
+    if (
+      metroNavigationStatus
+    ) {
+      metroNavigationStatus
+        .textContent =
+          "City list temporarily unavailable";
+    }
+
+    return [];
+  }
 }
 
 function renderCategoryNavigation(
@@ -292,13 +461,13 @@ async function loadCategoryNavigation() {
   }
 
   try {
-    const metroName =
-      currentPageContext.metroName ||
-      "Austin";
+    const metroSlug =
+      currentPageContext.metroSlug ||
+      "austin";
 
     const response = await fetch(
       `/api/service-categories?metro=${encodeURIComponent(
-        metroName
+        metroSlug
       )}`
     );
 
@@ -366,6 +535,8 @@ const assistantResponse = document.getElementById("assistantResponse");
 const liveSearchResults = document.getElementById("liveSearchResults");
 const chatSearchForm = document.getElementById("chatSearchForm");
 const searchLiveBtn = document.getElementById("searchLiveBtn");
+const metroNavigation = document.getElementById("metroNavigation");
+const metroNavigationStatus = document.getElementById("metroNavigationStatus");
 const categoryNavigation = document.getElementById("categoryNavigation");
 const categoryNavigationStatus = document.getElementById("categoryNavigationStatus");
 
@@ -374,6 +545,13 @@ function buildSearchUrl() {
 
   params.set("limitPerBusiness", "999");
   params.set("fresh", String(Date.now()));
+
+  if (currentPageContext.metroSlug) {
+    params.set(
+      "metro",
+      currentPageContext.metroSlug
+    );
+  }
 
   if (currentPageContext.categorySlug) {
     params.set(
@@ -1184,12 +1362,32 @@ function getServiceSummary(appointments) {
   return `${services[0]} + ${services.length - 1} more service${services.length - 1 === 1 ? "" : "s"}`;
 }
 
+function getCurrentMetroMapView() {
+  return {
+    center: [
+      currentPageContext
+        .metroLatitude,
+      currentPageContext
+        .metroLongitude
+    ],
+    zoom:
+      currentPageContext
+        .metroZoom
+  };
+}
+
 function initMap() {
   if (map || !document.getElementById("map") || typeof L === "undefined") return;
 
+  const metroMapView =
+    getCurrentMetroMapView();
+
   map = L.map("map", {
     scrollWheelZoom: false
-  }).setView([30.2672, -97.7431], 11);
+  }).setView(
+    metroMapView.center,
+    metroMapView.zoom
+  );
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -1260,7 +1458,14 @@ function renderMapMarkers(appointments) {
     .filter(Boolean);
 
   if (!businessesWithCoordinates.length) {
-    map.setView([30.2672, -97.7431], 11);
+    const metroMapView =
+      getCurrentMetroMapView();
+
+    map.setView(
+      metroMapView.center,
+      metroMapView.zoom
+    );
+
     return;
   }
 
@@ -1359,7 +1564,7 @@ function formatTimeButtonText(appointment = {}) {
 
     if (!Number.isNaN(parsed.getTime())) {
       const displayDate = parsed.toLocaleDateString("en-US", {
-        timeZone: "America/Chicago",
+        timeZone: currentPageContext.metroTimezone || "America/Chicago",
         weekday: "short",
         month: "short",
         day: "numeric"
@@ -1374,7 +1579,7 @@ function formatTimeButtonText(appointment = {}) {
 
     if (!Number.isNaN(parsed.getTime())) {
       return parsed.toLocaleString("en-US", {
-        timeZone: "America/Chicago",
+        timeZone: currentPageContext.metroTimezone || "America/Chicago",
         weekday: "short",
         month: "short",
         day: "numeric",
@@ -1489,6 +1694,7 @@ document.addEventListener("click", async (event) => {
 });
 
 async function initializeApp() {
+  loadMetroNavigation();
   loadCategoryNavigation();
 
   try {
@@ -1613,7 +1819,10 @@ function showSearchEmailPopup() {
     <p class="email-capture-copy">
       Get updates as NextAppt adds more live ${escapeHtml(
         getCurrentAppointmentPhrase()
-      )} in Austin.
+      )} in ${escapeHtml(
+        currentPageContext.metroName ||
+        "your city"
+      )}.
     </p>
 
     <form data-email-capture-form data-email-source="search_popup">
@@ -1634,8 +1843,11 @@ function showSearchEmailPopup() {
   });
 }
 
-if (currentPageContext.metroSlug === "austin") {
-  setTimeout(showSearchEmailPopup, 10000);
+if (currentPageContext.metroSlug) {
+  setTimeout(
+    showSearchEmailPopup,
+    10000
+  );
 }
 document.addEventListener("click", async (event) => {
   const ratingButton = event.target.closest("[data-chat-rating]");

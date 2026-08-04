@@ -120,6 +120,10 @@
   data-category-slug=""
   data-category-name=""
   data-category-description=""
+  data-metro-timezone="America/Chicago"
+  data-metro-latitude="30.2672"
+  data-metro-longitude="-97.7431"
+  data-metro-zoom="11"
 >
   <main class="page">
     <section class="hero">
@@ -137,8 +141,34 @@
     </section>
 
     <nav
+      class="metro-navigation"
+      aria-label="Appointment cities"
+    >
+      <div class="metro-navigation-header">
+        <p class="metro-navigation-title">
+          Explore cities
+        </p>
+
+        <p
+          id="metroNavigationStatus"
+          class="metro-navigation-status"
+          aria-live="polite"
+        ></p>
+      </div>
+
+      <div
+        id="metroNavigation"
+        class="metro-nav-list"
+      >
+        <p class="metro-nav-loading">
+          Loading cities...
+        </p>
+      </div>
+    </nav>
+
+    <nav
       class="category-navigation"
-      aria-label="Austin appointment categories"
+      aria-label="Appointment categories"
     >
       <div class="category-navigation-header">
         <p class="category-navigation-title">
