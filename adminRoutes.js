@@ -15,6 +15,50 @@ const runtimeStateRepository = require("./database/runtimeStateRepository");
 const { loadClaims, getClaimStats } = require("./businessClaimManager");
 const scrapeJobRepository = require("./database/scrapeJobRepository");
 const { runDueSchedules } = require("./schedulerV2");
+const {
+  listMarketplaceMetros,
+  getMarketplaceMetro,
+  matchesMarketplaceMetro
+} = require("./marketplaceMetros");
+
+
+function resolveAdminMetro(
+  value = ""
+) {
+  const requested =
+    cleanText(value, 120);
+
+  if (!requested) {
+    return null;
+  }
+
+  const metro =
+    getMarketplaceMetro(
+      requested
+    );
+
+  if (!metro) {
+    const error = new Error(
+      `Unknown marketplace metro: ${requested}`
+    );
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return metro;
+}
+
+function getAdminMetroTerms(
+  value = ""
+) {
+  return (
+    resolveAdminMetro(
+      value
+    )?.searchTerms ||
+    []
+  );
+}
 
 function addArg(args, key, value) {
   const cleaned = String(value ?? "").trim();
@@ -128,6 +172,12 @@ function normalizeAdminBusiness(business = {}) {
   return {
     ...business,
     businessName: cleanText(business.businessName || business.name, 300),
+    metro: cleanText(
+      business.metro ||
+      business.market ||
+      "",
+      120
+    ),
     enabled:
       business.enabled === false || business.enabled === "false"
         ? false
@@ -292,6 +342,32 @@ router.get("/debug/routes", (req, res) => {
   });
 });
 
+router.get("/marketplace-metros", (req, res) => {
+  res.json({
+    success: true,
+    metros:
+      listMarketplaceMetros()
+        .map((metro) => ({
+          slug: metro.slug,
+          name: metro.name,
+          seoLabel:
+            metro.seoLabel,
+          stateCode:
+            metro.stateCode,
+          timezone:
+            metro.timezone,
+          latitude:
+            metro.latitude,
+          longitude:
+            metro.longitude,
+          mapZoom:
+            metro.mapZoom,
+          searchTerms:
+            metro.searchTerms
+        }))
+  });
+});
+
 router.get("/service-categories", async (req, res) => {
   try {
     const categories =
@@ -332,13 +408,34 @@ router.get("/service-categories", async (req, res) => {
 
 router.get("/businesses", async (req, res) => {
   try {
-    const businesses = await businessManager.getAllBusinesses({
-      includeDisabled: true
-    });
+    const metro =
+      resolveAdminMetro(
+        req.query.metro
+      );
+
+    const businesses =
+      await businessManager
+        .getAllBusinesses({
+          includeDisabled: true
+        });
+
+    const filteredBusinesses =
+      metro
+        ? businesses.filter(
+            (business) =>
+              matchesMarketplaceMetro(
+                business,
+                metro
+              )
+          )
+        : businesses;
 
     res.json({
       success: true,
-      businesses
+      metro:
+        metro?.slug || "",
+      businesses:
+        filteredBusinesses
     });
   } catch (error) {
     res.status(500).json({
@@ -358,10 +455,18 @@ router.get("/businesses/search", async (req, res) => {
         ? false
         : undefined;
 
+    const metro =
+      resolveAdminMetro(
+        req.query.metro
+      );
+
     const result = await businessManager.searchBusinesses({
       name: req.query.name || req.query.business || "",
       industry: req.query.industry || req.query.businessCategory || "",
-      metro: req.query.metro || "",
+      metro:
+        metro?.slug || "",
+      metroTerms:
+        metro?.searchTerms || [],
       platform: req.query.platform || "",
       enabled,
       page: req.query.page,
@@ -406,9 +511,18 @@ router.get("/businesses/:id", async (req, res, next) => {
 
 router.get("/business-subscriptions/search", async (req, res) => {
   try {
+    const metro =
+      resolveAdminMetro(
+        req.query.metro
+      );
+
     const result = await businessManager.searchBusinessSubscriptions({
       name: req.query.name || req.query.business || "", industry: req.query.industry || "",
-      metro: req.query.metro || "", plan: req.query.plan || "", status: req.query.status || "",
+      metro:
+        metro?.slug || "",
+      metroTerms:
+        metro?.searchTerms || [],
+      plan: req.query.plan || "", status: req.query.status || "",
       page: req.query.page, limit: req.query.limit
     });
     res.json({ success: true, source: "postgres", ...result });
@@ -658,7 +772,14 @@ router.post("/businesses/save", async (req, res) => {
 
 router.get("/results", async (req, res) => {
   try {
+    const metro =
+      resolveAdminMetro(
+        req.query.metro
+      );
+
     const result = await inventoryRepository.searchInventory({
+      metroTerms:
+        metro?.searchTerms || [],
       businessName: req.query.business || req.query.businessName || "", platform: req.query.platform || "",
       serviceName: req.query.service || req.query.serviceName || "", serviceCategory: req.query.serviceType || req.query.serviceCategory || "",
       targetLocalDateKey: req.query.date || "", sourceType: req.query.sourceType || "", status: req.query.status || "",
@@ -671,8 +792,29 @@ router.get("/results", async (req, res) => {
 
 router.get("/errors", async (req, res) => {
   try {
-    const errors = await runtimeStateRepository.getScrapeErrors(500);
-    res.json({ success: true, source: "postgres", errors });
+    const metro =
+      resolveAdminMetro(
+        req.query.metro
+      );
+
+    const errors =
+      await runtimeStateRepository
+        .getScrapeErrors(
+          500,
+          {
+            metroTerms:
+              metro?.searchTerms ||
+              []
+          }
+        );
+
+    res.json({
+      success: true,
+      source: "postgres",
+      metro:
+        metro?.slug || "",
+      errors
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

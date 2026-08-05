@@ -1,5 +1,36 @@
 const db = require("../db");
 
+function normalizeMetroTerms(
+  value = []
+) {
+  const values =
+    Array.isArray(value)
+      ? value
+      : [value];
+
+  return [
+    ...new Set(
+      values
+        .map(
+          (item) =>
+            String(item || "")
+              .trim()
+              .toLowerCase()
+              .replace(
+                /[^a-z0-9]+/g,
+                " "
+              )
+              .replace(
+                /\s+/g,
+                " "
+              )
+              .trim()
+        )
+        .filter(Boolean)
+    )
+  ];
+}
+
 async function getSettings(key = "global") {
   const result = await db.query(
     `SELECT settings_json FROM admin_runtime_settings WHERE settings_key = $1`,
@@ -119,11 +150,148 @@ async function logScrapeError(entry = {}) {
   return result.rows[0];
 }
 
-async function getScrapeErrors(limit = 500) {
-  const result = await db.query(
-    `SELECT * FROM scrape_error_logs ORDER BY logged_at DESC LIMIT $1`,
-    [Math.min(Math.max(Number(limit) || 500, 1), 5000)]
-  );
+async function getScrapeErrors(
+  limit = 500,
+  options = {}
+) {
+  const safeLimit =
+    Math.min(
+      Math.max(
+        Number(limit) || 500,
+        1
+      ),
+      5000
+    );
+
+  const metroTerms =
+    normalizeMetroTerms(
+      options.metroTerms
+    );
+
+  const values = [];
+  const where = [];
+
+  if (metroTerms.length) {
+    values.push(metroTerms);
+
+    where.push(`
+      (
+        EXISTS (
+          SELECT 1
+          FROM businesses b
+          LEFT JOIN LATERAL (
+            SELECT
+              city,
+              address
+            FROM business_locations
+            WHERE
+              business_id = b.id
+            ORDER BY id ASC
+            LIMIT 1
+          ) bl ON TRUE
+          WHERE
+            LOWER(
+              b.business_name
+            ) =
+            LOWER(
+              errors.business_name
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM UNNEST(
+                $${values.length}::text[]
+              ) AS requested_metro(term)
+              WHERE BTRIM(
+                REGEXP_REPLACE(
+                  LOWER(
+                    CONCAT_WS(
+                      ' ',
+                      COALESCE(
+                        b.raw_json->>'metro',
+                        ''
+                      ),
+                      COALESCE(
+                        bl.city,
+                        ''
+                      ),
+                      COALESCE(
+                        bl.address,
+                        ''
+                      )
+                    )
+                  ),
+                  '[^a-z0-9]+',
+                  ' ',
+                  'g'
+                )
+              ) ~ (
+                '(^| )' ||
+                requested_metro.term ||
+                '( |$)'
+              )
+            )
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM UNNEST(
+            $${values.length}::text[]
+          ) AS requested_metro(term)
+          WHERE BTRIM(
+            REGEXP_REPLACE(
+              LOWER(
+                CONCAT_WS(
+                  ' ',
+                  COALESCE(
+                    errors.details_json->>'metro',
+                    ''
+                  ),
+                  COALESCE(
+                    errors.details_json->>'city',
+                    ''
+                  ),
+                  COALESCE(
+                    errors.details_json->>'address',
+                    ''
+                  )
+                )
+              ),
+              '[^a-z0-9]+',
+              ' ',
+              'g'
+            )
+          ) ~ (
+            '(^| )' ||
+            requested_metro.term ||
+            '( |$)'
+          )
+        )
+      )
+    `);
+  }
+
+  values.push(safeLimit);
+
+  const result =
+    await db.query(
+      `
+        SELECT
+          errors.*
+        FROM scrape_error_logs
+          errors
+        ${
+          where.length
+            ? `WHERE ${where.join(
+                " AND "
+              )}`
+            : ""
+        }
+        ORDER BY
+          errors.logged_at DESC
+        LIMIT $${values.length}
+      `,
+      values
+    );
+
   return result.rows;
 }
 

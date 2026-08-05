@@ -3,12 +3,20 @@ const pageSubtitle = document.getElementById("pageSubtitle");
 const content = document.getElementById("content");
 const statusBox = document.getElementById("statusBox");
 const refreshBtn = document.getElementById("refreshBtn");
+const adminMetroFilter = document.getElementById("adminMetroFilter");
+const adminMetroWorkspaceStatus = document.getElementById("adminMetroWorkspaceStatus");
 let navButtons = document.querySelectorAll(".nav-btn");
 
 let currentView = "businesses";
 let businessesCache = [];
 let settingsBusinessesCache = [];
 let serviceCategoriesCache = [];
+let adminMetrosCache = [];
+const ADMIN_METRO_STORAGE_KEY = "nextappt_admin_metro";
+let adminMetroSlug =
+  localStorage.getItem(
+    ADMIN_METRO_STORAGE_KEY
+  ) || "";
 let businessSearchState = {
   name: "",
   industry: "",
@@ -34,6 +42,7 @@ let subscriptionSearchState = {
   totalPages: 1
 };
 let inventorySearchState = {
+  metro: "",
   business: "",
   service: "",
   serviceType: "",
@@ -148,6 +157,688 @@ async function fetchJson(url, options = {}) {
   }
 
   return response.json();
+}
+
+
+async function loadAdminMetros(options = {}) {
+  const force = options.force === true;
+
+  if (
+    adminMetrosCache.length &&
+    !force
+  ) {
+    return adminMetrosCache;
+  }
+
+  try {
+    const data = await fetchJson(
+      "/api/admin/marketplace-metros"
+    );
+
+    adminMetrosCache =
+      Array.isArray(data.metros)
+        ? data.metros
+        : [];
+
+    if (
+      adminMetroSlug &&
+      !adminMetrosCache.some(
+        (metro) =>
+          metro.slug ===
+          adminMetroSlug
+      )
+    ) {
+      adminMetroSlug = "";
+      localStorage.removeItem(
+        ADMIN_METRO_STORAGE_KEY
+      );
+    }
+
+    syncAdminMetroSearchStates();
+    renderAdminMetroWorkspace();
+
+    return adminMetrosCache;
+  } catch (error) {
+    console.warn(
+      "Could not load marketplace metros:",
+      error
+    );
+
+    renderAdminMetroWorkspace();
+    return adminMetrosCache;
+  }
+}
+
+function getSelectedAdminMetroSlug() {
+  return adminMetroSlug || "";
+}
+
+function getSelectedAdminMetro() {
+  return (
+    adminMetrosCache.find(
+      (metro) =>
+        metro.slug ===
+        adminMetroSlug
+    ) || null
+  );
+}
+
+function getAdminMetroBySlug(
+  metroSlug = ""
+) {
+  return (
+    adminMetrosCache.find(
+      (metro) =>
+        metro.slug === metroSlug
+    ) || null
+  );
+}
+
+function syncAdminMetroSearchStates() {
+  businessSearchState.metro =
+    adminMetroSlug;
+
+  subscriptionSearchState.metro =
+    adminMetroSlug;
+
+  inventorySearchState.metro =
+    adminMetroSlug;
+}
+
+function renderAdminMetroOptions(
+  selectedValue = "",
+  options = {}
+) {
+  const includeAll =
+    options.includeAll !== false;
+
+  const placeholder =
+    options.placeholder ||
+    "All cities";
+
+  const rows = [];
+
+  if (includeAll) {
+    rows.push(
+      `<option value="" ${
+        selectedValue
+          ? ""
+          : "selected"
+      }>${escapeHtml(
+        placeholder
+      )}</option>`
+    );
+  }
+
+  rows.push(
+    ...adminMetrosCache.map(
+      (metro) => `
+        <option
+          value="${escapeHtml(
+            metro.slug
+          )}"
+          ${
+            metro.slug ===
+            selectedValue
+              ? "selected"
+              : ""
+          }
+        >
+          ${escapeHtml(
+            metro.name
+          )}
+        </option>
+      `
+    )
+  );
+
+  if (
+    selectedValue &&
+    !adminMetrosCache.some(
+      (metro) =>
+        metro.slug ===
+        selectedValue
+    )
+  ) {
+    rows.push(
+      `<option value="${escapeHtml(
+        selectedValue
+      )}" selected>${escapeHtml(
+        titleCaseAdminSlug(
+          selectedValue
+        )
+      )} (unavailable)</option>`
+    );
+  }
+
+  return rows.join("");
+}
+
+function renderAdminMetroFilterField(
+  label,
+  id,
+  selectedValue = ""
+) {
+  return `
+    <label class="admin-field admin-metro-field">
+      <span>${escapeHtml(label)}</span>
+      <select id="${escapeHtml(id)}">
+        ${renderAdminMetroOptions(
+          selectedValue
+        )}
+      </select>
+    </label>
+  `;
+}
+
+function renderAdminMetroWorkspace() {
+  if (!adminMetroFilter) {
+    return;
+  }
+
+  adminMetroFilter.innerHTML =
+    renderAdminMetroOptions(
+      adminMetroSlug,
+      {
+        placeholder:
+          "All marketplace cities"
+      }
+    );
+
+  adminMetroFilter.value =
+    adminMetroSlug;
+
+  if (adminMetroWorkspaceStatus) {
+    const metro =
+      getSelectedAdminMetro();
+
+    adminMetroWorkspaceStatus
+      .textContent =
+        metro
+          ? `${metro.name} workspace`
+          : "All-city workspace";
+  }
+}
+
+function setAdminMetroSlug(
+  metroSlug = "",
+  options = {}
+) {
+  const normalized =
+    String(metroSlug || "")
+      .trim()
+      .toLowerCase();
+
+  adminMetroSlug =
+    normalized &&
+    adminMetrosCache.some(
+      (metro) =>
+        metro.slug === normalized
+    )
+      ? normalized
+      : "";
+
+  if (adminMetroSlug) {
+    localStorage.setItem(
+      ADMIN_METRO_STORAGE_KEY,
+      adminMetroSlug
+    );
+  } else {
+    localStorage.removeItem(
+      ADMIN_METRO_STORAGE_KEY
+    );
+  }
+
+  syncAdminMetroSearchStates();
+  renderAdminMetroWorkspace();
+
+  if (
+    options.reload !== false &&
+    currentView
+  ) {
+    loadView(currentView);
+  }
+}
+
+function attachAdminMetroWorkspace() {
+  adminMetroFilter
+    ?.addEventListener(
+      "change",
+      () => {
+        setAdminMetroSlug(
+          adminMetroFilter.value
+        );
+      }
+    );
+}
+
+function getAdminMetroSearchTerms(
+  metroSlug =
+    adminMetroSlug
+) {
+  const metro =
+    getAdminMetroBySlug(
+      metroSlug
+    );
+
+  return Array.isArray(
+    metro?.searchTerms
+  )
+    ? metro.searchTerms
+    : [];
+}
+
+function normalizeAdminMetroText(
+  value = ""
+) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function recordMatchesAdminMetro(
+  record = {},
+  metroSlug =
+    adminMetroSlug
+) {
+  if (!metroSlug) {
+    return true;
+  }
+
+  const terms =
+    getAdminMetroSearchTerms(
+      metroSlug
+    );
+
+  if (!terms.length) {
+    return false;
+  }
+
+  const text =
+    normalizeAdminMetroText(
+      [
+        record.metro,
+        record.metroName,
+        record.market,
+        record.region,
+        record.city,
+        record.business_city,
+        record.businessCity,
+        record.business_metro,
+        record.businessMetro,
+        record.state,
+        record.address,
+        record.business_address,
+        record.businessAddress
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+
+  if (!text) {
+    return false;
+  }
+
+  const padded =
+    ` ${text} `;
+
+  return terms.some(
+    (term) =>
+      padded.includes(
+        ` ${normalizeAdminMetroText(
+          term
+        )} `
+      )
+  );
+}
+
+function inferAdminMetroSlug(
+  record = {}
+) {
+  const explicit =
+    String(
+      record.metro ||
+      record.metroSlug ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  if (
+    explicit &&
+    adminMetrosCache.some(
+      (metro) =>
+        metro.slug === explicit
+    )
+  ) {
+    return explicit;
+  }
+
+  const match =
+    adminMetrosCache.find(
+      (metro) =>
+        recordMatchesAdminMetro(
+          record,
+          metro.slug
+        )
+    );
+
+  return match?.slug || "";
+}
+
+function getAdminMetroContextLabel() {
+  return (
+    getSelectedAdminMetro()
+      ?.name ||
+    "All Cities"
+  );
+}
+
+function renderBusinessMetroSelect(
+  business = {},
+  index
+) {
+  const currentValue =
+    business.metro ||
+    inferAdminMetroSlug(
+      business
+    ) ||
+    "";
+
+  return `
+    <label class="admin-field">
+      <span>Marketplace Metro</span>
+      <select
+        data-index="${index}"
+        data-field="metro"
+      >
+        ${renderAdminMetroOptions(
+          currentValue,
+          {
+            placeholder:
+              "Auto-detect from location"
+          }
+        )}
+      </select>
+    </label>
+  `;
+}
+
+function filterSchedulerStateForAdminMetro(
+  rawState = {}
+) {
+  if (!adminMetroSlug) {
+    return rawState;
+  }
+
+  const businesses =
+    Array.isArray(
+      rawState.businesses
+    )
+      ? rawState.businesses.filter(
+          (business) =>
+            recordMatchesAdminMetro(
+              business
+            )
+        )
+      : [];
+
+  const businessIds =
+    new Set(
+      businesses.flatMap(
+        (business) => [
+          String(
+            getSchedulerBusinessPublicId(
+              business
+            )
+          ),
+          String(
+            business.id || ""
+          )
+        ]
+      )
+    );
+
+  const businessNames =
+    new Set(
+      businesses.map(
+        (business) =>
+          normalizeAdminMetroText(
+            getSchedulerBusinessName(
+              business
+            )
+          )
+      )
+    );
+
+  const groups =
+    (Array.isArray(
+      rawState.groups
+    )
+      ? rawState.groups
+      : []
+    ).filter((group) => {
+      const explicitBusinesses =
+        Array.isArray(
+          group.businesses
+        )
+          ? group.businesses
+          : [];
+
+      const explicitMatch =
+        explicitBusinesses.some(
+          (business) =>
+            recordMatchesAdminMetro(
+              business
+            ) ||
+            businessIds.has(
+              String(
+                getSchedulerBusinessPublicId(
+                  business
+                )
+              )
+            )
+        );
+
+      const selector =
+        group.selector || {};
+
+      const selectorMetros =
+        schedulerStringList(
+          selector.metros ||
+          selector.metro ||
+          selector.cities ||
+          selector.city
+        );
+
+      const selectorMatch =
+        selectorMetros.some(
+          (value) => {
+            const normalized =
+              normalizeAdminMetroText(
+                value
+              );
+
+            const selectedMetro =
+              getSelectedAdminMetro();
+
+            return (
+              normalized ===
+                normalizeAdminMetroText(
+                  adminMetroSlug
+                ) ||
+              normalized ===
+                normalizeAdminMetroText(
+                  selectedMetro?.name ||
+                  ""
+                ) ||
+              getAdminMetroSearchTerms()
+                .some(
+                  (term) =>
+                    normalized ===
+                    normalizeAdminMetroText(
+                      term
+                    )
+                )
+            );
+          }
+        );
+
+      return (
+        explicitMatch ||
+        selectorMatch
+      );
+    });
+
+  const groupIds =
+    new Set(
+      groups.map(
+        (group) =>
+          String(group.id)
+      )
+    );
+
+  const schedules =
+    (Array.isArray(
+      rawState.schedules
+    )
+      ? rawState.schedules
+      : []
+    ).filter((schedule) => {
+      if (
+        schedule.group_id &&
+        groupIds.has(
+          String(
+            schedule.group_id
+          )
+        )
+      ) {
+        return true;
+      }
+
+      if (
+        recordMatchesAdminMetro(
+          schedule
+        )
+      ) {
+        return true;
+      }
+
+      const publicId =
+        String(
+          schedule.public_business_id ||
+          schedule.business_id ||
+          ""
+        );
+
+      return (
+        businessIds.has(
+          publicId
+        ) ||
+        businessNames.has(
+          normalizeAdminMetroText(
+            schedule.business_name ||
+            ""
+          )
+        )
+      );
+    });
+
+  const scheduleIds =
+    new Set(
+      schedules.map(
+        (schedule) =>
+          String(schedule.id)
+      )
+    );
+
+  const exceptions =
+    (Array.isArray(
+      rawState.exceptions
+    )
+      ? rawState.exceptions
+      : []
+    ).filter(
+      (exception) =>
+        scheduleIds.has(
+          String(
+            exception.schedule_id
+          )
+        )
+    );
+
+  const history =
+    (Array.isArray(
+      rawState.history
+    )
+      ? rawState.history
+      : []
+    ).filter(
+      (row) =>
+        scheduleIds.has(
+          String(
+            row.schedule_id
+          )
+        )
+    );
+
+  const jobs =
+    (Array.isArray(
+      rawState.jobs
+    )
+      ? rawState.jobs
+      : []
+    ).filter((job) => {
+      if (
+        job.schedule_id &&
+        scheduleIds.has(
+          String(
+            job.schedule_id
+          )
+        )
+      ) {
+        return true;
+      }
+
+      const payload =
+        job.request_payload || {};
+
+      if (
+        recordMatchesAdminMetro(
+          payload
+        )
+      ) {
+        return true;
+      }
+
+      const businessName =
+        normalizeAdminMetroText(
+          payload.businessName ||
+          payload.business_name ||
+          ""
+        );
+
+      return (
+        businessName &&
+        businessNames.has(
+          businessName
+        )
+      );
+    });
+
+  return {
+    ...rawState,
+    groups,
+    schedules,
+    exceptions,
+    history,
+    jobs,
+    businesses
+  };
 }
 
 async function loadAdminServiceCategories(
@@ -318,6 +1009,7 @@ function normalizeInferServiceTypes(value) {
 
 function createBlankService() {
   return {
+    __adminOpen: true,
     serviceType: "",
     categorySlug: "",
     durationMinutes: null,
@@ -341,8 +1033,14 @@ function createBlankService() {
 }
 
 function createBlankBusiness() {
+  const selectedMetro =
+    getSelectedAdminMetro();
+
   return normalizeBusinessDefaults({
     businessId: "",
+    metro:
+      selectedMetro?.slug ||
+      "",
     businessName: "",
     displayName: "",
     businessCategory: "wellness",
@@ -354,11 +1052,15 @@ function createBlankBusiness() {
     ownerEmail: "",
     address: "",
     city: "",
-    state: "TX",
+    state:
+      selectedMetro?.stateCode ||
+      "TX",
     postalCode: "",
     latitude: null,
     longitude: null,
-    timezone: "America/Chicago",
+    timezone:
+      selectedMetro?.timezone ||
+      "America/Chicago",
     integrationType: "scraper",
     apiProvider: "",
     credentialId: "",
@@ -500,118 +1202,399 @@ function getAdminServiceKey(service = {}) {
   ].join("|");
 }
 
-function renderServiceCard(service, businessIndex, serviceIndex) {
-  const businessServices = businessesCache[businessIndex]?.services || [];
+function cloneServiceForAdmin(
+  service = {}
+) {
+  const clone =
+    typeof structuredClone ===
+    "function"
+      ? structuredClone(service)
+      : JSON.parse(
+          JSON.stringify(service)
+        );
+
+  [
+    "id",
+    "businessServiceId",
+    "business_service_id",
+    "canonicalKey",
+    "canonical_key",
+    "createdAt",
+    "created_at",
+    "updatedAt",
+    "updated_at",
+    "raw_json"
+  ].forEach(
+    (field) => {
+      delete clone[field];
+    }
+  );
+
+  const originalName =
+    String(
+      service.serviceName ||
+      "Service"
+    ).trim();
+
+  clone.serviceName =
+    `${originalName} Copy`;
+
+  clone.platformServiceId = "";
+  clone.serviceButtonId = "";
+  clone.serviceId = "";
+  clone.anchorServiceId = "";
+  clone.anchorServiceKey = "";
+  clone.__adminOpen = true;
+
+  if (
+    clone.inferenceRole ===
+    "inferred"
+  ) {
+    clone.inferenceRole = "";
+    clone.inferenceEnabled = false;
+    clone.scrapeDirectly = true;
+  }
+
+  return clone;
+}
+
+function renderServiceCard(
+  service,
+  businessIndex,
+  serviceIndex
+) {
+  const businessServices =
+    businessesCache[
+      businessIndex
+    ]?.services || [];
+
   const anchorOptions = [
-    { value: "", label: "No anchor selected" },
+    {
+      value: "",
+      label:
+        "No anchor selected"
+    },
     ...businessServices
-      .filter((candidate, candidateIndex) => candidateIndex !== serviceIndex)
-      .filter((candidate) => candidate.inferenceRole === "anchor")
+      .filter(
+        (
+          candidate,
+          candidateIndex
+        ) =>
+          candidateIndex !==
+          serviceIndex
+      )
+      .filter(
+        (candidate) =>
+          candidate.inferenceRole ===
+          "anchor"
+      )
       .map((candidate) => ({
         value:
           candidate.id ||
-          candidate.businessServiceId ||
-          `key:${getAdminServiceKey(candidate)}`,
-        label: `${candidate.serviceName || "Unnamed"}  -  ${candidate.durationMinutes || "?"} min`
+          candidate
+            .businessServiceId ||
+          `key:${getAdminServiceKey(
+            candidate
+          )}`,
+        label:
+          `${candidate.serviceName || "Unnamed"} - ${candidate.durationMinutes || "?"} min`
       }))
   ];
 
+  const isOpen =
+    service.__adminOpen === true ||
+    !(
+      service.id ||
+      service.businessServiceId
+    );
+
   return `
-    <div class="service-card">
-      <div class="service-card-header">
-        <div>
-          <h4>${escapeHtml(service.serviceName || "Unnamed Service")}</h4>
-          <p>${escapeHtml(getServiceCategoryLabel(service))}  -  ${escapeHtml(service.serviceType || "unknown")}  -  ${escapeHtml(service.durationMinutes || "unknown")} min  -  ${escapeHtml(service.priority || "no priority")}  -  ${escapeHtml(service.discoveryStatus || "no status")}</p>
+    <details
+      class="service-card compact-service-card"
+      data-service-disclosure-business-index="${businessIndex}"
+      data-service-disclosure-service-index="${serviceIndex}"
+      ${isOpen ? "open" : ""}
+    >
+      <summary class="service-card-header">
+        <div class="service-card-summary-copy">
+          <h4>
+            ${escapeHtml(
+              service.serviceName ||
+              "Unnamed Service"
+            )}
+          </h4>
+
+          <p>
+            ${escapeHtml(
+              getServiceCategoryLabel(
+                service
+              )
+            )}
+            ·
+            ${escapeHtml(
+              service.serviceType ||
+              "unknown"
+            )}
+            ·
+            ${escapeHtml(
+              service.durationMinutes ||
+              "?"
+            )}
+            min
+            ·
+            ${escapeHtml(
+              service.priority ||
+              "no priority"
+            )}
+          </p>
         </div>
 
         <div class="service-card-actions">
-          <span class="enabled-pill ${service.enabled === false ? "disabled" : "enabled"}">
-            ${service.enabled === false ? "Disabled" : "Enabled"}
+          <span class="enabled-pill ${
+            service.enabled === false
+              ? "disabled"
+              : "enabled"
+          }">
+            ${
+              service.enabled === false
+                ? "Disabled"
+                : "Enabled"
+            }
           </span>
-          <button class="danger-btn delete-service-btn" data-delete-business-index="${businessIndex}" data-delete-service-index="${serviceIndex}">
+
+          <button
+            class="secondary-btn compact-service-action clone-service-btn"
+            type="button"
+            data-clone-business-index="${businessIndex}"
+            data-clone-service-index="${serviceIndex}"
+          >
+            Clone
+          </button>
+
+          <button
+            class="danger-btn compact-service-action delete-service-btn"
+            type="button"
+            data-delete-business-index="${businessIndex}"
+            data-delete-service-index="${serviceIndex}"
+          >
             Delete
           </button>
         </div>
-      </div>
+      </summary>
 
-      <div class="service-edit-grid">
-        ${renderServiceInput("Service Name", "serviceName", service.serviceName, businessIndex, serviceIndex)}
-        ${renderServiceSelect(
-          "Marketplace Category",
-          "categorySlug",
-          service.categorySlug ||
-            service.marketplaceCategory ||
-            "",
-          businessIndex,
-          serviceIndex,
-          getServiceCategoryOptions(
+      <div class="service-card-body">
+        <div class="service-edit-grid service-core-grid">
+          ${renderServiceInput(
+            "Service Name",
+            "serviceName",
+            service.serviceName,
+            businessIndex,
+            serviceIndex
+          )}
+
+          ${renderServiceSelect(
+            "Marketplace Category",
+            "categorySlug",
             service.categorySlug ||
-            service.marketplaceCategory ||
-            ""
-          )
-        )}
-        ${renderServiceInput("Service Type", "serviceType", service.serviceType, businessIndex, serviceIndex)}
-        ${renderServiceInput("Duration", "durationMinutes", service.durationMinutes, businessIndex, serviceIndex, "number")}
-        ${renderServiceInput("Platform Service ID", "platformServiceId", service.platformServiceId, businessIndex, serviceIndex)}
-        ${renderServiceInput("Service Button ID", "serviceButtonId", service.serviceButtonId, businessIndex, serviceIndex)}
-        ${renderServiceInput("Service ID", "serviceId", service.serviceId, businessIndex, serviceIndex)}
-        ${renderServiceInput("Priority", "priority", service.priority, businessIndex, serviceIndex)}
-        ${renderServiceInput("Discovery Status", "discoveryStatus", service.discoveryStatus, businessIndex, serviceIndex)}
-        ${renderServiceInput("Booking Interval Minutes", "bookingIntervalMinutes", service.bookingIntervalMinutes, businessIndex, serviceIndex, "number")}
+              service.marketplaceCategory ||
+              "",
+            businessIndex,
+            serviceIndex,
+            getServiceCategoryOptions(
+              service.categorySlug ||
+              service.marketplaceCategory ||
+              ""
+            )
+          )}
 
-        <div class="admin-field checkbox-wrap">
-          <span>Service Status</span>
-          ${renderServiceCheckbox("Enabled", "enabled", service.enabled !== false, businessIndex, serviceIndex)}
+          ${renderServiceInput(
+            "Service Type",
+            "serviceType",
+            service.serviceType,
+            businessIndex,
+            serviceIndex
+          )}
+
+          ${renderServiceInput(
+            "Duration",
+            "durationMinutes",
+            service.durationMinutes,
+            businessIndex,
+            serviceIndex,
+            "number"
+          )}
+
+          ${renderServiceInput(
+            "Platform Service ID",
+            "platformServiceId",
+            service.platformServiceId,
+            businessIndex,
+            serviceIndex
+          )}
+
+          ${renderServiceInput(
+            "Service ID",
+            "serviceId",
+            service.serviceId,
+            businessIndex,
+            serviceIndex
+          )}
+
+          ${renderServiceInput(
+            "Priority",
+            "priority",
+            service.priority,
+            businessIndex,
+            serviceIndex
+          )}
+
+          ${renderServiceInput(
+            "Discovery Status",
+            "discoveryStatus",
+            service.discoveryStatus,
+            businessIndex,
+            serviceIndex
+          )}
+
+          <div class="admin-field checkbox-wrap compact-checkbox-field">
+            <span>Status</span>
+            ${renderServiceCheckbox(
+              "Enabled",
+              "enabled",
+              service.enabled !== false,
+              businessIndex,
+              serviceIndex
+            )}
+          </div>
+
+          <div class="admin-field checkbox-wrap compact-checkbox-field">
+            <span>Scrape</span>
+            ${renderServiceCheckbox(
+              "Scrape directly",
+              "scrapeDirectly",
+              service.scrapeDirectly !== false,
+              businessIndex,
+              serviceIndex
+            )}
+          </div>
         </div>
 
-        <div class="admin-field checkbox-wrap">
-          <span>Scrape Behavior</span>
-          ${renderServiceCheckbox("Scrape this service directly", "scrapeDirectly", service.scrapeDirectly !== false, businessIndex, serviceIndex)}
-        </div>
+        <details class="service-advanced">
+          <summary>
+            Advanced platform and inference fields
+          </summary>
 
-        <div class="admin-field checkbox-wrap">
-          <span>Inference</span>
-          ${renderServiceCheckbox("Enable inference", "inferenceEnabled", service.inferenceEnabled === true, businessIndex, serviceIndex)}
-        </div>
+          <div class="service-edit-grid service-advanced-grid">
+            ${renderServiceInput(
+              "Service Button ID",
+              "serviceButtonId",
+              service.serviceButtonId,
+              businessIndex,
+              serviceIndex
+            )}
 
-        ${renderServiceSelect(
-          "Inference Role",
-          "inferenceRole",
-          service.inferenceRole || "",
-          businessIndex,
-          serviceIndex,
-          [
-            { value: "", label: "No inference role" },
-            { value: "anchor", label: "Anchor - scrape confirmed availability" },
-            { value: "inferred", label: "Inferred - generated from an anchor" }
-          ]
-        )}
+            ${renderServiceInput(
+              "Booking Interval",
+              "bookingIntervalMinutes",
+              service.bookingIntervalMinutes,
+              businessIndex,
+              serviceIndex,
+              "number"
+            )}
 
-        ${renderServiceSelect(
-          "Anchor Service",
-          "anchorServiceId",
-          service.anchorServiceId || "",
-          businessIndex,
-          serviceIndex,
-          anchorOptions
-        )}
+            <div class="admin-field checkbox-wrap compact-checkbox-field">
+              <span>Inference</span>
+              ${renderServiceCheckbox(
+                "Enable inference",
+                "inferenceEnabled",
+                service.inferenceEnabled === true,
+                businessIndex,
+                serviceIndex
+              )}
+            </div>
 
-        <div class="admin-field checkbox-wrap">
-          <span>Anchor Rules</span>
-          ${renderServiceCheckbox("Infer shorter durations", "inferShorterDurations", service.inferShorterDurations === true, businessIndex, serviceIndex)}
-        </div>
+            ${renderServiceSelect(
+              "Inference Role",
+              "inferenceRole",
+              service.inferenceRole ||
+                "",
+              businessIndex,
+              serviceIndex,
+              [
+                {
+                  value: "",
+                  label:
+                    "No inference role"
+                },
+                {
+                  value:
+                    "anchor",
+                  label:
+                    "Anchor"
+                },
+                {
+                  value:
+                    "inferred",
+                  label:
+                    "Inferred"
+                }
+              ]
+            )}
 
-        ${renderServiceInput(
-          "Infer Service Types",
-          "inferServiceTypes",
-          normalizeInferServiceTypes(service.inferServiceTypes).join(", "),
-          businessIndex,
-          serviceIndex
-        )}
-        ${renderServiceInput("Inference Slot Interval", "inferStartIntervalMinutes", service.inferStartIntervalMinutes || 15, businessIndex, serviceIndex, "number")}
-        ${renderServiceInput("Inference Confidence", "inferenceConfidence", service.inferenceConfidence ?? 0.85, businessIndex, serviceIndex, "number")}
+            ${renderServiceSelect(
+              "Anchor Service",
+              "anchorServiceId",
+              service.anchorServiceId ||
+                "",
+              businessIndex,
+              serviceIndex,
+              anchorOptions
+            )}
+
+            <div class="admin-field checkbox-wrap compact-checkbox-field">
+              <span>Anchor Rules</span>
+              ${renderServiceCheckbox(
+                "Infer shorter durations",
+                "inferShorterDurations",
+                service.inferShorterDurations === true,
+                businessIndex,
+                serviceIndex
+              )}
+            </div>
+
+            ${renderServiceInput(
+              "Infer Service Types",
+              "inferServiceTypes",
+              normalizeInferServiceTypes(
+                service.inferServiceTypes
+              ).join(", "),
+              businessIndex,
+              serviceIndex
+            )}
+
+            ${renderServiceInput(
+              "Inference Slot Interval",
+              "inferStartIntervalMinutes",
+              service.inferStartIntervalMinutes ||
+                15,
+              businessIndex,
+              serviceIndex,
+              "number"
+            )}
+
+            ${renderServiceInput(
+              "Inference Confidence",
+              "inferenceConfidence",
+              service.inferenceConfidence ??
+                0.85,
+              businessIndex,
+              serviceIndex,
+              "number"
+            )}
+          </div>
+        </details>
       </div>
-    </div>
+    </details>
   `;
 }
 
@@ -672,6 +1655,10 @@ function renderBusinessCard(business, index) {
           ${renderInput("Platform", "platform", business.platform, index)}
           ${renderInput("Booking URL", "bookingUrl", business.bookingUrl, index)}
           ${renderInput("Website", "website", business.website, index)}
+          ${renderBusinessMetroSelect(
+            business,
+            index
+          )}
           ${renderInput("Address", "address", business.address, index)}
           ${renderInput("City", "city", business.city, index)}
           ${renderInput("State", "state", business.state, index)}
@@ -701,7 +1688,7 @@ function renderBusinessCard(business, index) {
 }
 
 function attachBusinessInputListeners() {
-  content.querySelectorAll("input[data-index][data-field], textarea[data-index][data-field]").forEach((fieldElement) => {
+  content.querySelectorAll("input[data-index][data-field], textarea[data-index][data-field], select[data-index][data-field]").forEach((fieldElement) => {
     const update = () => {
       const index = Number(fieldElement.dataset.index);
       const field = fieldElement.dataset.field;
@@ -777,6 +1764,12 @@ function attachAddServiceListeners() {
         businessesCache[businessIndex].services = [];
       }
 
+      businessesCache[businessIndex].services.forEach(
+        (service) => {
+          service.__adminOpen = false;
+        }
+      );
+
       businessesCache[businessIndex].services.push(createBlankService());
       setStatus("New blank service added. Fill it in, then click Save Business.", "info");
       renderBusinessesFromCache();
@@ -784,9 +1777,116 @@ function attachAddServiceListeners() {
   });
 }
 
+function attachServiceDisclosureListeners() {
+  content
+    .querySelectorAll(
+      "[data-service-disclosure-business-index][data-service-disclosure-service-index]"
+    )
+    .forEach((details) => {
+      details.addEventListener(
+        "toggle",
+        () => {
+          const businessIndex =
+            Number(
+              details.dataset
+                .serviceDisclosureBusinessIndex
+            );
+
+          const serviceIndex =
+            Number(
+              details.dataset
+                .serviceDisclosureServiceIndex
+            );
+
+          const service =
+            businessesCache[
+              businessIndex
+            ]?.services?.[
+              serviceIndex
+            ];
+
+          if (service) {
+            service.__adminOpen =
+              details.open;
+          }
+        }
+      );
+    });
+}
+
+function attachCloneServiceListeners() {
+  content
+    .querySelectorAll(
+      "[data-clone-business-index][data-clone-service-index]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const businessIndex =
+            Number(
+              button.dataset
+                .cloneBusinessIndex
+            );
+
+          const serviceIndex =
+            Number(
+              button.dataset
+                .cloneServiceIndex
+            );
+
+          const business =
+            businessesCache[
+              businessIndex
+            ];
+
+          const sourceService =
+            business?.services?.[
+              serviceIndex
+            ];
+
+          if (!sourceService) {
+            return;
+          }
+
+          business.services.forEach(
+            (service) => {
+              service.__adminOpen =
+                false;
+            }
+          );
+
+          const clone =
+            cloneServiceForAdmin(
+              sourceService
+            );
+
+          business.services.splice(
+            serviceIndex + 1,
+            0,
+            clone
+          );
+
+          setStatus(
+            "Service cloned. Platform IDs were cleared; update the copy and click Save Business.",
+            "info"
+          );
+
+          renderBusinessesFromCache();
+        }
+      );
+    });
+}
+
 function attachDeleteServiceListeners() {
   content.querySelectorAll("[data-delete-business-index][data-delete-service-index]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
       const businessIndex = Number(button.dataset.deleteBusinessIndex);
       const serviceIndex = Number(button.dataset.deleteServiceIndex);
       const business = businessesCache[businessIndex];
@@ -848,13 +1948,11 @@ function renderBusinessSearchResults() {
             ${businessSearchFacets.industries.map((value) => renderBusinessSearchOption(value, businessSearchState.industry)).join("")}
           </select>
         </label>
-        <label class="admin-field">
-          <span>Metro</span>
-          <select id="businessSearchMetro">
-            <option value="">All metros</option>
-            ${businessSearchFacets.metros.map((value) => renderBusinessSearchOption(value, businessSearchState.metro)).join("")}
-          </select>
-        </label>
+        ${renderAdminMetroFilterField(
+          "City",
+          "businessSearchMetro",
+          businessSearchState.metro
+        )}
         <label class="admin-field">
           <span>Platform</span>
           <select id="businessSearchPlatform">
@@ -912,7 +2010,14 @@ function renderBusinessSearchResults() {
     event.preventDefault();
     businessSearchState.name = document.getElementById("businessSearchName")?.value.trim() || "";
     businessSearchState.industry = document.getElementById("businessSearchIndustry")?.value || "";
-    businessSearchState.metro = document.getElementById("businessSearchMetro")?.value || "";
+    setAdminMetroSlug(
+      document.getElementById(
+        "businessSearchMetro"
+      )?.value || "",
+      {
+        reload: false
+      }
+    );
     businessSearchState.platform = document.getElementById("businessSearchPlatform")?.value || "";
     businessSearchState.enabled = document.getElementById("businessSearchEnabled")?.value || "";
     businessSearchState.page = 1;
@@ -920,7 +2025,16 @@ function renderBusinessSearchResults() {
   });
 
   document.getElementById("clearBusinessSearchBtn")?.addEventListener("click", async () => {
-    businessSearchState = { ...businessSearchState, name: "", industry: "", metro: "", platform: "", enabled: "", page: 1 };
+    businessSearchState = {
+      ...businessSearchState,
+      name: "",
+      industry: "",
+      metro:
+        getSelectedAdminMetroSlug(),
+      platform: "",
+      enabled: "",
+      page: 1
+    };
     await loadBusinesses();
   });
 
@@ -973,7 +2087,9 @@ function renderBusinessesFromCache() {
 
   attachBusinessInputListeners();
   attachServiceInputListeners();
+  attachServiceDisclosureListeners();
   attachAddServiceListeners();
+  attachCloneServiceListeners();
   attachDeleteServiceListeners();
   attachSingleBusinessSaveListeners();
 }
@@ -1009,7 +2125,15 @@ async function saveSingleBusiness(index, button = null) {
       ...business,
       services: Array.isArray(business.services)
         ? business.services.map((service) => ({
-            ...service,
+            ...Object.fromEntries(
+              Object.entries(service)
+                .filter(
+                  ([key]) =>
+                    !key.startsWith(
+                      "__admin"
+                    )
+                )
+            ),
             inferServiceTypes: normalizeInferServiceTypes(
               service.inferServiceTypes
             )
@@ -1162,7 +2286,11 @@ async function loadBusinessSubscriptionsView() {
       <form id="subscriptionSearchForm" class="admin-search-grid">
         ${renderSubscriptionTextInput("Business Name", "subscriptionSearchName", subscriptionSearchState.name, "Search business")}
         ${renderSubscriptionTextInput("Industry", "subscriptionSearchIndustry", subscriptionSearchState.industry, "wellness")}
-        ${renderSubscriptionTextInput("Metro", "subscriptionSearchMetro", subscriptionSearchState.metro, "Austin")}
+        ${renderAdminMetroFilterField(
+          "City",
+          "subscriptionSearchMetro",
+          subscriptionSearchState.metro
+        )}
 
         <label class="admin-field">
           <span>Plan</span>
@@ -1351,7 +2479,14 @@ async function loadBusinessSubscriptionsView() {
       event.preventDefault();
       subscriptionSearchState.name = getInputValue("subscriptionSearchName").trim();
       subscriptionSearchState.industry = getInputValue("subscriptionSearchIndustry").trim();
-      subscriptionSearchState.metro = getInputValue("subscriptionSearchMetro").trim();
+      setAdminMetroSlug(
+        getInputValue(
+          "subscriptionSearchMetro"
+        ),
+        {
+          reload: false
+        }
+      );
       subscriptionSearchState.plan = getInputValue("subscriptionSearchPlan");
       subscriptionSearchState.status = getInputValue("subscriptionSearchStatus");
       subscriptionSearchState.page = 1;
@@ -1363,7 +2498,8 @@ async function loadBusinessSubscriptionsView() {
         ...subscriptionSearchState,
         name: "",
         industry: "",
-        metro: "",
+        metro:
+          getSelectedAdminMetroSlug(),
         plan: "",
         status: "",
         page: 1
@@ -1522,6 +2658,11 @@ async function loadResults() {
       <p class="admin-muted">Search PostgreSQL inventory in small pages instead of loading every appointment.</p>
 
       <form id="inventorySearchForm" class="admin-search-grid">
+        ${renderAdminMetroFilterField(
+          "City",
+          "inventoryMetro",
+          inventorySearchState.metro
+        )}
         ${renderSubscriptionTextInput("Business", "inventoryBusiness", inventorySearchState.business, "Business name")}
         ${renderSubscriptionTextInput("Service", "inventoryService", inventorySearchState.service, "Service name")}
         ${renderSubscriptionTextInput("Service Type", "inventoryServiceType", inventorySearchState.serviceType, "massage")}
@@ -1572,6 +2713,7 @@ async function loadResults() {
         includeInactive: String(inventorySearchState.includeInactive)
       });
 
+      if (inventorySearchState.metro) params.set("metro", inventorySearchState.metro);
       if (inventorySearchState.business) params.set("business", inventorySearchState.business);
       if (inventorySearchState.service) params.set("service", inventorySearchState.service);
       if (inventorySearchState.serviceType) params.set("serviceType", inventorySearchState.serviceType);
@@ -1654,6 +2796,14 @@ async function loadResults() {
 
   document.getElementById("inventorySearchForm")?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    setAdminMetroSlug(
+      getInputValue(
+        "inventoryMetro"
+      ),
+      {
+        reload: false
+      }
+    );
     inventorySearchState.business = getInputValue("inventoryBusiness").trim();
     inventorySearchState.service = getInputValue("inventoryService").trim();
     inventorySearchState.serviceType = getInputValue("inventoryServiceType").trim();
@@ -1669,6 +2819,8 @@ async function loadResults() {
 
   document.getElementById("clearInventorySearchBtn")?.addEventListener("click", async () => {
     inventorySearchState = {
+      metro:
+        getSelectedAdminMetroSlug(),
       business: "",
       service: "",
       serviceType: "",
@@ -1694,15 +2846,36 @@ async function loadErrors() {
   setLoading("Loading error logs...");
 
   try {
-    const data = await fetchJson("/api/admin/errors");
+    const params =
+      new URLSearchParams();
+
+    if (adminMetroSlug) {
+      params.set(
+        "metro",
+        adminMetroSlug
+      );
+    }
+
+    const data = await fetchJson(
+      `/api/admin/errors?${params.toString()}`
+    );
     const errors = Array.isArray(data.errors) ? data.errors : [];
 
     pageTitle.textContent = views.errors.title;
     pageSubtitle.textContent = views.errors.subtitle;
 
     content.innerHTML = `
-      <h3>Error Logs</h3>
-      <p>${errors.length} error log entries found.</p>
+      <div class="section-heading compact-heading">
+        <div>
+          <h3>Error Logs</h3>
+          <p>
+            ${errors.length} error log entries found for
+            ${escapeHtml(
+              getAdminMetroContextLabel()
+            )}.
+          </p>
+        </div>
+      </div>
       <details class="raw-json-box" open>
         <summary>View PostgreSQL scrape errors</summary>
         <pre>${escapeHtml(JSON.stringify(errors, null, 2))}</pre>
@@ -1770,7 +2943,19 @@ function setNestedSetting(target, path, value) {
 }
 
 async function getBusinessesForSettings() {
-  const data = await fetchJson("/api/admin/businesses");
+  const params =
+    new URLSearchParams();
+
+  if (adminMetroSlug) {
+    params.set(
+      "metro",
+      adminMetroSlug
+    );
+  }
+
+  const data = await fetchJson(
+    `/api/admin/businesses?${params.toString()}`
+  );
   return Array.isArray(data.businesses)
     ? data.businesses.map(normalizeBusinessDefaults)
     : [];
@@ -2454,17 +3639,32 @@ const SCHEDULER_WEEKDAYS = [
 
 function formatSchedulerDateTime(value) {
   if (!value) return "—";
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short"
-  }).format(date);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-US",
+    {
+      timeZone:
+        getSelectedAdminMetro()
+          ?.timezone ||
+        "America/Chicago",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short"
+    }
+  ).format(date);
 }
 
 function schedulerStatusClass(value) {
@@ -2812,8 +4012,16 @@ function renderGroupEditor() {
           <input id="groupIndustries" type="text" placeholder="wellness, massage" />
         </label>
         <label class="admin-field">
-          <span>Metro or city filters</span>
-          <input id="groupMetros" type="text" placeholder="Austin" />
+          <span>Marketplace metro</span>
+          <select id="groupMetros">
+            ${renderAdminMetroOptions(
+              getSelectedAdminMetroSlug(),
+              {
+                placeholder:
+                  "Any marketplace city"
+              }
+            )}
+          </select>
         </label>
         <label class="admin-field">
           <span>Priority filters</span>
@@ -2998,10 +4206,18 @@ async function loadSchedulerV2() {
       fetchJson("/api/admin/v2/scheduler/health"),
       fetchJson("/api/admin/v2/scheduler/jobs?limit=100"),
       fetchJson("/api/admin/v2/integrations/platforms"),
-      fetchJson("/api/admin/businesses/search?enabled=true&page=1&limit=100")
+      fetchJson(
+        `/api/admin/businesses/search?enabled=true&page=1&limit=100${
+          adminMetroSlug
+            ? `&metro=${encodeURIComponent(
+                adminMetroSlug
+              )}`
+            : ""
+        }`
+      )
     ]);
 
-    schedulerV2State = {
+    const rawSchedulerState = {
       groups: groupsData.groups || [],
       schedules: schedulesData.schedules || [],
       exceptions: exceptionsData.exceptions || [],
@@ -3013,6 +4229,11 @@ async function loadSchedulerV2() {
       businesses: businessesData.businesses || businessesData.results || [],
       platforms: platformsData.platforms || []
     };
+
+    schedulerV2State =
+      filterSchedulerStateForAdminMetro(
+        rawSchedulerState
+      );
 
     content.innerHTML = `
       <div class="scheduler-dashboard">
@@ -3030,7 +4251,10 @@ async function loadSchedulerV2() {
     updateScheduleTargetFields();
     updateScheduleTimingFields();
     updateExceptionTimeField();
-    setStatus("Loaded PostgreSQL scheduler, queue, and worker status.", "success");
+    setStatus(
+      `Loaded ${getAdminMetroContextLabel()} schedules, queue jobs, and worker status.`,
+      "success"
+    );
   } catch (error) {
     content.innerHTML = `
       <section class="scheduler-section">
@@ -3067,7 +4291,12 @@ function resetScheduleForm() {
   const id = (name) => document.getElementById(name);
   if (id("scheduleId")) id("scheduleId").value = "";
   if (id("scheduleName")) id("scheduleName").value = "";
-  if (id("scheduleTimezone")) id("scheduleTimezone").value = "America/Chicago";
+  if (id("scheduleTimezone")) {
+    id("scheduleTimezone").value =
+      getSelectedAdminMetro()
+        ?.timezone ||
+      "America/Chicago";
+  }
   if (id("scheduleEnabled")) id("scheduleEnabled").checked = true;
   if (id("scheduleTargetType")) id("scheduleTargetType").value = "business";
   if (id("scheduleBusinessId")) id("scheduleBusinessId").value = "";
@@ -3192,9 +4421,20 @@ function resetGroupForm() {
   document.getElementById("groupEnabled").checked = true;
   document.getElementById("groupDescription").value = "";
   setSchedulerSelectedValues("groupBusinessIds", []);
-  ["groupPlatforms", "groupIndustries", "groupMetros", "groupPriorities", "groupDiscoveryStatuses", "groupNameContains"].forEach((id) => {
+  [
+    "groupPlatforms",
+    "groupIndustries",
+    "groupPriorities",
+    "groupDiscoveryStatuses",
+    "groupNameContains"
+  ].forEach((id) => {
     document.getElementById(id).value = "";
   });
+
+  document.getElementById(
+    "groupMetros"
+  ).value =
+    getSelectedAdminMetroSlug();
   document.getElementById("groupEditorTitle").textContent = "Create Scrape Group";
   document.getElementById("saveGroupBtn").textContent = "Save Group";
 }
@@ -3208,7 +4448,15 @@ function populateGroupForm(group) {
   setSchedulerSelectedValues("groupBusinessIds", (group.businesses || []).map(getSchedulerBusinessPublicId));
   document.getElementById("groupPlatforms").value = schedulerStringList(selector.platforms || selector.platform).join(", ");
   document.getElementById("groupIndustries").value = schedulerStringList(selector.businessCategories || selector.industries || selector.industry).join(", ");
-  document.getElementById("groupMetros").value = schedulerStringList(selector.metros || selector.metro || selector.cities || selector.city).join(", ");
+  document.getElementById(
+    "groupMetros"
+  ).value =
+    schedulerStringList(
+      selector.metros ||
+      selector.metro ||
+      selector.cities ||
+      selector.city
+    )[0] || "";
   document.getElementById("groupPriorities").value = schedulerStringList(selector.priorities || selector.priority).join(", ");
   document.getElementById("groupDiscoveryStatuses").value = schedulerStringList(selector.discoveryStatuses || selector.discoveryStatus).join(", ");
   document.getElementById("groupNameContains").value = selector.nameContains || selector.businessName || "";
@@ -3523,4 +4771,13 @@ refreshBtn.addEventListener("click", () => {
   loadView(currentView);
 });
 
-loadView("businesses");
+async function initializeAdminPortal() {
+  try {
+    await loadAdminMetros();
+  } finally {
+    attachAdminMetroWorkspace();
+    loadView("businesses");
+  }
+}
+
+initializeAdminPortal();

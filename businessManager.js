@@ -304,6 +304,15 @@ function normalizeBusinessShape(business = {}) {
     email: business.email || "",
     ownerEmail: business.ownerEmail || business.owner_email || "",
     address: business.address || location.address || "",
+    metro:
+      business.metro ||
+      business.market ||
+      business.region ||
+      business.raw_json?.metro ||
+      location.raw_json?.metro ||
+      business.city ||
+      location.city ||
+      "",
     city: business.city || location.city || "",
     state: business.state || location.state || "",
     postalCode:
@@ -597,7 +606,10 @@ async function searchBusinessSubscriptions(options = {}) {
       businessName: row.business_name,
       businessCategory: row.business_category || "wellness",
       platform: row.platform || "",
-      metro: row.city || "",
+      metro:
+        row.metro ||
+        row.city ||
+        "",
       address: row.address || "",
       enabled: row.enabled !== false,
       ...normalizeSubscriptionShape(row)

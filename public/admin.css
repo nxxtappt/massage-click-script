@@ -840,3 +840,226 @@ body {
     flex-direction: column;
   }
 }
+
+/* NEXTAPPT ADMIN CITY WORKSPACE + COMPACT SERVICES START */
+.topbar-actions {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-metro-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 210px;
+}
+
+.admin-metro-workspace > span {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-metro-workspace select {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.admin-metro-workspace small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.admin-metro-pill {
+  background: #ede9fe;
+  border-radius: 999px;
+  color: #5b21b6;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 5px 9px;
+}
+
+.services-section {
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.services-inner {
+  margin-top: 8px;
+}
+
+.services-actions {
+  margin-bottom: 8px;
+}
+
+.compact-service-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.compact-service-card > summary {
+  list-style: none;
+}
+
+.compact-service-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.compact-service-card .service-card-header {
+  align-items: center;
+  cursor: pointer;
+  margin: 0;
+  min-height: 48px;
+  padding: 7px 9px;
+}
+
+.compact-service-card[open] .service-card-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.service-card-summary-copy {
+  min-width: 0;
+}
+
+.service-card-summary-copy h4 {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.service-card-summary-copy p {
+  font-size: 11px;
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.compact-service-card .service-card-actions {
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.compact-service-action {
+  min-height: 26px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.service-card-body {
+  padding: 8px 9px 9px;
+}
+
+.service-edit-grid {
+  grid-template-columns:
+    repeat(5, minmax(120px, 1fr));
+  gap: 6px 8px;
+}
+
+.service-edit-grid .admin-field {
+  gap: 2px;
+  min-width: 0;
+}
+
+.service-edit-grid .admin-field > span {
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
+
+.service-edit-grid .admin-field input,
+.service-edit-grid .admin-field select {
+  border-radius: 7px;
+  font-size: 12px;
+  min-height: 30px;
+  padding: 4px 7px;
+}
+
+.compact-checkbox-field {
+  justify-content: flex-start;
+}
+
+.compact-checkbox-field .admin-checkbox {
+  background: #ffffff;
+  border: 1px solid #dbe4ee;
+  border-radius: 7px;
+  min-height: 30px;
+  padding: 4px 7px;
+}
+
+.compact-checkbox-field .admin-checkbox span {
+  font-size: 11px;
+}
+
+.service-advanced {
+  border-top: 1px dashed #cbd5e1;
+  margin-top: 8px;
+  padding-top: 5px;
+}
+
+.service-advanced > summary {
+  color: #475569;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 1px 7px;
+}
+
+.service-advanced-grid {
+  grid-template-columns:
+    repeat(5, minmax(120px, 1fr));
+}
+
+.admin-search-grid .admin-metro-field {
+  min-width: 150px;
+}
+
+@media (max-width: 1350px) {
+  .service-edit-grid,
+  .service-advanced-grid {
+    grid-template-columns:
+      repeat(4, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 1050px) {
+  .service-edit-grid,
+  .service-advanced-grid {
+    grid-template-columns:
+      repeat(2, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .topbar-actions {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .admin-metro-workspace {
+    flex: 1 1 100%;
+  }
+
+  .service-edit-grid,
+  .service-advanced-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-service-card .service-card-header {
+    align-items: flex-start;
+  }
+
+  .compact-service-card .service-card-actions {
+    width: 100%;
+  }
+}
+/* NEXTAPPT ADMIN CITY WORKSPACE + COMPACT SERVICES END */

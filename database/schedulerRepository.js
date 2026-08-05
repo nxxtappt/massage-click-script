@@ -1,6 +1,11 @@
 "use strict";
 
 const db = require("../db");
+const {
+  normalizeMetroValue:
+    normalizeMarketplaceMetroValue,
+  getMarketplaceMetroSearchTerms
+} = require("../marketplaceMetros");
 
 function cleanText(value, maxLength = 500) {
   return String(value ?? "").trim().slice(0, maxLength);
@@ -28,53 +33,128 @@ async function query(text, params = []) {
 }
 
 async function listGroups() {
-  const { rows } = await query(`
-    SELECT
-      g.*,
-      COALESCE(
-        json_agg(
-          json_build_object(
-            'id', b.id,
-            'businessId', b.business_id,
-            'businessName', b.business_name,
-            'platform', b.platform
-          )
-          ORDER BY b.business_name
-        ) FILTER (WHERE b.id IS NOT NULL),
-        '[]'::json
-      ) AS businesses
-    FROM scrape_groups g
-    LEFT JOIN scrape_group_businesses gb ON gb.group_id = g.id
-    LEFT JOIN businesses b ON b.id = gb.business_id
-    GROUP BY g.id
-    ORDER BY g.name
-  `);
+  const { rows } =
+    await query(`
+      SELECT
+        g.*,
+        COALESCE(
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'id', b.id,
+              'businessId',
+                b.business_id,
+              'businessName',
+                b.business_name,
+              'platform',
+                b.platform,
+              'metro',
+                COALESCE(
+                  NULLIF(
+                    b.raw_json->>'metro',
+                    ''
+                  ),
+                  bl.city,
+                  ''
+                ),
+              'city',
+                bl.city,
+              'state',
+                bl.state,
+              'address',
+                bl.address
+            )
+            ORDER BY
+              b.business_name
+          ) FILTER (
+            WHERE
+              b.id IS NOT NULL
+          ),
+          '[]'::json
+        ) AS businesses
+      FROM scrape_groups g
+      LEFT JOIN scrape_group_businesses gb
+        ON gb.group_id = g.id
+      LEFT JOIN businesses b
+        ON b.id = gb.business_id
+      LEFT JOIN LATERAL (
+        SELECT
+          city,
+          state,
+          address
+        FROM business_locations
+        WHERE business_id = b.id
+        ORDER BY id ASC
+        LIMIT 1
+      ) bl ON TRUE
+      GROUP BY g.id
+      ORDER BY g.name
+    `);
+
   return rows;
 }
 
 async function getGroup(id) {
-  const { rows } = await query(`
-    SELECT
-      g.*,
-      COALESCE(
-        json_agg(
-          json_build_object(
-            'id', b.id,
-            'businessId', b.business_id,
-            'businessName', b.business_name,
-            'platform', b.platform
-          )
-          ORDER BY b.business_name
-        ) FILTER (WHERE b.id IS NOT NULL),
-        '[]'::json
-      ) AS businesses
-    FROM scrape_groups g
-    LEFT JOIN scrape_group_businesses gb ON gb.group_id = g.id
-    LEFT JOIN businesses b ON b.id = gb.business_id
-    WHERE g.id = $1
-    GROUP BY g.id
-    LIMIT 1
-  `, [id]);
+  const { rows } =
+    await query(
+      `
+        SELECT
+          g.*,
+          COALESCE(
+            JSON_AGG(
+              JSON_BUILD_OBJECT(
+                'id', b.id,
+                'businessId',
+                  b.business_id,
+                'businessName',
+                  b.business_name,
+                'platform',
+                  b.platform,
+                'metro',
+                  COALESCE(
+                    NULLIF(
+                      b.raw_json->>'metro',
+                      ''
+                    ),
+                    bl.city,
+                    ''
+                  ),
+                'city',
+                  bl.city,
+                'state',
+                  bl.state,
+                'address',
+                  bl.address
+              )
+              ORDER BY
+                b.business_name
+            ) FILTER (
+              WHERE
+                b.id IS NOT NULL
+            ),
+            '[]'::json
+          ) AS businesses
+        FROM scrape_groups g
+        LEFT JOIN scrape_group_businesses gb
+          ON gb.group_id = g.id
+        LEFT JOIN businesses b
+          ON b.id = gb.business_id
+        LEFT JOIN LATERAL (
+          SELECT
+            city,
+            state,
+            address
+          FROM business_locations
+          WHERE business_id = b.id
+          ORDER BY id ASC
+          LIMIT 1
+        ) bl ON TRUE
+        WHERE g.id = $1
+        GROUP BY g.id
+        LIMIT 1
+      `,
+      [id]
+    );
+
   return rows[0] || null;
 }
 
@@ -146,35 +226,97 @@ async function deleteGroup(id) {
 }
 
 async function listSchedules() {
-  const { rows } = await query(`
-    SELECT
-      s.*,
-      g.name AS group_name,
-      b.business_id AS public_business_id,
-      b.business_name
-    FROM scrape_schedules s
-    LEFT JOIN scrape_groups g ON g.id = s.group_id
-    LEFT JOIN businesses b ON b.id = s.business_id
-    ORDER BY s.name
-  `);
+  const { rows } =
+    await query(`
+      SELECT
+        s.*,
+        g.name AS group_name,
+        g.selector AS group_selector,
+        b.business_id
+          AS public_business_id,
+        b.business_name,
+        COALESCE(
+          NULLIF(
+            b.raw_json->>'metro',
+            ''
+          ),
+          bl.city,
+          ''
+        ) AS business_metro,
+        bl.city AS business_city,
+        bl.state AS business_state,
+        bl.address
+          AS business_address
+      FROM scrape_schedules s
+      LEFT JOIN scrape_groups g
+        ON g.id = s.group_id
+      LEFT JOIN businesses b
+        ON b.id = s.business_id
+      LEFT JOIN LATERAL (
+        SELECT
+          city,
+          state,
+          address
+        FROM business_locations
+        WHERE business_id = b.id
+        ORDER BY id ASC
+        LIMIT 1
+      ) bl ON TRUE
+      ORDER BY s.name
+    `);
+
   return rows;
 }
 
 async function getSchedule(id) {
-  const { rows } = await query(`
-    SELECT
-      s.*,
-      g.name AS group_name,
-      g.selector AS group_selector,
-      g.enabled AS group_enabled,
-      b.business_id AS public_business_id,
-      b.business_name
-    FROM scrape_schedules s
-    LEFT JOIN scrape_groups g ON g.id = s.group_id
-    LEFT JOIN businesses b ON b.id = s.business_id
-    WHERE s.id = $1
-    LIMIT 1
-  `, [id]);
+  const { rows } =
+    await query(
+      `
+        SELECT
+          s.*,
+          g.name AS group_name,
+          g.selector
+            AS group_selector,
+          g.enabled
+            AS group_enabled,
+          b.business_id
+            AS public_business_id,
+          b.business_name,
+          COALESCE(
+            NULLIF(
+              b.raw_json->>'metro',
+              ''
+            ),
+            bl.city,
+            ''
+          ) AS business_metro,
+          bl.city
+            AS business_city,
+          bl.state
+            AS business_state,
+          bl.address
+            AS business_address
+        FROM scrape_schedules s
+        LEFT JOIN scrape_groups g
+          ON g.id = s.group_id
+        LEFT JOIN businesses b
+          ON b.id = s.business_id
+        LEFT JOIN LATERAL (
+          SELECT
+            city,
+            state,
+            address
+          FROM business_locations
+          WHERE business_id = b.id
+          ORDER BY id ASC
+          LIMIT 1
+        ) bl ON TRUE
+        WHERE s.id = $1
+        LIMIT 1
+      `,
+      [id]
+    );
+
   return rows[0] || null;
 }
 
@@ -391,88 +533,241 @@ async function listEnabledSchedules() {
   return rows;
 }
 
-async function queryBusinessesBySelector(selector = {}) {
-  if (!isPlainObject(selector) || Object.keys(selector).length === 0) {
+async function queryBusinessesBySelector(
+  selector = {}
+) {
+  if (
+    !isPlainObject(selector) ||
+    Object.keys(selector).length ===
+      0
+  ) {
     return [];
   }
 
   const values = [];
-  const conditions = ["b.enabled = TRUE"];
+  const conditions = [
+    "b.enabled = TRUE"
+  ];
 
-  function addArrayCondition(sqlExpression, value) {
-    const items = cleanStringArray(value).map((item) => item.toLowerCase());
-    if (!items.length) return;
+  function addArrayCondition(
+    sqlExpression,
+    value
+  ) {
+    const items =
+      cleanStringArray(value)
+        .map(
+          (item) =>
+            item.toLowerCase()
+        );
+
+    if (!items.length) {
+      return;
+    }
+
     values.push(items);
-    conditions.push(`${sqlExpression} = ANY($${values.length}::text[])`);
+
+    conditions.push(
+      `${sqlExpression} = ANY($${values.length}::text[])`
+    );
   }
 
-  const businessIds = cleanStringArray(selector.businessIds);
+  const businessIds =
+    cleanStringArray(
+      selector.businessIds
+    );
+
   if (businessIds.length) {
     values.push(businessIds);
-    conditions.push(`(b.business_id = ANY($${values.length}::text[]) OR b.id::text = ANY($${values.length}::text[]))`);
+
+    conditions.push(
+      `(b.business_id = ANY($${values.length}::text[]) OR b.id::text = ANY($${values.length}::text[]))`
+    );
   }
 
-  addArrayCondition("LOWER(COALESCE(b.platform, ''))", selector.platforms || selector.platform);
+  addArrayCondition(
+    "LOWER(COALESCE(b.platform, ''))",
+    selector.platforms ||
+    selector.platform
+  );
+
   addArrayCondition(
     "LOWER(COALESCE(b.business_category, ''))",
-    selector.businessCategories || selector.industries || selector.industry
+    selector.businessCategories ||
+    selector.industries ||
+    selector.industry
   );
-  addArrayCondition("LOWER(COALESCE(b.priority, ''))", selector.priorities || selector.priority);
+
+  addArrayCondition(
+    "LOWER(COALESCE(b.priority, ''))",
+    selector.priorities ||
+    selector.priority
+  );
+
   addArrayCondition(
     "LOWER(COALESCE(b.discovery_status, ''))",
-    selector.discoveryStatuses || selector.discoveryStatus
+    selector.discoveryStatuses ||
+    selector.discoveryStatus
   );
-  addArrayCondition("LOWER(COALESCE(l.state, ''))", selector.states || selector.state);
 
-  const metros = cleanStringArray(selector.metros || selector.metro || selector.cities || selector.city)
-    .map((item) => item.toLowerCase());
-  if (metros.length) {
-    values.push(metros);
-    conditions.push(`(
-      LOWER(COALESCE(l.city, '')) = ANY($${values.length}::text[])
-      OR LOWER(COALESCE(b.raw_json->>'metro', '')) = ANY($${values.length}::text[])
-    )`);
+  addArrayCondition(
+    "LOWER(COALESCE(l.state, ''))",
+    selector.states ||
+    selector.state
+  );
+
+  const configuredMetros =
+    cleanStringArray(
+      selector.metros ||
+      selector.metro ||
+      selector.cities ||
+      selector.city
+    );
+
+  const metroTerms = [
+    ...new Set(
+      configuredMetros.flatMap(
+        (value) => {
+          const configured =
+            getMarketplaceMetroSearchTerms(
+              value
+            );
+
+          return configured.length
+            ? configured
+            : [
+                normalizeMarketplaceMetroValue(
+                  value
+                )
+              ];
+        }
+      )
+        .filter(Boolean)
+    )
+  ];
+
+  if (metroTerms.length) {
+    values.push(metroTerms);
+
+    conditions.push(`
+      EXISTS (
+        SELECT 1
+        FROM UNNEST(
+          $${values.length}::text[]
+        ) AS requested_metro(term)
+        WHERE BTRIM(
+          REGEXP_REPLACE(
+            LOWER(
+              CONCAT_WS(
+                ' ',
+                COALESCE(
+                  b.raw_json->>'metro',
+                  ''
+                ),
+                COALESCE(
+                  l.city,
+                  ''
+                ),
+                COALESCE(
+                  l.address,
+                  ''
+                )
+              )
+            ),
+            '[^a-z0-9]+',
+            ' ',
+            'g'
+          )
+        ) ~ (
+          '(^| )' ||
+          requested_metro.term ||
+          '( |$)'
+        )
+      )
+    `);
   }
 
-  const nameContains = cleanText(selector.nameContains || selector.businessName, 200);
+  const nameContains =
+    cleanText(
+      selector.nameContains ||
+      selector.businessName,
+      200
+    );
+
   if (nameContains) {
-    values.push(`%${nameContains}%`);
-    conditions.push(`b.business_name ILIKE $${values.length}`);
+    values.push(
+      `%${nameContains}%`
+    );
+
+    conditions.push(
+      `b.business_name ILIKE $${values.length}`
+    );
   }
 
   const recognizedSelector =
     conditions.length > 1 ||
     businessIds.length > 0;
 
-  if (!recognizedSelector) return [];
+  if (!recognizedSelector) {
+    return [];
+  }
 
-  const limit = Math.min(5000, Math.max(1, Number(selector.limit || 5000)));
+  const limit =
+    Math.min(
+      5000,
+      Math.max(
+        1,
+        Number(
+          selector.limit || 5000
+        )
+      )
+    );
+
   values.push(limit);
 
-  const { rows } = await query(`
-    SELECT DISTINCT
-      b.id,
-      b.business_id,
-      b.business_name,
-      b.platform,
-      b.business_category,
-      b.priority,
-      b.discovery_status,
-      l.city,
-      l.state,
-      l.timezone
-    FROM businesses b
-    LEFT JOIN LATERAL (
-      SELECT city, state, timezone
-      FROM business_locations
-      WHERE business_id = b.id
-      ORDER BY id
-      LIMIT 1
-    ) l ON TRUE
-    WHERE ${conditions.join(" AND ")}
-    ORDER BY b.business_name
-    LIMIT $${values.length}
-  `, values);
+  const { rows } =
+    await query(
+      `
+        SELECT DISTINCT
+          b.id,
+          b.business_id,
+          b.business_name,
+          b.platform,
+          b.business_category,
+          b.priority,
+          b.discovery_status,
+          COALESCE(
+            NULLIF(
+              b.raw_json->>'metro',
+              ''
+            ),
+            l.city,
+            ''
+          ) AS metro,
+          l.city,
+          l.state,
+          l.address,
+          l.timezone
+        FROM businesses b
+        LEFT JOIN LATERAL (
+          SELECT
+            city,
+            state,
+            address,
+            timezone
+          FROM business_locations
+          WHERE business_id = b.id
+          ORDER BY id
+          LIMIT 1
+        ) l ON TRUE
+        WHERE ${conditions.join(
+          " AND "
+        )}
+        ORDER BY
+          b.business_name
+        LIMIT $${values.length}
+      `,
+      values
+    );
 
   return rows;
 }

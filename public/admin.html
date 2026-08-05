@@ -34,7 +34,7 @@
 
   <link
     rel="stylesheet"
-    href="/admin.css?v=20260721-scheduler-v2"
+    href="/admin.css?v=20260804-admin-city-workspace"
   />
 
   <link
@@ -138,13 +138,29 @@
           </p>
         </div>
 
-        <button
-          id="refreshBtn"
-          class="primary-btn"
-          type="button"
-        >
-          Refresh
-        </button>
+        <div class="topbar-actions">
+          <label class="admin-metro-workspace">
+            <span>City workspace</span>
+
+            <select id="adminMetroFilter">
+              <option value="">
+                Loading cities...
+              </option>
+            </select>
+
+            <small id="adminMetroWorkspaceStatus">
+              All-city workspace
+            </small>
+          </label>
+
+          <button
+            id="refreshBtn"
+            class="primary-btn"
+            type="button"
+          >
+            Refresh
+          </button>
+        </div>
       </header>
 
       <section
@@ -165,7 +181,7 @@
   </div>
 
   <script src="/platformDefinitions.js?v=20260729-platform-config"></script>
-  <script src="/admin.js?v=20260721-scheduler-v2"></script>
+  <script src="/admin.js?v=20260804-admin-city-workspace"></script>
   <script src="/businessPlatformEditor.js?v=20260729-platform-config"></script>
 </body>
 </html>
