@@ -1068,15 +1068,12 @@ function renderVerifiedPage(page) {
   return `
     <section class="business-hero verified">
       ${renderLogo(page)}
-
       <div>
         <div class="title-row">
           <h1>${escapeHtml(page.businessName)}</h1>
           <span class="verified-badge">Verified Business</span>
         </div>
-
         <p class="address">${escapeHtml(page.address || "Address not listed")}</p>
-
         ${
           profile.shortDescription
             ? `<p class="short-description">${escapeHtml(profile.shortDescription)}</p>`
@@ -1087,26 +1084,15 @@ function renderVerifiedPage(page) {
 
     ${renderDeal(page.activeDeal)}
 
-    <section class="content-grid">
-      <article class="info-card about-card">
+    <section class="content-grid about-only-grid">
+      <article class="info-card about-card compact-about-card">
         <p class="section-label">About</p>
-        <p>${escapeHtml(profile.bio || "This verified business has not added a full bio yet.")}</p>
-      </article>
-
-      <article class="info-card">
-        <p class="section-label">Specialties</p>
-        ${renderPills(profile.specialties, "No specialties listed yet.")}
-      </article>
-
-      <article class="info-card">
-        <p class="section-label">Amenities</p>
-        ${renderPills(profile.amenities, "No amenities listed yet.")}
+        <p class="about-copy">${escapeHtml(
+          profile.bio ||
+          "This verified business has not added a full bio yet."
+        )}</p>
       </article>
     </section>
-
-    ${renderServiceCatalog(page)}
-
-    ${renderBookingWidget(page)}
 
     <section class="inventory-card">
       <div class="inventory-header">
@@ -1115,11 +1101,12 @@ function renderVerifiedPage(page) {
           <h2>Available appointment times</h2>
         </div>
       </div>
-
       <div id="businessInventory" class="inventory-placeholder">
         <p>Loading appointment inventory...</p>
       </div>
     </section>
+
+    ${renderBookingWidget(page)}
   `;
 }
 
@@ -1127,19 +1114,15 @@ function renderUnverifiedPage(page) {
   return `
     <section class="business-hero unverified">
       ${renderLogo(page, true)}
-
       <div>
         <div class="title-row">
           <h1>${escapeHtml(page.businessName)}</h1>
           <span class="unverified-badge">Unverified</span>
         </div>
-
         <p class="address">${escapeHtml(page.address || "Address not listed")}</p>
-
         <p class="short-description">
           ${escapeHtml(page.unverifiedMessage || "This business has not claimed its NextAppt profile yet.")}
         </p>
-
         <a class="claim-button" href="/business?businessName=${encodeURIComponent(page.businessName)}">
           Claim this business
         </a>
@@ -1149,86 +1132,65 @@ function renderUnverifiedPage(page) {
     <section class="locked-card">
       <h2>Limited public profile</h2>
       <p>
-        This page is intentionally limited until the business verifies ownership.
-        Verified businesses can add a bio, logo, deals, specialties, amenities,
-        and richer appointment inventory.
+        This business has not verified ownership yet. Appointment inventory is
+        shown in a muted preview, while verified businesses can add a full bio,
+        logo, deals, and booking widgets.
       </p>
     </section>
 
     <section class="inventory-card muted">
-      <p class="section-label">Appointment Preview</p>
-      <h2>Limited appointment display</h2>
-
+      <div class="inventory-header">
+        <div>
+          <p class="section-label">Appointment Inventory</p>
+          <h2>Available appointment times</h2>
+          <p class="inventory-access-note">
+            Previewing up to eight current times per appointment category.
+          </p>
+        </div>
+      </div>
       <div id="businessInventory" class="inventory-placeholder">
-        <p>Loading limited appointment preview...</p>
+        <p>Loading appointment inventory...</p>
       </div>
     </section>
   `;
 }
 
 async function loadBusinessInventory(page) {
-  const inventory =
-    document.getElementById(
-      "businessInventory"
-    );
+  const inventory = document.getElementById("businessInventory");
 
-  if (
-    !inventory ||
-    !page?.businessName
-  ) {
+  if (!inventory || !page?.businessName) {
     return;
   }
 
   try {
-    const params =
-      new URLSearchParams();
-
-    params.set(
-      "business",
-      page.businessName
-    );
-
+    const params = new URLSearchParams();
+    params.set("business", page.businessName);
     params.set(
       "limitPerBusiness",
-      page.isVerified
-        ? "999"
-        : "4"
+      page.isVerified ? "999" : "96"
     );
+    params.set("fresh", String(Date.now()));
 
-    params.set(
-      "fresh",
-      String(Date.now())
-    );
-
-    const response =
-      await fetch(
-        `/api/search?${params.toString()}`
-      );
-
-    const data =
-      await response.json();
+    const response = await fetch(`/api/search?${params.toString()}`);
+    const data = await response.json();
 
     const appointments = (
-      Array.isArray(
-        data.appointments
-      )
+      Array.isArray(data.appointments)
         ? data.appointments
         : []
     ).filter((appointment) => {
       if (
-        appointment.businessEnabled ===
-          false ||
+        appointment.businessEnabled === false ||
         appointment.enabled === false
       ) {
         return false;
       }
 
-      const status =
-        String(
-          appointment.inventoryStatus ||
-          appointment.status ||
-          ""
-        ).toLowerCase();
+      const status = String(
+        appointment.inventoryStatus ||
+        appointment.status ||
+        ""
+      ).toLowerCase();
 
       return ![
         "inactive",
@@ -1241,180 +1203,115 @@ async function loadBusinessInventory(page) {
 
     if (!appointments.length) {
       inventory.innerHTML = `
-        <p>
-          No appointment inventory found for this business yet.
-        </p>
+        <p>No appointment inventory found for this business yet.</p>
       `;
-
       return;
     }
 
-    const visibleAppointments =
-      page.isVerified
-        ? appointments
-        : appointments.slice(0, 4);
-
-    const categoryGroups =
-      groupAppointmentsByCategory(
-        visibleAppointments,
-        page
-      );
-
-    inventory.innerHTML =
-      categoryGroups
-        .map((categoryGroup) => {
-          const groupedDates =
-            groupAppointmentsByDate(
-              categoryGroup.appointments
-            );
-
-          const dateGroups =
-            Object.entries(
-              groupedDates
-            ).slice(
-              0,
-              page.isVerified
-                ? 14
-                : 1
-            );
-
-          return `
-            <section
-              class="inventory-category"
-              data-category-slug="${escapeAttribute(
-                categoryGroup.slug
-              )}"
-            >
-              <div class="inventory-category-header">
-                <h3>
-                  ${escapeHtml(
-                    categoryGroup.displayName
-                  )}
-                </h3>
-
-                <span>
-                  ${categoryGroup.appointments.length}
-                  ${
-                    categoryGroup
-                      .appointments
-                      .length === 1
-                      ? "time"
-                      : "times"
-                  }
-                </span>
-              </div>
-
-              ${dateGroups
-                .map(
-                  ([
-                    dateKey,
-                    items
-                  ]) => `
-                    <div class="inventory-day">
-                      <h4>
-                        ${escapeHtml(
-                          dateKey
-                        )}
-                      </h4>
-
-                      <div class="appointment-button-grid">
-                        ${items
-                          .slice(
-                            0,
-                            page.isVerified
-                              ? 24
-                              : 4
-                          )
-                          .map(
-                            (
-                              appointment
-                            ) => {
-                              const sourceType =
-                                appointment.sourceType ||
-                                appointment.inventorySource ||
-                                appointment.sourceStatus ||
-                                "";
-
-                              const isInferred =
-                                String(
-                                  sourceType
-                                ).toLowerCase() ===
-                                "inferred";
-
-                              const availabilityLabel =
-                                isInferred
-                                  ? "Inferred"
-                                  : "Confirmed";
-
-                              const serviceLabel =
-                                formatAppointmentService(
-                                  appointment
-                                );
-
-                              return `
-                                <a
-                                  class="appointment-button ${
-                                    isInferred
-                                      ? "inferred"
-                                      : "confirmed"
-                                  }"
-                                  href="${escapeAttribute(
-                                    appointment.bookingUrl ||
-                                    "#"
-                                  )}"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <span class="appointment-date-time">
-                                    ${escapeHtml(
-                                      formatAppointmentButton(
-                                        appointment
-                                      )
-                                    )}
-                                  </span>
-
-                                  <small class="appointment-details">
-                                    <span class="appointment-status">
-                                      ${escapeHtml(
-                                        availabilityLabel
-                                      )}
-                                    </span>
-
-                                    <span
-                                      class="appointment-service"
-                                      title="${escapeAttribute(
-                                        serviceLabel
-                                      )}"
-                                    >
-                                      ${escapeHtml(
-                                        serviceLabel
-                                      )}
-                                    </span>
-                                  </small>
-                                </a>
-                              `;
-                            }
-                          )
-                          .join("")}
-                      </div>
-                    </div>
-                  `
-                )
-                .join("")}
-            </section>
-          `;
-        })
-        .join("");
-  } catch (error) {
-    console.error(
-      "Could not load business inventory:",
-      error
+    const allCategoryGroups = groupAppointmentsByCategory(
+      appointments,
+      page
     );
 
+    const categoryGroups = page.isVerified
+      ? allCategoryGroups
+      : allCategoryGroups
+          .slice(0, 4)
+          .map((categoryGroup) => ({
+            ...categoryGroup,
+            appointments: categoryGroup.appointments.slice(0, 8)
+          }));
+
+    inventory.innerHTML = categoryGroups
+      .map((categoryGroup) => {
+        const groupedDates = groupAppointmentsByDate(
+          categoryGroup.appointments
+        );
+
+        const dateGroups = Object.entries(groupedDates).slice(
+          0,
+          page.isVerified ? 14 : 3
+        );
+
+        return `
+          <section
+            class="inventory-category"
+            data-category-slug="${escapeAttribute(categoryGroup.slug)}"
+          >
+            <div class="inventory-category-header">
+              <h3>${escapeHtml(categoryGroup.displayName)}</h3>
+              <span>
+                ${categoryGroup.appointments.length}
+                ${categoryGroup.appointments.length === 1 ? "time" : "times"}
+              </span>
+            </div>
+
+            ${dateGroups
+              .map(([dateKey, items]) => `
+                <div class="inventory-day">
+                  <h4>${escapeHtml(dateKey)}</h4>
+                  <div class="appointment-button-grid">
+                    ${items
+                      .slice(0, page.isVerified ? 24 : 6)
+                      .map((appointment) => {
+                        const sourceType =
+                          appointment.sourceType ||
+                          appointment.inventorySource ||
+                          appointment.sourceStatus ||
+                          "";
+
+                        const isInferred =
+                          String(sourceType).toLowerCase() === "inferred";
+
+                        const availabilityLabel =
+                          isInferred ? "Inferred" : "Confirmed";
+
+                        const serviceLabel =
+                          formatAppointmentService(appointment);
+
+                        return `
+                          <a
+                            class="appointment-button ${
+                              isInferred ? "inferred" : "confirmed"
+                            }"
+                            href="${escapeAttribute(
+                              appointment.bookingUrl || "#"
+                            )}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <span class="appointment-date-time">
+                              ${escapeHtml(
+                                formatAppointmentButton(appointment)
+                              )}
+                            </span>
+                            <small class="appointment-details">
+                              <span class="appointment-status">
+                                ${escapeHtml(availabilityLabel)}
+                              </span>
+                              <span
+                                class="appointment-service"
+                                title="${escapeAttribute(serviceLabel)}"
+                              >
+                                ${escapeHtml(serviceLabel)}
+                              </span>
+                            </small>
+                          </a>
+                        `;
+                      })
+                      .join("")}
+                  </div>
+                </div>
+              `)
+              .join("")}
+          </section>
+        `;
+      })
+      .join("");
+  } catch (error) {
+    console.error("Could not load business inventory:", error);
     inventory.innerHTML = `
-      <p>
-        Could not load appointment inventory.
-      </p>
+      <p>Could not load appointment inventory.</p>
     `;
   }
 }
@@ -1450,8 +1347,8 @@ async function loadBusinessPage() {
       ? renderVerifiedPage(page)
       : renderUnverifiedPage(page);
 
-    mountBookingWidget(page);
     await loadBusinessInventory(page);
+    mountBookingWidget(page);
   } catch (error) {
     root.innerHTML = `
       <section class="error-card">

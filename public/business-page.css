@@ -598,3 +598,57 @@ h2 {
   }
 }
 /* NEXTAPPT BUSINESS CATEGORY UI END */
+
+/* NEXTAPPT BUSINESS PAGE LAYOUT REFRESH START */
+.about-only-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin-bottom: 20px;
+}
+
+.compact-about-card {
+  min-height: 0;
+  padding: 17px 22px;
+}
+
+.compact-about-card .section-label {
+  margin-bottom: 5px;
+}
+
+.compact-about-card .about-copy {
+  line-height: 1.45;
+  margin: 0;
+  max-width: none;
+}
+
+.inventory-card {
+  margin: 0 0 20px;
+}
+
+.inventory-access-note {
+  color: #64748b;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.inventory-card.muted {
+  opacity: 0.72;
+  filter: grayscale(0.72);
+}
+
+.inventory-card.muted .inventory-category-header > span {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.booking-widget-card {
+  margin: 0 0 20px;
+}
+
+@media (max-width: 800px) {
+  .compact-about-card {
+    padding: 16px 18px;
+  }
+}
+/* NEXTAPPT BUSINESS PAGE LAYOUT REFRESH END */
