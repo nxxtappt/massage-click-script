@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f7fa; color: #10202f; }
-.account-shell { width: min(720px, calc(100% - 32px)); margin: 40px auto; }
+.account-shell { width: min(760px, calc(100% - 32px)); margin: 40px auto; }
 .account-brand { display: inline-block; margin-bottom: 18px; color: #005f95; font-weight: 800; font-size: 22px; text-decoration: none; }
 .account-card { background: #fff; border-radius: 18px; padding: 28px; box-shadow: 0 10px 32px rgba(15, 23, 42, .08); }
 h1, h2 { margin-top: 0; }
@@ -11,11 +11,19 @@ label { font-size: 14px; font-weight: 700; }
 input[type="email"], input[type="text"], input[inputmode="numeric"] { width: 100%; padding: 12px 13px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 16px; }
 button { border: 0; border-radius: 10px; padding: 12px 16px; background: #006ca8; color: #fff; font-weight: 800; cursor: pointer; }
 button.secondary, .link-btn { background: #eef3f7; color: #24425a; }
+button.danger { background: #fff1f1; color: #a12828; }
 .link-btn { margin-top: 2px; }
 .account-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .section-gap { margin-top: 30px; padding-top: 24px; border-top: 1px solid #e2e8f0; }
 .check-row { display: flex; align-items: center; gap: 10px; font-weight: 500; }
 .status { min-height: 20px; margin-top: 14px; color: #33566f; }
-.alert-row { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-top: 10px; }
-.alert-row strong { display: block; margin-bottom: 5px; }
-@media (max-width: 600px) { .account-card { padding: 20px; } .account-heading { display: block; } .account-heading button { margin-top: 12px; } }
+.alert-row { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-top: 10px; display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
+.alert-row-main { min-width:0; }
+.alert-row strong { display: block; margin-bottom: 5px; overflow-wrap:anywhere; }
+.alert-row small { display:block; margin-top:5px; color:#718096; }
+.alert-row-actions { display:flex; gap:7px; flex-wrap:wrap; }
+.alert-action { padding:8px 10px; font-size:12px; }
+.alert-status-label { display:inline-block !important; width:max-content; padding:3px 7px; border-radius:999px; background:#dcfce7; color:#166534 !important; font-weight:800; text-transform:capitalize; }
+.alert-status-label.paused { background:#fef3c7; color:#92400e !important; }
+.alert-status-label.expired { background:#e2e8f0; color:#475569 !important; }
+@media (max-width: 600px) { .account-card { padding: 20px; } .account-heading { display: block; } .account-heading button { margin-top: 12px; } .alert-row { display:block; } .alert-row-actions { margin-top:12px; } }

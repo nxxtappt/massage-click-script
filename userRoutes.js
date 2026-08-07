@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("crypto");
 const userRepository = require("./database/userRepository");
 const { sendUserLoginCode } = require("./emailManager");
+const { buildAlertFromSearch } = require("./userAlertSearchBuilder");
 
 const router = express.Router();
 const SESSION_COOKIE = "nextappt_user_session";
@@ -310,6 +311,37 @@ router.get("/alerts", requireUser, async (req, res) => {
     res.json({ success: true, alerts });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post("/alerts/from-search", requireUser, async (req, res) => {
+  try {
+    const alertPayload = buildAlertFromSearch(req.body || {});
+
+    if (
+      !alertPayload.metro &&
+      !alertPayload.categorySlug &&
+      !alertPayload.filters?.search
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Add a city, appointment category, or search request before saving an alert."
+      });
+    }
+
+    const alert = await userRepository.createAlert(
+      req.user.id,
+      alertPayload
+    );
+
+    res.status(201).json({
+      success: true,
+      alert,
+      message: "Appointment alert saved."
+    });
+  } catch (error) {
+    console.error("[USER ALERT FROM SEARCH]", error);
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 

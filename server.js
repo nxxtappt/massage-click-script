@@ -42,6 +42,7 @@ const {
 const userRepository = require("./database/userRepository");
 const userRoutes = require("./userRoutes");
 const adminUserRoutes = require("./adminUserRoutes");
+const { startUserAlertMatcher } = require("./userAlertMatcher");
 const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
@@ -2606,6 +2607,7 @@ async function warmBusinessCache() {
 async function initializeRuntime() {
   await initializeAdminSettings();
   await warmBusinessCache();
+  startUserAlertMatcher();
 }
 
 initializeRuntime().then(() => app.listen(PORT, "0.0.0.0", () => {
