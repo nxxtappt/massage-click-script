@@ -11,7 +11,7 @@ const {
 
 const DEFAULT_INTERVAL_SECONDS = 120;
 const DEFAULT_MAX_ALERTS_PER_RUN = 250;
-const DEFAULT_MAX_EMAIL_MATCHES = 5;
+const DEFAULT_MAX_EMAIL_MATCHES = 3;
 
 let intervalHandle = null;
 let initialHandle = null;
@@ -543,6 +543,31 @@ async function processAlert(
   }
 
   try {
+    const deliverySettings =
+      options.deliverySettings ||
+      await userAlertRepository.getDeliverySettings();
+
+    const deliveryState =
+      await userAlertRepository.getAlertDeliveryState(
+        alert.id
+      );
+
+    const deliveryDecision =
+      userAlertRepository.evaluateDeliveryLimit(
+        deliverySettings,
+        deliveryState
+      );
+
+    if (!deliveryDecision.allowed) {
+      return {
+        alertId: alert.id,
+        matches: 0,
+        notified: 0,
+        deliverySuppressed: true,
+        reason: deliveryDecision.reason
+      };
+    }
+
     const matches =
       await getMatchesForAlert(
         alert
@@ -555,6 +580,7 @@ async function processAlert(
           20,
           Number(
             options.maxEmailMatches ||
+            deliverySettings.maxAppointmentsPerEmail ||
             DEFAULT_MAX_EMAIL_MATCHES
           )
         )
@@ -728,6 +754,18 @@ async function runUserAlertMatcher(
   };
 
   try {
+    const deliverySettings =
+      await userAlertRepository.getDeliverySettings();
+
+    if (!deliverySettings.emailsEnabled) {
+      return {
+        ...summary,
+        skipped: true,
+        reason: "global_email_kill_switch",
+        deliverySettings
+      };
+    }
+
     lockClient =
       await userAlertRepository
         .acquireMatcherLock();
@@ -760,7 +798,10 @@ async function runUserAlertMatcher(
         const result =
           await processAlert(
             alert,
-            options
+            {
+              ...options,
+              deliverySettings
+            }
           );
 
         summary.alertsChecked +=

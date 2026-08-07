@@ -8,6 +8,189 @@ function clampInteger(value, fallback, min, max) {
   return Math.min(max, Math.max(min, parsed));
 }
 
+
+async function getDeliverySettings() {
+  const result = await db.query(
+    `SELECT
+       emails_enabled AS "emailsEnabled",
+       max_appointments_per_email AS "maxAppointmentsPerEmail",
+       max_emails_per_alert_per_hour AS "maxEmailsPerAlertPerHour",
+       max_emails_per_alert_per_day AS "maxEmailsPerAlertPerDay",
+       minimum_minutes_between_emails AS "minimumMinutesBetweenEmails",
+       updated_at AS "updatedAt"
+     FROM user_alert_delivery_settings
+     WHERE id = 1
+     LIMIT 1`
+  );
+
+  if (!result.rows[0]) {
+    throw new Error(
+      "User alert delivery settings are missing. Run migration 014_user_alert_delivery_controls.sql."
+    );
+  }
+
+  return result.rows[0];
+}
+
+async function updateDeliverySettings(settings = {}) {
+  const current = await getDeliverySettings();
+
+  function integerSetting(value, fallback, min, max) {
+    if (value === undefined || value === null || value === "") {
+      return fallback;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+      throw new Error(`Setting must be between ${min} and ${max}.`);
+    }
+
+    return parsed;
+  }
+
+  const emailsEnabled =
+    typeof settings.emailsEnabled === "boolean"
+      ? settings.emailsEnabled
+      : current.emailsEnabled;
+
+  const maxAppointmentsPerEmail = integerSetting(
+    settings.maxAppointmentsPerEmail,
+    current.maxAppointmentsPerEmail,
+    1,
+    20
+  );
+
+  const maxEmailsPerAlertPerHour = integerSetting(
+    settings.maxEmailsPerAlertPerHour,
+    current.maxEmailsPerAlertPerHour,
+    0,
+    20
+  );
+
+  const maxEmailsPerAlertPerDay = integerSetting(
+    settings.maxEmailsPerAlertPerDay,
+    current.maxEmailsPerAlertPerDay,
+    0,
+    100
+  );
+
+  const minimumMinutesBetweenEmails = integerSetting(
+    settings.minimumMinutesBetweenEmails,
+    current.minimumMinutesBetweenEmails,
+    0,
+    1440
+  );
+
+  const result = await db.query(
+    `UPDATE user_alert_delivery_settings
+     SET
+       emails_enabled = $1,
+       max_appointments_per_email = $2,
+       max_emails_per_alert_per_hour = $3,
+       max_emails_per_alert_per_day = $4,
+       minimum_minutes_between_emails = $5,
+       updated_at = NOW()
+     WHERE id = 1
+     RETURNING
+       emails_enabled AS "emailsEnabled",
+       max_appointments_per_email AS "maxAppointmentsPerEmail",
+       max_emails_per_alert_per_hour AS "maxEmailsPerAlertPerHour",
+       max_emails_per_alert_per_day AS "maxEmailsPerAlertPerDay",
+       minimum_minutes_between_emails AS "minimumMinutesBetweenEmails",
+       updated_at AS "updatedAt"`,
+    [
+      emailsEnabled,
+      maxAppointmentsPerEmail,
+      maxEmailsPerAlertPerHour,
+      maxEmailsPerAlertPerDay,
+      minimumMinutesBetweenEmails
+    ]
+  );
+
+  return result.rows[0];
+}
+
+async function getAlertDeliveryState(alertId) {
+  const result = await db.query(
+    `SELECT
+       MAX(sent_at) FILTER (
+         WHERE status = 'sent'
+       ) AS "lastSentAt",
+       COUNT(*) FILTER (
+         WHERE status = 'sent'
+           AND sent_at >= NOW() - INTERVAL '1 hour'
+       )::int AS "sentLastHour",
+       COUNT(*) FILTER (
+         WHERE status = 'sent'
+           AND sent_at >= NOW() - INTERVAL '24 hours'
+       )::int AS "sentLast24Hours"
+     FROM appointment_alert_notifications
+     WHERE alert_id = $1`,
+    [alertId]
+  );
+
+  return result.rows[0] || {
+    lastSentAt: null,
+    sentLastHour: 0,
+    sentLast24Hours: 0
+  };
+}
+
+function evaluateDeliveryLimit(settings, state) {
+  if (!settings.emailsEnabled) {
+    return {
+      allowed: false,
+      reason: "global_email_kill_switch"
+    };
+  }
+
+  if (
+    Number(settings.maxEmailsPerAlertPerHour) === 0 ||
+    Number(state.sentLastHour || 0) >=
+      Number(settings.maxEmailsPerAlertPerHour)
+  ) {
+    return {
+      allowed: false,
+      reason: "hourly_alert_email_limit"
+    };
+  }
+
+  if (
+    Number(settings.maxEmailsPerAlertPerDay) === 0 ||
+    Number(state.sentLast24Hours || 0) >=
+      Number(settings.maxEmailsPerAlertPerDay)
+  ) {
+    return {
+      allowed: false,
+      reason: "daily_alert_email_limit"
+    };
+  }
+
+  if (
+    state.lastSentAt &&
+    Number(settings.minimumMinutesBetweenEmails) > 0
+  ) {
+    const elapsedMinutes =
+      (Date.now() - new Date(state.lastSentAt).getTime()) / 60000;
+
+    if (
+      elapsedMinutes <
+      Number(settings.minimumMinutesBetweenEmails)
+    ) {
+      return {
+        allowed: false,
+        reason: "alert_email_cooldown"
+      };
+    }
+  }
+
+  return {
+    allowed: true,
+    reason: null
+  };
+}
+
 async function acquireMatcherLock() {
   const client = await db.connect();
 
@@ -305,6 +488,10 @@ async function getNotificationActivity({ limit = 30 } = {}) {
 }
 
 module.exports = {
+  getDeliverySettings,
+  updateDeliverySettings,
+  getAlertDeliveryState,
+  evaluateDeliveryLimit,
   acquireMatcherLock,
   releaseMatcherLock,
   listActiveAlertsForMatching,

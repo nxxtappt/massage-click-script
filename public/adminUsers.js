@@ -112,6 +112,62 @@
         margin-top:12px;
       }
 
+      .alert-engine-controls {
+        display:grid;
+        grid-template-columns:repeat(4,minmax(130px,1fr));
+        gap:10px;
+        margin-top:14px;
+        padding-top:14px;
+        border-top:1px solid #dbe4ec;
+      }
+
+      .alert-engine-controls label {
+        display:flex;
+        flex-direction:column;
+        gap:5px;
+        color:#475569;
+        font-size:12px;
+        font-weight:700;
+      }
+
+      .alert-engine-controls input {
+        width:100%;
+        padding:9px 10px;
+        border:1px solid #cbd5e1;
+        border-radius:9px;
+        background:#fff;
+      }
+
+      .alert-kill-switch {
+        display:flex;
+        align-items:center;
+        gap:10px;
+        margin-top:14px;
+        padding:12px;
+        border-radius:10px;
+        background:#fff;
+        border:1px solid #dbe4ec;
+      }
+
+      .alert-kill-switch.off {
+        background:#fff1f1;
+        border-color:#fecaca;
+      }
+
+      .alert-kill-switch strong {
+        color:#0f172a;
+      }
+
+      .alert-kill-switch.off strong {
+        color:#991b1b;
+      }
+
+      .alert-settings-actions {
+        display:flex;
+        justify-content:flex-end;
+        margin-top:12px;
+      }
+
       .alert-engine-pill {
         background:#fff;
         border:1px solid #dbe4ec;
@@ -227,6 +283,10 @@
 
         .users-stats {
           grid-template-columns:repeat(2,1fr);
+        }
+
+        .alert-engine-controls {
+          grid-template-columns:1fr 1fr;
         }
       }
     `;
@@ -444,11 +504,20 @@
   }
 
   function renderAlertEngine(
-    activity = {}
+    activity = {},
+    settingsData = {}
   ) {
     const stats =
       activity.stats ||
       {};
+
+    const settings =
+      settingsData.settings ||
+      {};
+
+    const enabled =
+      settings.emailsEnabled ===
+      true;
 
     return `
       <div class="alert-engine-card">
@@ -458,7 +527,7 @@
               Appointment Alert Engine
             </h4>
             <p>
-              Matches saved user requests against stored PostgreSQL inventory. It never starts a scrape.
+              Global safety controls apply to automatic and manual alert emails.
             </p>
           </div>
 
@@ -466,8 +535,99 @@
             id="runUserAlertMatcherBtn"
             class="primary-btn"
             type="button"
+            ${enabled ? "" : "disabled"}
           >
             Run matcher now
+          </button>
+        </div>
+
+        <div class="alert-kill-switch ${enabled ? "" : "off"}">
+          <input
+            id="alertEmailsEnabled"
+            type="checkbox"
+            ${enabled ? "checked" : ""}
+          />
+
+          <div>
+            <strong>
+              ${
+                enabled
+                  ? "Alert emails ENABLED"
+                  : "KILL SWITCH ACTIVE — alert emails OFF"
+              }
+            </strong>
+
+            <div style="font-size:12px;color:#64748b;margin-top:3px;">
+              Turning this off stops all appointment-alert email delivery immediately.
+            </div>
+          </div>
+        </div>
+
+        <div class="alert-engine-controls">
+          <label>
+            Appointments per email
+            <input
+              id="maxAppointmentsPerEmail"
+              type="number"
+              min="1"
+              max="20"
+              value="${Number(
+                settings.maxAppointmentsPerEmail ||
+                3
+              )}"
+            />
+          </label>
+
+          <label>
+            Emails per alert / hour
+            <input
+              id="maxEmailsPerAlertPerHour"
+              type="number"
+              min="0"
+              max="20"
+              value="${Number(
+                settings.maxEmailsPerAlertPerHour ??
+                1
+              )}"
+            />
+          </label>
+
+          <label>
+            Emails per alert / day
+            <input
+              id="maxEmailsPerAlertPerDay"
+              type="number"
+              min="0"
+              max="100"
+              value="${Number(
+                settings.maxEmailsPerAlertPerDay ??
+                3
+              )}"
+            />
+          </label>
+
+          <label>
+            Minimum minutes between emails
+            <input
+              id="minimumMinutesBetweenEmails"
+              type="number"
+              min="0"
+              max="1440"
+              value="${Number(
+                settings.minimumMinutesBetweenEmails ??
+                60
+              )}"
+            />
+          </label>
+        </div>
+
+        <div class="alert-settings-actions">
+          <button
+            id="saveAlertDeliverySettingsBtn"
+            class="secondary-btn"
+            type="button"
+          >
+            Save alert email limits
           </button>
         </div>
 
@@ -506,7 +666,8 @@
 
   function renderUsers(
     data,
-    activity = {}
+    activity = {},
+    settingsData = {}
   ) {
     const users =
       Array.isArray(
@@ -551,7 +712,8 @@
       </div>
 
       ${renderAlertEngine(
-        activity
+        activity,
+        settingsData
       )}
 
       <div class="users-stats">
@@ -862,6 +1024,123 @@
     `;
 
     document.getElementById(
+      "alertEmailsEnabled"
+    )?.addEventListener(
+      "change",
+      async (
+        event
+      ) => {
+        const enabled =
+          event.target.checked;
+
+        try {
+          const result =
+            await fetchJson(
+              "/api/admin/users/alerts/settings",
+              {
+                method:
+                  "PATCH",
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+                body:
+                  JSON.stringify({
+                    emailsEnabled:
+                      enabled
+                  })
+              }
+            );
+
+          setStatus(
+            result.settings
+              ?.emailsEnabled
+              ? "Appointment alert emails enabled."
+              : "KILL SWITCH ACTIVE: all appointment alert emails are stopped.",
+            result.settings
+              ?.emailsEnabled
+              ? "success"
+              : "error"
+          );
+
+          await loadUsers();
+        } catch (error) {
+          event.target.checked =
+            !enabled;
+
+          setStatus(
+            `Could not update email kill switch: ${error.message}`,
+            "error"
+          );
+        }
+      }
+    );
+
+    document.getElementById(
+      "saveAlertDeliverySettingsBtn"
+    )?.addEventListener(
+      "click",
+      async () => {
+        try {
+          const payload = {
+            maxAppointmentsPerEmail:
+              Number(
+                document.getElementById(
+                  "maxAppointmentsPerEmail"
+                )?.value
+              ),
+            maxEmailsPerAlertPerHour:
+              Number(
+                document.getElementById(
+                  "maxEmailsPerAlertPerHour"
+                )?.value
+              ),
+            maxEmailsPerAlertPerDay:
+              Number(
+                document.getElementById(
+                  "maxEmailsPerAlertPerDay"
+                )?.value
+              ),
+            minimumMinutesBetweenEmails:
+              Number(
+                document.getElementById(
+                  "minimumMinutesBetweenEmails"
+                )?.value
+              )
+          };
+
+          await fetchJson(
+            "/api/admin/users/alerts/settings",
+            {
+              method:
+                "PATCH",
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+              body:
+                JSON.stringify(
+                  payload
+                )
+            }
+          );
+
+          setStatus(
+            "Appointment alert email limits saved.",
+            "success"
+          );
+
+          await loadUsers();
+        } catch (error) {
+          setStatus(
+            `Could not save alert limits: ${error.message}`,
+            "error"
+          );
+        }
+      }
+    );
+
+    document.getElementById(
       "runUserAlertMatcherBtn"
     )?.addEventListener(
       "click",
@@ -1079,7 +1358,8 @@
     try {
       const [
         data,
-        activity
+        activity,
+        settingsData
       ] =
         await Promise.all([
           fetchJson(
@@ -1091,12 +1371,16 @@
             () => ({
               stats: {}
             })
+          ),
+          fetchJson(
+            "/api/admin/users/alerts/settings"
           )
         ]);
 
       renderUsers(
         data,
-        activity
+        activity,
+        settingsData
       );
 
       setStatus(

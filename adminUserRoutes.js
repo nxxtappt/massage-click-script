@@ -57,6 +57,70 @@ router.get("/", async (req, res) => {
 });
 
 router.get(
+  "/alerts/settings",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const settings =
+        await userAlertRepository
+          .getDeliverySettings();
+
+      res.json({
+        success: true,
+        settings
+      });
+    } catch (error) {
+      console.error(
+        "[ADMIN ALERT SETTINGS GET]",
+        error
+      );
+
+      res.status(500)
+        .json({
+          success: false,
+          error:
+            error.message
+        });
+    }
+  }
+);
+
+router.patch(
+  "/alerts/settings",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const settings =
+        await userAlertRepository
+          .updateDeliverySettings(
+            req.body || {}
+          );
+
+      res.json({
+        success: true,
+        settings
+      });
+    } catch (error) {
+      console.error(
+        "[ADMIN ALERT SETTINGS UPDATE]",
+        error
+      );
+
+      res.status(400)
+        .json({
+          success: false,
+          error:
+            error.message
+        });
+    }
+  }
+);
+
+router.get(
   "/alerts/activity",
   async (
     req,
