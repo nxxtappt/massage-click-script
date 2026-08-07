@@ -39,7 +39,9 @@ const {
   getMarketplaceTimeZone,
   matchesMarketplaceMetro
 } = require("./marketplaceMetros");
-const { saveEmailCapture } = require("./database/runtimeStateRepository");
+const userRepository = require("./database/userRepository");
+const userRoutes = require("./userRoutes");
+const adminUserRoutes = require("./adminUserRoutes");
 const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
@@ -112,7 +114,17 @@ app.post("/api/email-capture", async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ success: false, error: "Please enter a valid email." });
     }
-    await saveEmailCapture(email, source);
+    const consent =
+      req.body?.consent && typeof req.body.consent === "object"
+        ? req.body.consent
+        : {};
+
+    await userRepository.captureEmail({
+      email,
+      source,
+      productUpdatesEnabled: consent.productUpdates === true
+    });
+
     res.json({ success: true, message: "Email saved." });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -123,10 +135,16 @@ app.use("/uploads", express.static(storagePath("public", "uploads")));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/admin/v2", adminV2Routes);
+app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/business", businessPortalRoutes);
 app.use("/api/business-dashboard", businessDashboardRoutes);
 app.use("/api/analytics", analyticsRoutes);
+
+app.get("/account", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "account.html"));
+});
 
 app.get("/business", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "business.html"));

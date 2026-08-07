@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account | NextAppt.ai</title>
+  <link rel="icon" href="/favicon.ico?v=1" sizes="any" />
+  <link rel="stylesheet" href="/account.css?v=20260807-user-accounts" />
+</head>
+<body>
+  <main class="account-shell">
+    <a class="account-brand" href="/">NextAppt.ai</a>
+
+    <section class="account-card" id="authCard">
+      <h1>My Account</h1>
+      <p class="muted">Sign in with a one-time code sent to your email.</p>
+
+      <form id="requestCodeForm">
+        <label>Email</label>
+        <input
+          id="accountEmail"
+          type="email"
+          autocomplete="email"
+          required
+          placeholder="you@example.com"
+        />
+        <button type="submit">Send login code</button>
+      </form>
+
+      <form id="verifyCodeForm" hidden>
+        <label>6-digit code</label>
+        <input
+          id="accountCode"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          required
+          placeholder="123456"
+        />
+        <button type="submit">Verify & sign in</button>
+        <button
+          class="link-btn"
+          id="requestAnotherCode"
+          type="button"
+        >
+          Send another code
+        </button>
+      </form>
+
+      <p
+        id="authStatus"
+        class="status"
+        aria-live="polite"
+      ></p>
+    </section>
+
+    <section
+      class="account-card"
+      id="profileCard"
+      hidden
+    >
+      <div class="account-heading">
+        <div>
+          <h1>My Account</h1>
+          <p
+            id="signedInEmail"
+            class="muted"
+          ></p>
+        </div>
+
+        <button
+          id="logoutBtn"
+          class="secondary"
+          type="button"
+        >
+          Sign out
+        </button>
+      </div>
+
+      <form id="profileForm">
+        <h2>Profile</h2>
+
+        <label>First name</label>
+
+        <input
+          id="firstName"
+          type="text"
+          maxlength="120"
+          placeholder="First name"
+        />
+
+        <button type="submit">
+          Save profile
+        </button>
+      </form>
+
+      <form
+        id="preferencesForm"
+        class="section-gap"
+      >
+        <h2>Email preferences</h2>
+
+        <label class="check-row">
+          <input
+            id="appointmentAlertsEnabled"
+            type="checkbox"
+          />
+          Appointment alerts I create
+        </label>
+
+        <label class="check-row">
+          <input
+            id="productUpdatesEnabled"
+            type="checkbox"
+          />
+          NextAppt product and launch updates
+        </label>
+
+        <label class="check-row">
+          <input
+            id="marketingEnabled"
+            type="checkbox"
+          />
+          General marketing emails
+        </label>
+
+        <button type="submit">
+          Save preferences
+        </button>
+      </form>
+
+      <div class="section-gap">
+        <h2>Appointment alerts</h2>
+
+        <p class="muted">
+          Saved appointment requests will appear here as alert creation is connected to search.
+        </p>
+
+        <div id="alertsList"></div>
+      </div>
+
+      <p
+        id="accountStatus"
+        class="status"
+        aria-live="polite"
+      ></p>
+    </section>
+  </main>
+
+  <script src="/account.js?v=20260807-user-accounts"></script>
+</body>
+</html>
