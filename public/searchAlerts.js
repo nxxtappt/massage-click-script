@@ -30,7 +30,7 @@
   panel.innerHTML = `
     <div class="search-alert-panel-copy">
       <p class="search-alert-panel-title">
-        Can't find the exact time you want?
+        Find the exact appointment you want!
       </p>
       <p class="search-alert-panel-text">
         Save this search and NextAppt can email you when a matching opening appears.
