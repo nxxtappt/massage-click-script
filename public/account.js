@@ -557,7 +557,9 @@
                   pendingEmail ||
                   emailInput.value,
                 code:
-                  codeInput.value
+                  codeInput.value,
+                acceptance:
+                  window.NextApptLegal.consumerPayload()
               })
           }
         );

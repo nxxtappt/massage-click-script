@@ -162,6 +162,8 @@ function renderCodeVerification(email) {
         </div>
       </div>
 
+      ${window.NextApptLegal ? window.NextApptLegal.getBusinessMarkup() : ""}
+
       <div class="settings-actions">
         <button id="verifyCodeBtn" class="primary-btn">
           Verify Code
@@ -1247,9 +1249,10 @@ async function verifyLoginCode(email) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        email,
-        code
-      })
+      email,
+      code,
+      acceptance: window.NextApptLegal.businessPayload()
+    })
     });
 
     const token = data?.session?.token;

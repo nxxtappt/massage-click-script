@@ -17,6 +17,10 @@ const {
   sendBusinessLoginCode
 } = require("./emailManager");
 
+const {
+  recordBusinessClickwrap
+} = require("./legalAcceptanceService");
+
 const router = express.Router();
 
 const {
@@ -581,7 +585,7 @@ router.post("/auth/request-code", async (req, res) => {
   }
 });
 
-router.post("/auth/verify-code", (req, res) => {
+router.post("/auth/verify-code", async (req, res) => {
   try {
     const { email, code } = req.body || {};
 
@@ -597,12 +601,22 @@ router.post("/auth/verify-code", (req, res) => {
       code
     });
 
+    try {
+      await recordBusinessClickwrap(req, session);
+    } catch (error) {
+      if (session?.token) {
+        destroySession(session.token);
+      }
+
+      throw error;
+    }
+
     res.json({
       success: true,
       session
     });
   } catch (error) {
-    res.status(401).json({
+    res.status(error.statusCode || 401).json({
       success: false,
       error: error.message
     });

@@ -1,0 +1,80 @@
+/* Shared public footer + legal clickwrap styling */
+
+.site-legal-footer {
+  margin-top: 48px;
+  border-top: 1px solid #dbe3ea;
+  background: #f4f7f9;
+  color: #5f6b76;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.site-legal-footer-inner {
+  width: min(1100px, calc(100% - 32px));
+  min-height: 72px;
+  margin: 0 auto;
+  padding: 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.site-legal-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.site-legal-footer a {
+  color: #005f95;
+  text-decoration: none;
+}
+
+.site-legal-footer a:hover {
+  text-decoration: underline;
+}
+
+.legal-clickwrap,
+.legal-acceptance-box {
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid #dbe3ea;
+  border-radius: 10px;
+  background: #f6f9fb;
+}
+
+.legal-clickwrap-row {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 !important;
+  font-weight: 400 !important;
+  cursor: pointer;
+}
+
+.legal-clickwrap-row input,
+.legal-acceptance-box input[type="checkbox"] {
+  width: auto !important;
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+
+.legal-clickwrap-row span,
+.legal-acceptance-box span {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.legal-clickwrap-row a,
+.legal-acceptance-box a {
+  color: #005f95;
+}
+
+@media (max-width: 680px) {
+  .site-legal-footer-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
