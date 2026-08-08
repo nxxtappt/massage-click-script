@@ -405,7 +405,16 @@ async function buildDashboard(session) {
       providerHealth: latestResult?.status || latestCache?.status || "unknown"
     },
 
-    analytics: getBusinessClickSummary(businessName)
+    analytics: await getBusinessClickSummary(
+      businessName,
+      {
+        days: 30,
+        businessSlug:
+          business?.businessSlug ||
+          business?.slug ||
+          slugify(businessName)
+      }
+    )
   };
 }
 
@@ -1031,6 +1040,58 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
     });
   } catch (error) {
     console.error("[BUSINESS DASHBOARD LOGO UPLOAD ERROR]", error);
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+router.get("/analytics", requireBusinessSession, async (req, res) => {
+  try {
+    const business = await findBusinessForSession(
+      req.businessSession
+    );
+
+    const businessName =
+      business?.businessName ||
+      business?.name ||
+      req.businessSession.businessName ||
+      "";
+
+    if (!businessName) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found."
+      });
+    }
+
+    const analytics =
+      await getBusinessClickSummary(
+        businessName,
+        {
+          days:
+            req.query.days ||
+            30,
+          businessSlug:
+            business?.businessSlug ||
+            business?.slug ||
+            slugify(
+              businessName
+            )
+        }
+      );
+
+    res.json({
+      success: true,
+      analytics
+    });
+  } catch (error) {
+    console.error(
+      "[BUSINESS DASHBOARD ANALYTICS ERROR]",
+      error
+    );
 
     res.status(500).json({
       success: false,

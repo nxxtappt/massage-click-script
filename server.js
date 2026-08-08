@@ -13,6 +13,7 @@ const adminV2Routes = require("./api/adminV2Routes");
 const businessPortalRoutes = require("./businessPortalRoutes");
 const businessDashboardRoutes = require("./businessDashboardRoutes");
 const analyticsRoutes = require("./analyticsRoutes");
+const adminSiteAnalyticsRoutes = require("./adminSiteAnalyticsRoutes");
 const {
   dedupeBusinesses,
   dedupeAppointments,
@@ -136,6 +137,7 @@ app.use("/uploads", express.static(storagePath("public", "uploads")));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/admin/v2", adminV2Routes);
+app.use("/api/admin/analytics", adminSiteAnalyticsRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
