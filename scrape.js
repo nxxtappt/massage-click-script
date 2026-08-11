@@ -692,7 +692,7 @@ async function scrapeWithRetries(browser, business) {
 
 
       if (scrapeTarget.platform === "square") {
-        const result = await scrapeSquareBusiness(page, scrapeTarget, attempt);
+        const result = await scrapeSquareBusiness(scrapeTarget);
         await closeScrapePage(page, context);
 
         return {
