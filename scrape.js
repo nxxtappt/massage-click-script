@@ -21,6 +21,7 @@ const { scrapeZenoti } = require("./scrapers/zenoti");
 const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
 const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
+const { scrapeSquareBusiness } = require("./scrapers/square");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 const businessManager = require("./businessManager");
 const inventoryManager = require("./inventoryManager");
@@ -151,9 +152,12 @@ async function closeScrapePage(page, context) {
 }
 
 function usesDedicatedBrowser(job = {}) {
+  const platform = String(job.platform || "").toLowerCase();
+
   return (
     String(job.integrationType || "").toLowerCase() === "api" ||
-    String(job.platform || "").toLowerCase() === "meevo"
+    platform === "meevo" ||
+    platform === "square"
   );
 }
 
@@ -687,6 +691,31 @@ async function scrapeWithRetries(browser, business) {
       }
 
 
+      if (scrapeTarget.platform === "square") {
+        const result = await scrapeSquareBusiness(page, scrapeTarget, attempt);
+        await closeScrapePage(page, context);
+
+        return {
+          ...result,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: "square",
+          serviceName: scrapeTarget.serviceName || result.serviceName || result.service || "",
+          service: scrapeTarget.serviceName || result.serviceName || result.service || "",
+          serviceType: scrapeTarget.serviceType || result.serviceType || "hair",
+          durationMinutes: scrapeTarget.durationMinutes || result.durationMinutes || null,
+          platformServiceId:
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceId ||
+            result.platformServiceId ||
+            null,
+          provider: result.provider || scrapeTarget.providerText || "Any staff",
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          attemptNumber: attempt,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+
       if (scrapeTarget.platform === "hand-stone") {
       await closeScrapePage(page, context);
 
@@ -896,6 +925,7 @@ async function run() {
     "massage-envy",
     "mangomint",
     "hand-stone",
+    "square",
     "vagaro"
   ].filter((platform) => Boolean(getPlatformDefinition(platform)));
 

@@ -1425,7 +1425,7 @@ function renderServiceCard(
           )}
 
           ${renderServiceInput(
-            "Platform Service ID",
+            getPlatformServiceIdLabel(businessIndex),
             "platformServiceId",
             service.platformServiceId,
             businessIndex,
@@ -1625,6 +1625,209 @@ function renderServicesSection(business, businessIndex) {
   `;
 }
 
+function getSquareIntegrationConfigValue(business = {}, key = "") {
+  const integrations = Array.isArray(business.integrations)
+    ? business.integrations
+    : [];
+
+  const primaryIntegration =
+    integrations.find((item) => item?.isDefault === true) ||
+    integrations.find((item) => String(item?.platform || "").toLowerCase() === "square") ||
+    business.primaryIntegration ||
+    null;
+
+  return (
+    business.integrationConfig?.[key] ??
+    primaryIntegration?.config?.[key] ??
+    business[key] ??
+    ""
+  );
+}
+
+function setSquareIntegrationConfigValue(business = {}, key = "", value = "") {
+  if (!business || !key) return;
+
+  business.integrationConfig = {
+    ...(business.integrationConfig || {}),
+    [key]: value
+  };
+
+  // Keep a top-level copy for legacy integration normalization and easy admin inspection.
+  business[key] = value;
+
+  const integrations = Array.isArray(business.integrations)
+    ? business.integrations
+    : [];
+
+  const primaryIntegration =
+    integrations.find((item) => item?.isDefault === true) ||
+    integrations.find((item) => String(item?.platform || "").toLowerCase() === "square") ||
+    integrations[0] ||
+    null;
+
+  if (primaryIntegration) {
+    primaryIntegration.platform = business.platform || primaryIntegration.platform || "square";
+    primaryIntegration.config = {
+      ...(primaryIntegration.config || {}),
+      [key]: value
+    };
+  }
+}
+
+function syncSquarePrimaryIntegrationCoreField(business = {}, field = "", value = "") {
+  if (!business || !field) return;
+
+  const platform = String(
+    field === "platform" ? value : business.platform || ""
+  ).trim().toLowerCase();
+
+  if (platform !== "square") return;
+
+  const integrations = Array.isArray(business.integrations)
+    ? business.integrations
+    : [];
+
+  const primaryIntegration =
+    integrations.find((item) => item?.isDefault === true) ||
+    integrations.find((item) => String(item?.platform || "").toLowerCase() === "square") ||
+    integrations[0] ||
+    null;
+
+  if (!primaryIntegration) return;
+
+  if (field === "platform") primaryIntegration.platform = value;
+  if (field === "bookingUrl") primaryIntegration.bookingUrl = value;
+  if (field === "integrationType") primaryIntegration.integrationType = value;
+}
+
+function renderSquareIntegrationFields(business = {}, index) {
+  const platform = String(business.platform || "").trim().toLowerCase();
+  const keys = [
+    "squareSiteUrl",
+    "squarePublishedUserId",
+    "squareSiteId",
+    "squareLocationId"
+  ];
+
+  const hasSquareConfig = keys.some((key) =>
+    Boolean(getSquareIntegrationConfigValue(business, key))
+  );
+
+  return `
+    <details class="services-section square-integration-section" ${platform === "square" || hasSquareConfig ? "open" : ""}>
+      <summary class="services-summary">
+        <span>Square Integration</span>
+        <small>Only used when Platform is square</small>
+      </summary>
+
+      <div class="services-inner">
+        <p class="admin-muted">
+          Enter the Square Online identifiers used by the universal Square scraper.
+          The service-level Square item or variation ID is entered under Services below.
+        </p>
+
+        <div class="business-edit-grid">
+          <label class="admin-field">
+            <span>Square Site URL</span>
+            <input
+              type="url"
+              data-square-business-index="${index}"
+              data-square-config-key="squareSiteUrl"
+              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareSiteUrl"))}"
+              placeholder="https://business.square.site/"
+            />
+          </label>
+
+          <label class="admin-field">
+            <span>Square Published User ID</span>
+            <input
+              type="text"
+              data-square-business-index="${index}"
+              data-square-config-key="squarePublishedUserId"
+              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squarePublishedUserId"))}"
+            />
+          </label>
+
+          <label class="admin-field">
+            <span>Square Site ID</span>
+            <input
+              type="text"
+              data-square-business-index="${index}"
+              data-square-config-key="squareSiteId"
+              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareSiteId"))}"
+            />
+          </label>
+
+          <label class="admin-field">
+            <span>Square Location ID</span>
+            <input
+              type="text"
+              data-square-business-index="${index}"
+              data-square-config-key="squareLocationId"
+              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareLocationId"))}"
+              placeholder="89AQ7C8CEM2SM"
+            />
+          </label>
+        </div>
+      </div>
+    </details>
+  `;
+}
+
+function getPlatformServiceIdLabel(businessIndex) {
+  const platform = String(
+    businessesCache?.[businessIndex]?.platform || ""
+  ).trim().toLowerCase();
+
+  return platform === "square"
+    ? "Square Service Item / Variation ID"
+    : "Platform Service ID";
+}
+
+function attachSquareIntegrationInputListeners() {
+  content
+    .querySelectorAll("[data-square-business-index][data-square-config-key]")
+    .forEach((fieldElement) => {
+      const update = () => {
+        const businessIndex = Number(fieldElement.dataset.squareBusinessIndex);
+        const key = fieldElement.dataset.squareConfigKey;
+        const business = businessesCache[businessIndex];
+
+        if (!business || !key) return;
+
+        setSquareIntegrationConfigValue(business, key, fieldElement.value);
+        setStatus("Unsaved Square integration changes.", "info");
+      };
+
+      fieldElement.addEventListener("input", update);
+      fieldElement.addEventListener("change", update);
+    });
+
+  content
+    .querySelectorAll(
+      '[data-index][data-field="platform"], ' +
+      '[data-index][data-field="bookingUrl"], ' +
+      '[data-index][data-field="integrationType"]'
+    )
+    .forEach((fieldElement) => {
+      const update = () => {
+        const businessIndex = Number(fieldElement.dataset.index);
+        const field = fieldElement.dataset.field;
+        const business = businessesCache[businessIndex];
+        if (!business) return;
+
+        syncSquarePrimaryIntegrationCoreField(
+          business,
+          field,
+          fieldElement.value
+        );
+      };
+
+      fieldElement.addEventListener("input", update);
+      fieldElement.addEventListener("change", update);
+    });
+}
+
 function renderBusinessCard(business, index) {
   return `
     <div class="admin-business-card ${business.enabled === false ? "business-disabled" : ""}">
@@ -1669,6 +1872,7 @@ function renderBusinessCard(business, index) {
           ${renderInput("Integration Type", "integrationType", business.integrationType || "scraper", index)}
           ${renderInput("API Provider", "apiProvider", business.apiProvider, index)}
           ${renderInput("Credential ID", "credentialId", business.credentialId, index)}
+          ${renderSquareIntegrationFields(business, index)}
           <div class="admin-field checkbox-wrap">
             <span>Status</span>
             ${renderCheckbox("Business enabled", "enabled", business.enabled !== false, index)}
@@ -2086,6 +2290,7 @@ function renderBusinessesFromCache() {
   });
 
   attachBusinessInputListeners();
+  attachSquareIntegrationInputListeners();
   attachServiceInputListeners();
   attachServiceDisclosureListeners();
   attachAddServiceListeners();
