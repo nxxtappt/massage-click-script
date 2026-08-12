@@ -11,7 +11,7 @@ const DEFAULT_HEADERS = {
 };
 
 
-const NEXTAPPT_SQUARE_SCRAPER_VERSION = "4.0.0";
+const NEXTAPPT_SQUARE_SCRAPER_VERSION = "5.0.0";
 
 function sanitizeSquareUrl(value = "") {
   let raw = String(value || "").trim();
@@ -29,6 +29,74 @@ function sanitizeSquareUrl(value = "") {
 
   raw = raw.replace(/^<|>$/g, "").trim();
   return raw;
+}
+
+function parseSquareBookingUrl(value = "") {
+  const urlText = sanitizeSquareUrl(value);
+
+  const result = {
+    url: urlText,
+    isDirectBooking: false,
+    bookingBusinessId: "",
+    locationId: "",
+    routeType: ""
+  };
+
+  if (!urlText) return result;
+
+  try {
+    const parsed = new URL(urlText);
+    const hostname = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname;
+
+    const directMatch = pathname.match(
+      /\/appointments\/([^/]+)\/location\/([^/]+)(?:\/|$)/i
+    );
+
+    if (
+      directMatch &&
+      (hostname === "book.squareup.com" ||
+        hostname === "app.squareup.com" ||
+        hostname.endsWith(".squareup.com"))
+    ) {
+      result.isDirectBooking = true;
+      result.bookingBusinessId = decodeURIComponent(directMatch[1]);
+      result.locationId = decodeURIComponent(directMatch[2]);
+      result.routeType = "book_squareup_appointments";
+      return result;
+    }
+
+    const buyerStartMatch = pathname.match(
+      /\/appointments\/book\/([^/]+)\/start(?:\/|$)/i
+    );
+
+    if (
+      buyerStartMatch &&
+      (hostname === "app.squareup.com" ||
+        hostname === "book.squareup.com")
+    ) {
+      result.isDirectBooking = true;
+      result.locationId = decodeURIComponent(buyerStartMatch[1]);
+      result.routeType = "square_buyer_start";
+      return result;
+    }
+
+    const legacyBookMatch = pathname.match(/^\/book\/([^/]+)(?:\/|$)/i);
+
+    if (
+      legacyBookMatch &&
+      (hostname === "square.site" || hostname.endsWith(".square.site"))
+    ) {
+      result.isDirectBooking = true;
+      result.locationId = decodeURIComponent(legacyBookMatch[1]);
+      result.routeType = "square_site_book";
+      return result;
+    }
+  } catch {
+    // Leave the default empty parse result.
+  }
+
+  return result;
 }
 
 function getSquareConfigSources(target = {}) {
@@ -111,6 +179,8 @@ function normalizeSquareTarget(input = {}) {
     getSquareField(target, ["bookingUrl", "booking_url"], target.bookingUrl || "")
   );
 
+  const parsedBookingUrl = parseSquareBookingUrl(bookingUrl);
+
   const squareSiteUrl = sanitizeSquareUrl(
     getSquareField(target, [
       "squareSiteUrl",
@@ -124,11 +194,33 @@ function normalizeSquareTarget(input = {}) {
     getSquareField(target, ["squareSyncBase", "square_sync_base"])
   );
 
+  const explicitLocationId = String(
+    getSquareField(target, [
+      "squareLocationId",
+      "square_location_id",
+      "locationId",
+      "location_id",
+      "unitToken",
+      "unit_token"
+    ], "")
+  );
+
+  const explicitBookingBusinessId = String(
+    getSquareField(target, [
+      "squareBookingBusinessId",
+      "square_booking_business_id",
+      "bookingBusinessId",
+      "booking_business_id"
+    ], "")
+  );
+
   return {
     ...target,
     bookingUrl,
     squareSiteUrl,
     squareSyncBase,
+    squareBookingBusinessId:
+      explicitBookingBusinessId || parsedBookingUrl.bookingBusinessId || "",
     squarePublishedUserId: String(
       getSquareField(target, [
         "squarePublishedUserId",
@@ -145,16 +237,8 @@ function normalizeSquareTarget(input = {}) {
         "site_id"
       ], "")
     ),
-    squareLocationId: String(
-      getSquareField(target, [
-        "squareLocationId",
-        "square_location_id",
-        "locationId",
-        "location_id",
-        "unitToken",
-        "unit_token"
-      ], "")
-    ),
+    squareLocationId:
+      explicitLocationId || parsedBookingUrl.locationId || "",
     squareServiceVariationId: String(
       getSquareField(target, [
         "squareServiceVariationId",
@@ -590,8 +674,14 @@ function findPublishedIdsInText(text = "") {
 async function discoverSquareContext(target = {}) {
   target = normalizeSquareTarget(target);
 
+  const parsedBookingUrl = parseSquareBookingUrl(target.bookingUrl);
+
   const explicitSyncBase = sanitizeSquareUrl(
-    getSquareField(target, ["squareSyncBase", "square_sync_base"], target.squareSyncBase)
+    getSquareField(
+      target,
+      ["squareSyncBase", "square_sync_base"],
+      target.squareSyncBase
+    )
   );
 
   if (explicitSyncBase) {
@@ -602,10 +692,14 @@ async function discoverSquareContext(target = {}) {
         getSquareField(target, ["squareSiteOrigin", "square_site_origin"]) ||
         getSquareSiteOrigin(target) ||
         "",
-      publishedUserId:
-        target.squarePublishedUserId || "",
+      publishedUserId: target.squarePublishedUserId || "",
       siteId: target.squareSiteId || "",
       syncBase: base,
+      bookingBusinessId:
+        target.squareBookingBusinessId || parsedBookingUrl.bookingBusinessId || "",
+      locationId:
+        target.squareLocationId || parsedBookingUrl.locationId || "",
+      directBookingUrl: target.bookingUrl || "",
       discoveryMethod: "explicit_sync_base"
     };
   }
@@ -625,14 +719,36 @@ async function discoverSquareContext(target = {}) {
       syncBase:
         `${squareSiteOrigin}/app/square-sync/published/users/` +
         `${explicitUserId}/site/${explicitSiteId}/appointments`,
+      bookingBusinessId:
+        target.squareBookingBusinessId || parsedBookingUrl.bookingBusinessId || "",
+      locationId:
+        target.squareLocationId || parsedBookingUrl.locationId || "",
+      directBookingUrl: target.bookingUrl || "",
       discoveryMethod: "explicit_ids"
+    };
+  }
+
+  if (parsedBookingUrl.isDirectBooking) {
+    return {
+      squareSiteOrigin: "",
+      publishedUserId: "",
+      siteId: "",
+      syncBase: "",
+      bookingBusinessId:
+        target.squareBookingBusinessId || parsedBookingUrl.bookingBusinessId || "",
+      locationId:
+        target.squareLocationId || parsedBookingUrl.locationId || "",
+      directBookingUrl: target.bookingUrl || parsedBookingUrl.url || "",
+      directRouteType: parsedBookingUrl.routeType || "",
+      discoveryMethod: "direct_booking"
     };
   }
 
   if (!squareSiteOrigin) {
     throw new Error(
-      "Square scraper could not determine the business's *.square.site URL. " +
-        "Save squareSiteUrl plus squarePublishedUserId/squareSiteId, or save squareSyncBase."
+      "Square scraper could not determine a usable booking discovery path. " +
+        "Save a public Square Booking URL. For Square Online sites you may also " +
+        "save squareSiteUrl plus squarePublishedUserId/squareSiteId."
     );
   }
 
@@ -647,7 +763,8 @@ async function discoverSquareContext(target = {}) {
   if (!discovered) {
     throw new Error(
       "Square site loaded, but published user/site IDs were not discoverable from HTML. " +
-        "Save squarePublishedUserId and squareSiteId on the business integration. " +
+        "If this merchant has a book.squareup.com appointment URL, save that as Booking URL. " +
+        "Otherwise save squarePublishedUserId and squareSiteId on the business integration. " +
         `Square site: ${squareSiteOrigin}`
     );
   }
@@ -658,6 +775,9 @@ async function discoverSquareContext(target = {}) {
     syncBase:
       `${squareSiteOrigin}/app/square-sync/published/users/` +
       `${discovered.publishedUserId}/site/${discovered.siteId}/appointments`,
+    bookingBusinessId: target.squareBookingBusinessId || "",
+    locationId: target.squareLocationId || "",
+    directBookingUrl: target.bookingUrl || "",
     discoveryMethod: "square_site_html"
   };
 }
@@ -1356,7 +1476,12 @@ async function fetchSquareAvailabilityInBrowser({
   }
 
   async function attemptNativeFlow() {
-    let result = await waitForNative(8000);
+    let result = null;
+    if (payload) {
+      result = await waitForNative(8000);
+    } else {
+      await page.waitForTimeout(2000);
+    }
     if (result) return result;
 
     if (serviceName) {
@@ -1540,8 +1665,33 @@ async function fetchSquareAvailabilityInBrowser({
     const native = await attemptNativeFlow();
 
     if (native) {
+      const captured = [...capturedResponses]
+        .reverse()
+        .find(
+          (entry) =>
+            entry.status === 200 &&
+            entry.json === native
+        ) || null;
+
       native.__nextapptSquareTransport = "native_browser_capture";
+      native.__nextapptSquareCapturedRequest = captured?.postDataJson || null;
+      native.__nextapptSquareFinalUrl = page.url();
       return native;
+    }
+
+    if (!payload) {
+      const bodyText = await page
+        .locator("body")
+        .innerText({ timeout: 3000 })
+        .catch(() => "");
+
+      throw new Error(
+        "Square direct booking flow did not emit a native availability request. " +
+          `Final URL: ${page.url()}. ` +
+          `Native requests: ${capturedRequests.length}; responses: ${capturedResponses.length}. ` +
+          `Actions: ${actionLog.join(", ") || "none"}. ` +
+          `Page text sample: ${String(bodyText).replace(/\s+/g, " ").slice(0, 500)}`
+      );
     }
 
     // If the UI did not naturally trigger availability, the session is now
@@ -1834,6 +1984,188 @@ function normalizeSquareAppointments(
   );
 }
 
+async function scrapeSquareDirectBookingBusiness(
+  target = {},
+  context = {},
+  startedAt = Date.now()
+) {
+  const timeZone = target.timezone || DEFAULT_TIMEZONE;
+  const window = resolveScrapeWindow({
+    ...target,
+    timezone: timeZone
+  });
+
+  const parsedBookingUrl = parseSquareBookingUrl(
+    context.directBookingUrl || target.bookingUrl
+  );
+
+  const locationId =
+    context.locationId ||
+    target.squareLocationId ||
+    parsedBookingUrl.locationId ||
+    "";
+
+  if (!locationId) {
+    throw new Error(
+      "Square direct booking flow is missing a location ID. " +
+        "Use a booking URL containing /location/{LOCATION_ID}/ or save Square Location ID."
+    );
+  }
+
+  const serviceItemId =
+    target.platformServiceId ||
+    target.serviceId ||
+    target.serviceButtonId ||
+    "";
+
+  const serviceName = target.serviceName || target.service || "";
+
+  console.log("[SQUARE] Direct booking discovery", {
+    businessName: target.businessName || target.name,
+    serviceName,
+    bookingBusinessId:
+      context.bookingBusinessId ||
+      target.squareBookingBusinessId ||
+      parsedBookingUrl.bookingBusinessId ||
+      "",
+    locationId,
+    bookingUrl: context.directBookingUrl || target.bookingUrl
+  });
+
+  const availabilityPayload = await fetchSquareAvailabilityInBrowser({
+    bookingUrl: context.directBookingUrl || target.bookingUrl || "",
+    buyerStartUrl: context.directBookingUrl || target.bookingUrl || "",
+    payload: null,
+    serviceName,
+    staffProfiles: [],
+    timeoutMs: Math.max(Number(target.squareTimeoutMs || 20000), 35000)
+  });
+
+  const capturedRequest =
+    availabilityPayload.__nextapptSquareCapturedRequest || null;
+
+  const capturedFilter =
+    capturedRequest?.search_availability_request?.query?.filter || null;
+
+  const capturedSegment = capturedFilter?.segment_filters?.[0] || null;
+
+  const resolvedLocationId = String(
+    capturedFilter?.location_id || locationId || ""
+  );
+
+  const capturedVariationId = String(
+    capturedSegment?.service_variation_id || ""
+  );
+
+  const resolvedVariationId =
+    capturedVariationId || target.squareServiceVariationId || "";
+
+  const capturedTeamMemberIds = Array.isArray(
+    capturedSegment?.team_member_id_filter?.any
+  )
+    ? capturedSegment.team_member_id_filter.any.map(String)
+    : [];
+
+  const selectedService = {
+    itemId: serviceItemId || resolvedVariationId || "",
+    variationId: resolvedVariationId || serviceItemId || "",
+    serviceName,
+    variationName: "",
+    description: "",
+    durationMinutes: toNumberOrNull(target.durationMinutes),
+    priceAmount: null,
+    currency: "USD",
+    priceDescription: "",
+    teamMemberIds: capturedTeamMemberIds,
+    transitionTimeMinutes: null,
+    availableForBooking: true
+  };
+
+  const appointments = normalizeSquareAppointments(
+    availabilityPayload,
+    {
+      target,
+      service: selectedService,
+      locationId: resolvedLocationId,
+      timeZone
+    }
+  ).filter((appointment) => {
+    const dateKey = appointment.localDateKey || "";
+    if (window.startDate && dateKey && dateKey < window.startDate) return false;
+    if (window.endDate && dateKey && dateKey > window.endDate) return false;
+    return true;
+  });
+
+  return {
+    businessName: target.businessName || target.name || "",
+    bookingUrl: target.bookingUrl || "",
+    platform: "square",
+    service: serviceName,
+    serviceName,
+    serviceType: target.serviceType || target.serviceCategory || "hair",
+    durationMinutes: toNumberOrNull(target.durationMinutes),
+    platformServiceId:
+      target.platformServiceId || target.serviceId || selectedService.itemId || null,
+    provider: target.providerText || "Any available staff",
+    date: null,
+    times: appointments.map((appointment) => appointment.startTime),
+    status: appointments.length > 0 ? "success" : "no_times_found",
+    error: null,
+    scrapeDurationMs: Date.now() - startedAt,
+    lastChecked: new Date().toISOString(),
+    appointments,
+    openings: appointments,
+    price: null,
+    distanceMiles:
+      typeof target.distanceMiles === "number" ? target.distanceMiles : null,
+    scrapeStartDate: window.startDate,
+    scrapeEndDate: window.endDate,
+    lookaheadHours: target.lookaheadHours ? Number(target.lookaheadHours) : null,
+    daysForward: target.daysForward ? Number(target.daysForward) : null,
+    scrapeWindowMode: target.scrapeWindowMode || "",
+    rawWidgetText: null,
+    squareMeta: {
+      scraperVersion: NEXTAPPT_SQUARE_SCRAPER_VERSION,
+      availabilityTransport:
+        availabilityPayload.__nextapptSquareTransport || "native_browser_capture",
+      squareSiteOrigin: "",
+      publishedUserId: "",
+      siteId: "",
+      syncBase: "",
+      discoveryMethod: "direct_booking",
+      directRouteType: context.directRouteType || parsedBookingUrl.routeType || "",
+      bookingBusinessId:
+        context.bookingBusinessId ||
+        target.squareBookingBusinessId ||
+        parsedBookingUrl.bookingBusinessId ||
+        "",
+      locationId: resolvedLocationId,
+      serviceItemId: selectedService.itemId || null,
+      serviceVariationId: resolvedVariationId || null,
+      discoveredServiceName: serviceName,
+      variationName: "",
+      durationMinutes: selectedService.durationMinutes,
+      priceAmount: null,
+      currency: selectedService.currency,
+      eligibleTeamMemberIds: capturedTeamMemberIds,
+      staffProfiles: [],
+      discoveredServiceCount: null,
+      rawAvailabilityCount: collectAvailabilitySlots(availabilityPayload).length,
+      normalizedAppointmentCount: appointments.length,
+      buyerStartUrl:
+        availabilityPayload.__nextapptSquareFinalUrl ||
+        context.directBookingUrl ||
+        target.bookingUrl ||
+        "",
+      requestWindow: {
+        startAt: window.startAt,
+        endAt: window.endAt
+      },
+      capturedNativeRequest: capturedRequest
+    }
+  };
+}
+
 async function scrapeSquareBusiness(target = {}) {
   const startedAt = Date.now();
   target = normalizeSquareTarget(target);
@@ -1848,6 +2180,11 @@ async function scrapeSquareBusiness(target = {}) {
   }
 
   const context = await discoverSquareContext(target);
+
+  if (context.discoveryMethod === "direct_booking") {
+    return scrapeSquareDirectBookingBusiness(target, context, startedAt);
+  }
+
   const discovery = await fetchSquareDiscoveryData(context, target);
 
   const selectedService = selectSquareService(discovery.services, target);
@@ -2010,11 +2347,13 @@ async function scrapeSquareBusiness(target = {}) {
 module.exports = {
   NEXTAPPT_SQUARE_SCRAPER_VERSION,
   scrapeSquareBusiness,
+  scrapeSquareDirectBookingBusiness,
   fetchSquareAvailability,
   fetchSquareAvailabilityInBrowser,
   buildSquareAvailabilityPayload,
   buildSquareBuyerStartUrl,
   sanitizeSquareUrl,
+  parseSquareBookingUrl,
   normalizeSquareTarget,
   discoverSquareContext,
   fetchSquareDiscoveryData,

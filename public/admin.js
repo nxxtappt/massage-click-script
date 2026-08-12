@@ -1706,6 +1706,7 @@ function renderSquareIntegrationFields(business = {}, index) {
     "squareSiteUrl",
     "squarePublishedUserId",
     "squareSiteId",
+    "squareBookingBusinessId",
     "squareLocationId"
   ];
 
@@ -1755,6 +1756,17 @@ function renderSquareIntegrationFields(business = {}, index) {
               data-square-business-index="${index}"
               data-square-config-key="squareSiteId"
               value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareSiteId"))}"
+            />
+          </label>
+
+          <label class="admin-field">
+            <span>Square Booking Business ID</span>
+            <input
+              type="text"
+              data-square-business-index="${index}"
+              data-square-config-key="squareBookingBusinessId"
+              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareBookingBusinessId"))}"
+              placeholder="s4hhr5q8oh2ok8"
             />
           </label>
 

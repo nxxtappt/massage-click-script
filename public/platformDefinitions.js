@@ -352,94 +352,59 @@
       key: "square",
       label: "Square Appointments",
       description:
-        "Square public booking pages with public service/staff discovery and buyer availability capture.",
-      capabilities: [
-        "scrape",
-        "service_discovery",
-        "provider_selection"
-      ],
+        "Square public booking pages with automatic Square Online or direct booking discovery.",
+      capabilities: ["scrape", "service_discovery", "provider_selection"],
       integrationTypes: ["scrape"],
       integrationFields: [
         bookingUrl,
-
-        url("squareSiteUrl", "Square Site URL", {
-          requiredFor: ["scrape"],
+        text("squareBookingBusinessId", "Square Booking Business ID", {
           storage: "config",
-          aliases: [
-            "squareWebsiteUrl",
-            "square_site_url"
-          ],
+          aliases: ["bookingBusinessId", "square_booking_business_id"],
           help:
-            "The business public *.square.site URL used for Square service, staff, and location discovery."
+            "Optional. Automatically parsed from book.squareup.com/appointments/{BUSINESS_ID}/... URLs when present."
         }),
-
-        text("squarePublishedUserId", "Square Published User ID", {
-          requiredFor: ["scrape"],
-          storage: "config",
-          aliases: [
-            "publishedUserId",
-            "square_published_user_id"
-          ],
-          help:
-            "The numeric published user ID from the public Square square-sync booking endpoints."
-        }),
-
-        text("squareSiteId", "Square Site ID", {
-          requiredFor: ["scrape"],
-          storage: "config",
-          aliases: [
-            "siteId",
-            "square_site_id"
-          ],
-          help:
-            "The numeric Square Online site ID used by the public square-sync booking endpoints."
-        }),
-
         text("squareLocationId", "Square Location ID", {
-          requiredFor: ["scrape"],
           storage: "config",
-          aliases: [
-            "locationId",
-            "unitToken",
-            "square_location_id"
-          ],
+          aliases: ["locationId", "unitToken", "square_location_id"],
           help:
-            "Square location/unit token used for service discovery and availability."
+            "Optional when the Booking URL contains /location/{LOCATION_ID}/ or square.site/book/{LOCATION_ID}/."
         }),
-
+        url("squareSiteUrl", "Square Site URL", {
+          storage: "config",
+          aliases: ["squareWebsiteUrl", "square_site_url"],
+          help:
+            "Optional fast-discovery path for merchants with a public *.square.site Square Online site."
+        }),
+        text("squarePublishedUserId", "Square Published User ID", {
+          storage: "config",
+          aliases: ["publishedUserId", "square_published_user_id"],
+          help:
+            "Optional. Used with Square Site ID for the faster square-sync discovery path."
+        }),
+        text("squareSiteId", "Square Site ID", {
+          storage: "config",
+          aliases: ["siteId", "square_site_id"],
+          help:
+            "Optional. Used with Square Published User ID for the faster square-sync discovery path."
+        }),
         text("businessLocationId", "Square Business Location UUID", {
           storage: "config",
-          aliases: [
-            "squareBusinessLocationId",
-            "business_location_id"
-          ],
-          help:
-            "Optional Square booking business-location UUID when known."
+          aliases: ["squareBusinessLocationId", "business_location_id"],
+          help: "Optional Square booking business-location UUID when known."
         }),
-
         text("squareBusinessId", "Square Booking Business UUID", {
           storage: "config",
-          aliases: [
-            "businessId",
-            "square_business_id"
-          ],
-          help:
-            "Optional Square booking business UUID when known."
+          aliases: ["businessId", "square_business_id"],
+          help: "Optional legacy/internal Square booking business UUID when known."
         }),
-
         text("squareClientId", "Square Booking Client ID", {
           storage: "config",
-          aliases: [
-            "clientId",
-            "square_client_id"
-          ],
-          help:
-            "Optional public Square booking client/application ID."
+          aliases: ["clientId", "square_client_id"],
+          help: "Optional public Square booking client/application ID."
         })
       ],
       serviceFields: [
         ...commonServiceFields,
-
         text("platformServiceId", "Square Service Item / Variation ID", {
           required: true,
           storage: "service",
@@ -451,14 +416,12 @@
             "squareServiceVariationId"
           ],
           help:
-            "Square Catalog ITEM ID or ITEM_VARIATION ID. The Square scraper resolves ITEM IDs to a bookable variation."
+            "Square service/item ID. square-sync mode resolves parent ITEM IDs; direct-booking mode captures the actual variation from Square's native buyer request."
         }),
-
         text("staffId", "Square Staff ID", {
           storage: "serviceConfig",
           aliases: ["squareStaffId"]
         }),
-
         text("providerText", "Provider Text", {
           storage: "serviceConfig",
           defaultValue: "Any available staff"
