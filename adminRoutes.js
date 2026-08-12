@@ -6,7 +6,10 @@ const {
 
 const { getCacheStats } = require("./cacheManager");
 
+const manualInventoryRoutes = require("./adminManualInventoryRoutes");
+
 const router = express.Router();
+router.use("/inventory", manualInventoryRoutes);
 
 const businessManager = require("./businessManager");
 const serviceCategoryRepository = require("./database/serviceCategoryRepository");

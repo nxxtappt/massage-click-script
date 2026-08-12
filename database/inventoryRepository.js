@@ -481,7 +481,88 @@ async function insertInferredAppointment(payload = {}, client = db) {
   return inferred;
 }
 
+async function findProtectedManualInventoryDuplicate(payload = {}, client = db) {
+  const inventoryReason = payload.inventoryReason || payload.reason || "confirmed_scrape";
+
+  if (inventoryReason === "manual_admin") {
+    return null;
+  }
+
+  const businessServiceId = toBigIntOrNull(
+    payload.businessServiceId || payload.inferredBusinessServiceId
+  );
+
+  const localDate =
+    payload.localDate ||
+    payload.localDateKey ||
+    buildLocalDate(payload) ||
+    null;
+
+  const localTime =
+    payload.localTime ||
+    payload.localTimeKey ||
+    buildLocalTime(payload) ||
+    null;
+
+  if (!localDate || !localTime) {
+    return null;
+  }
+
+  const values = [];
+  const where = [
+    "appointment_source = 'confirmed'",
+    "COALESCE(inventory_reason, '') = 'manual_admin'",
+    "COALESCE((to_jsonb(appointment_inventory)->>'scrape_overwrite_protected')::boolean, false) = true"
+  ];
+
+  function add(sql, value) {
+    values.push(value);
+    where.push(sql.replace("?", `${values.length}`));
+  }
+
+  if (businessServiceId) {
+    add("business_service_id = ?", businessServiceId);
+  } else {
+    add("LOWER(business_name) = LOWER(?)", payload.businessName || "");
+
+    add(
+      "LOWER(COALESCE(service_name, '')) = LOWER(?)",
+      payload.serviceName || payload.service || ""
+    );
+
+    if (payload.durationMinutes) {
+      add("duration_minutes = ?", Number(payload.durationMinutes));
+    }
+  }
+
+  add("local_date = ?::date", localDate);
+  add("local_time = ?::time", localTime);
+
+  where.push("searchable = true");
+
+  const result = await client.query(
+    `
+      SELECT *
+      FROM appointment_inventory
+      WHERE ${where.join(" AND ")}
+      ORDER BY id DESC
+      LIMIT 1
+    `,
+    values
+  );
+
+  return result.rows[0] || null;
+}
+
 async function insertInventoryAppointment(payload = {}, client = db) {
+  const protectedManualDuplicate = await findProtectedManualInventoryDuplicate(
+    payload,
+    client
+  );
+
+  if (protectedManualDuplicate) {
+    return protectedManualDuplicate;
+  }
   return insertDynamic(
     "appointment_inventory",
     {
@@ -546,7 +627,11 @@ async function insertInventoryAppointment(payload = {}, client = db) {
         null,
 
       searchable:
-        payload.searchable === undefined ? true : Boolean(payload.searchable)
+        payload.searchable === undefined ? true : Boolean(payload.searchable),
+
+      scrape_overwrite_protected:
+        payload.scrapeOverwriteProtected === true ||
+        payload.scrape_overwrite_protected === true
     },
     client
   );
@@ -592,6 +677,11 @@ async function reconcileAppointmentInventoryScope(payload = {}, client = db) {
     values.push(endDate);
     where.push(`local_date <= $${values.length}::date`);
   }
+
+  // Protected manual appointments survive automatic scraper reconciliation.
+  where.push(
+    "COALESCE((to_jsonb(appointment_inventory)->>'scrape_overwrite_protected')::boolean, false) = false"
+  );
 
   const result = await client.query(
     `
