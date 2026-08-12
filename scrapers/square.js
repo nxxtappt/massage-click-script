@@ -675,6 +675,69 @@ function findPublishedIdsInText(text = "") {
   return null;
 }
 
+
+async function discoverSquareSyncIdsInBrowser(squareSiteOrigin, timeoutMs = 20000) {
+  if (!squareSiteOrigin) return null;
+
+  let chromium;
+  try {
+    ({ chromium } = require("playwright"));
+  } catch (error) {
+    console.warn("[SQUARE] Playwright unavailable for square-sync network discovery:", error.message);
+    return null;
+  }
+
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    locale: "en-US",
+    userAgent:
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+  });
+
+  const page = await context.newPage();
+  let discovered = null;
+
+  function inspectUrl(url = "") {
+    if (discovered) return;
+    const match = String(url).match(
+      /\/app\/square-sync\/published\/users\/(\d+)\/site\/(\d+)\/appointments(?:\/|$)/i
+    );
+    if (match) {
+      discovered = { publishedUserId: match[1], siteId: match[2] };
+    }
+  }
+
+  page.on("request", (request) => inspectUrl(request.url()));
+  page.on("response", (response) => inspectUrl(response.url()));
+
+  try {
+    await page.goto(`${squareSiteOrigin}/`, {
+      waitUntil: "domcontentloaded",
+      timeout: timeoutMs
+    });
+
+    const deadline = Date.now() + Math.min(timeoutMs, 12000);
+    while (!discovered && Date.now() < deadline) {
+      await page.waitForTimeout(250);
+    }
+
+    if (discovered) {
+      console.log("[SQUARE] Discovered square-sync IDs from browser network", {
+        squareSiteOrigin,
+        publishedUserId: discovered.publishedUserId,
+        siteId: discovered.siteId
+      });
+    }
+
+    return discovered;
+  } finally {
+    await page.close().catch(() => null);
+    await context.close().catch(() => null);
+    await browser.close().catch(() => null);
+  }
+}
+
 async function discoverSquareContext(target = {}) {
   target = normalizeSquareTarget(target);
 
@@ -762,13 +825,20 @@ async function discoverSquareContext(target = {}) {
     }
   });
 
-  const discovered = findPublishedIdsInText(text);
+  let discovered = findPublishedIdsInText(text);
+
+  if (!discovered) {
+    discovered = await discoverSquareSyncIdsInBrowser(
+      squareSiteOrigin,
+      Math.max(Number(target.squareTimeoutMs || 20000), 20000)
+    );
+  }
 
   if (!discovered) {
     throw new Error(
-      "Square site loaded, but published user/site IDs were not discoverable from HTML. " +
-        "If this merchant has a book.squareup.com appointment URL, save that as Booking URL. " +
-        "Otherwise save squarePublishedUserId and squareSiteId on the business integration. " +
+      "Square site loaded, but square-sync IDs were not discoverable from HTML or browser network traffic. " +
+        "Save a direct book.squareup.com Booking URL if the merchant has one, or save " +
+        "squarePublishedUserId and squareSiteId on the integration. " +
         `Square site: ${squareSiteOrigin}`
     );
   }
@@ -1291,6 +1361,8 @@ async function fetchSquareAvailabilityInBrowser({
   buyerStartUrl,
   payload,
   serviceName = "",
+  serviceId = "",
+  durationMinutes = null,
   staffProfiles = [],
   timeoutMs = 35000
 }) {
@@ -1479,6 +1551,56 @@ async function fetchSquareAvailabilityInBrowser({
     );
   }
 
+
+  async function clickConfiguredServiceOption() {
+    const configuredId = String(serviceId || "").trim();
+
+    if (configuredId) {
+      const selectors = [
+        `a[href*="${configuredId}"]`,
+        `button[data-id="${configuredId}"]`,
+        `[data-service-id="${configuredId}"]`,
+        `[data-variation-id="${configuredId}"]`,
+        `[data-item-id="${configuredId}"]`,
+        `[value="${configuredId}"]`
+      ];
+
+      for (const selector of selectors) {
+        if (await clickLocator(page.locator(selector), `configured-id:${configuredId}`)) {
+          return true;
+        }
+      }
+    }
+
+    const minutes = Number(durationMinutes || 0);
+    if (Number.isFinite(minutes) && minutes > 0) {
+      const patterns = [
+        new RegExp(`(?:^|\\b)${minutes}\\s*(?:min|mins|minute|minutes)(?:\\b|$)`, "i")
+      ];
+
+      const hours = minutes / 60;
+      if (Number.isInteger(hours)) {
+        patterns.push(
+          new RegExp(`(?:^|\\b)${hours}\\s*(?:hr|hrs|hour|hours)(?:\\b|$)`, "i")
+        );
+      }
+
+      for (const pattern of patterns) {
+        for (const locator of [
+          page.getByRole("button", { name: pattern }),
+          page.getByRole("link", { name: pattern }),
+          page.getByText(pattern, { exact: false })
+        ]) {
+          if (await clickLocator(locator, `duration-option:${minutes}`)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
   async function attemptNativeFlow() {
     let result = null;
     if (payload) {
@@ -1520,6 +1642,11 @@ async function fetchSquareAvailabilityInBrowser({
           break;
         }
       }
+    }
+
+    if (await clickConfiguredServiceOption()) {
+      result = await waitForNative(4000);
+      if (result) return result;
     }
 
     const genericSteps = [
@@ -2077,6 +2204,8 @@ async function scrapeSquareDirectBookingBusiness(
       "",
     payload: null,
     serviceName,
+    serviceId: serviceItemId,
+    durationMinutes: toNumberOrNull(target.durationMinutes),
     staffProfiles: [],
     timeoutMs: Math.max(Number(target.squareTimeoutMs || 20000), 35000)
   });
