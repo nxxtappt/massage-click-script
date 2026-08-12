@@ -357,31 +357,31 @@
       integrationTypes: ["scrape"],
       integrationFields: [
         bookingUrl,
-        text("squareBookingBusinessId", "Square Booking Business ID", {
+        text("squareBookingBusinessId", "Square Booking Business ID (Optional)", {
           storage: "config",
           aliases: ["bookingBusinessId", "square_booking_business_id"],
           help:
             "Optional. Automatically parsed from book.squareup.com/appointments/{BUSINESS_ID}/... URLs when present."
         }),
-        text("squareLocationId", "Square Location ID", {
+        text("squareLocationId", "Square Location ID (Optional / auto-parsed)", {
           storage: "config",
           aliases: ["locationId", "unitToken", "square_location_id"],
           help:
             "Optional when the Booking URL contains /location/{LOCATION_ID}/ or square.site/book/{LOCATION_ID}/."
         }),
-        url("squareSiteUrl", "Square Site URL", {
+        url("squareSiteUrl", "Square Site URL (Optional — Square Online only)", {
           storage: "config",
           aliases: ["squareWebsiteUrl", "square_site_url"],
           help:
             "Optional fast-discovery path for merchants with a public *.square.site Square Online site."
         }),
-        text("squarePublishedUserId", "Square Published User ID", {
+        text("squarePublishedUserId", "Square Published User ID (Optional — Square Online only)", {
           storage: "config",
           aliases: ["publishedUserId", "square_published_user_id"],
           help:
             "Optional. Used with Square Site ID for the faster square-sync discovery path."
         }),
-        text("squareSiteId", "Square Site ID", {
+        text("squareSiteId", "Square Site ID (Optional — Square Online only)", {
           storage: "config",
           aliases: ["siteId", "square_site_id"],
           help:

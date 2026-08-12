@@ -1729,7 +1729,7 @@ function renderSquareIntegrationFields(business = {}, index) {
 
         <div class="business-edit-grid">
           <label class="admin-field">
-            <span>Square Site URL</span>
+            <span>Square Site URL (Optional — Square Online only)</span>
             <input
               type="url"
               data-square-business-index="${index}"
@@ -1740,7 +1740,7 @@ function renderSquareIntegrationFields(business = {}, index) {
           </label>
 
           <label class="admin-field">
-            <span>Square Published User ID</span>
+            <span>Square Published User ID (Optional — Square Online only)</span>
             <input
               type="text"
               data-square-business-index="${index}"
@@ -1750,7 +1750,7 @@ function renderSquareIntegrationFields(business = {}, index) {
           </label>
 
           <label class="admin-field">
-            <span>Square Site ID</span>
+            <span>Square Site ID (Optional — Square Online only)</span>
             <input
               type="text"
               data-square-business-index="${index}"
@@ -1760,7 +1760,7 @@ function renderSquareIntegrationFields(business = {}, index) {
           </label>
 
           <label class="admin-field">
-            <span>Square Booking Business ID</span>
+            <span>Square Booking Business ID (Optional)</span>
             <input
               type="text"
               data-square-business-index="${index}"
@@ -1771,7 +1771,7 @@ function renderSquareIntegrationFields(business = {}, index) {
           </label>
 
           <label class="admin-field">
-            <span>Square Location ID</span>
+            <span>Square Location ID (Optional / auto-parsed)</span>
             <input
               type="text"
               data-square-business-index="${index}"
