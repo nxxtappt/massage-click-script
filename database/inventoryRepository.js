@@ -517,7 +517,7 @@ async function findProtectedManualInventoryDuplicate(payload = {}, client = db) 
 
   function add(sql, value) {
     values.push(value);
-    where.push(sql.replace("?", `${values.length}`));
+    where.push(sql.replace("?", `$${values.length}`));
   }
 
   if (businessServiceId) {
