@@ -650,6 +650,21 @@ function getResolvedScrapeWindow(service = {}, business = {}, filters = {}, admi
     };
   }
 
+  // Jane's standard public treatment view exposes a seven-day calendar.
+  // Keep that full window unless an explicit date/range or service/business
+  // window was supplied above.
+  if (normalize(business.platform) === "jane") {
+    const daysForward = 7;
+
+    return {
+      scrapeStartDate: today,
+      scrapeEndDate: addDaysToDateKey(today, daysForward - 1),
+      lookaheadHours: 168,
+      daysForward,
+      scrapeWindowMode: "jane_default_7_days"
+    };
+  }
+
   const defaultLookaheadHours = Number(settings.scraping?.defaultLookaheadHours || 48);
   const lookaheadHours = Math.max(1, defaultLookaheadHours);
   const daysForward = Math.max(1, Math.ceil(lookaheadHours / 24));

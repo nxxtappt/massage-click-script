@@ -468,6 +468,38 @@
       ]
     },
 
+    jane: {
+      key: "jane",
+      label: "Jane App",
+      description:
+        "Jane public online booking pages. Selects the configured service by public name and captures the 7-day opening response.",
+      capabilities: ["scrape", "service_discovery", "provider_selection"],
+      integrationTypes: ["scrape"],
+      integrationFields: [
+        bookingUrl,
+        number("janeAvailabilityTimeoutMs", "Availability Wait Timeout (ms)", {
+          storage: "config",
+          defaultValue: 12000,
+          help: "Optional. How long to wait for Jane's availability response after selecting a service."
+        })
+      ],
+      serviceFields: [
+        ...commonServiceFields,
+        text("platformServiceId", "Jane Treatment ID (Optional)", {
+          storage: "service",
+          aliases: ["serviceId", "treatmentId"],
+          help:
+            "Optional optimization only. Jane.js discovers treatment_id automatically from the selected service/availability response."
+        }),
+        text("janeServiceName", "Jane Service Match Text (Optional)", {
+          storage: "serviceConfig",
+          aliases: ["serviceMatchText"],
+          help:
+            "Optional override when Jane's public treatment label differs from the NextAppt serviceName."
+        })
+      ]
+    },
+
     "hand-stone": {
       key: "hand-stone",
       label: "Hand & Stone Custom",

@@ -22,6 +22,7 @@ const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
 const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
 const { scrapeSquareBusiness } = require("./scrapers/square");
+const { scrapeJaneBusiness } = require("./scrapers/jane");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 const businessManager = require("./businessManager");
 const inventoryManager = require("./inventoryManager");
@@ -716,6 +717,35 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+      if (scrapeTarget.platform === "jane") {
+        const result = await scrapeJaneBusiness(page, scrapeTarget, attempt);
+        await closeScrapePage(page, context);
+
+        return {
+          ...result,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: "jane",
+          serviceName:
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
+          service:
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
+          serviceType:
+            scrapeTarget.serviceType || result.serviceType || "",
+          durationMinutes:
+            result.durationMinutes || scrapeTarget.durationMinutes || null,
+          platformServiceId:
+            result.platformServiceId ||
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceId ||
+            null,
+          provider: result.provider || "Any Available Practitioner",
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          attemptNumber: attempt,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+
       if (scrapeTarget.platform === "hand-stone") {
       await closeScrapePage(page, context);
 
@@ -926,6 +956,7 @@ async function run() {
     "mangomint",
     "hand-stone",
     "square",
+    "jane",
     "vagaro"
   ].filter((platform) => Boolean(getPlatformDefinition(platform)));
 
