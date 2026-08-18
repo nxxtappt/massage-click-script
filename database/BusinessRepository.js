@@ -102,6 +102,25 @@ function slugify(value = "") {
     .slice(0, 120) || "business";
 }
 
+// NEXTAPPT VERIFIED CONTROLS HOTFIX V2: BusinessRepository
+function clampVerifiedControlInteger(value, fallback, min, max) {
+  const parsed = Number.parseInt(value, 10);
+  const safe = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.max(min, Math.min(max, safe));
+}
+
+function normalizeVerifiedControlBoolean(value, fallback = true) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (value === false || value === 0) return false;
+
+  const normalized = String(value).trim().toLowerCase();
+
+  if (["false", "0", "off", "no"].includes(normalized)) return false;
+  if (["true", "1", "on", "yes"].includes(normalized)) return true;
+
+  return fallback;
+}
+
 function normalizeBusiness(input = {}) {
   const businessName = input.businessName || input.name || input.displayName || "";
 
@@ -123,13 +142,30 @@ function normalizeBusiness(input = {}) {
     claimed_by_email: input.claimedByEmail || null,
     claim_id: input.claimId || null,
     enabled: input.enabled !== false,
+    verified_rank: clampVerifiedControlInteger(
+      input.verifiedRank ?? input.verified_rank,
+      0,
+      0,
+      100
+    ),
+    public_inventory_visible: normalizeVerifiedControlBoolean(
+      input.publicInventoryVisible ?? input.public_inventory_visible,
+      true
+    ),
+    public_inventory_limit: clampVerifiedControlInteger(
+      input.publicInventoryLimit ?? input.public_inventory_limit,
+      4,
+      1,
+      20
+    ),
     priority: input.priority || null,
     discovery_status: input.discoveryStatus || null,
     raw_json: toCleanRawJson(input, [
       "businessId", "businessName", "displayName", "businessCategory",
       "platform", "bookingUrl", "website", "phone", "email", "ownerEmail",
       "verificationStatus", "claimed", "claimedByEmail", "claimId",
-      "enabled", "priority", "discoveryStatus", "adminNotes", "metro"
+      "enabled", "verifiedRank", "publicInventoryVisible", "publicInventoryLimit",
+      "priority", "discoveryStatus", "adminNotes", "metro"
     ])
   };
 }

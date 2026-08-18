@@ -677,6 +677,85 @@ function startResultPolling() {
   }, POLLING_INTERVAL_MS);
 }
 
+// NEXTAPPT VERIFIED CONTROLS HOTFIX V2: public/app.js
+function isVerifiedSearchBusiness(appointment = {}) {
+  const status = String(
+    appointment.verificationStatus ||
+      appointment.verification_status ||
+      ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+
+  return (
+    appointment.claimed === true ||
+    status === "verified" ||
+    status === "claimed verified"
+  );
+}
+
+function getVerifiedSearchRank(appointment = {}) {
+  if (!isVerifiedSearchBusiness(appointment)) return 0;
+
+  const parsed = Number.parseInt(
+    appointment.verifiedRank ??
+      appointment.verified_rank ??
+      0,
+    10
+  );
+
+  return Number.isFinite(parsed)
+    ? Math.max(0, Math.min(100, parsed))
+    : 0;
+}
+
+function getPublicInventoryLimit(appointment = {}) {
+  const parsed = Number.parseInt(
+    appointment.publicInventoryLimit ??
+      appointment.public_inventory_limit ??
+      4,
+    10
+  );
+
+  return Number.isFinite(parsed)
+    ? Math.max(1, Math.min(20, parsed))
+    : 4;
+}
+
+function compareSearchAppointments(a = {}, b = {}) {
+  const verifiedDiff =
+    Number(isVerifiedSearchBusiness(b)) -
+    Number(isVerifiedSearchBusiness(a));
+
+  if (verifiedDiff !== 0) return verifiedDiff;
+
+  if (
+    isVerifiedSearchBusiness(a) &&
+    isVerifiedSearchBusiness(b)
+  ) {
+    const rankDiff =
+      getVerifiedSearchRank(b) -
+      getVerifiedSearchRank(a);
+
+    if (rankDiff !== 0) return rankDiff;
+  }
+
+  const aScore = Number(a.ranking?.score || 0);
+  const bScore = Number(b.ranking?.score || 0);
+
+  if (aScore !== bScore) return bScore - aScore;
+
+  const aSort = Number(a.localSortable || 999999999999);
+  const bSort = Number(b.localSortable || 999999999999);
+
+  if (aSort !== bSort) return aSort - bSort;
+
+  return String(a.businessName || "").localeCompare(
+    String(b.businessName || "")
+  );
+}
+
 function mergeAppointments(existingAppointments, incomingAppointments) {
   const existing = Array.isArray(existingAppointments) ? existingAppointments : [];
   const incoming = Array.isArray(incomingAppointments) ? incomingAppointments : [];
@@ -702,21 +781,7 @@ function mergeAppointments(existingAppointments, incomingAppointments) {
     }
   });
 
-  return [...mapByKey.values()].sort((a, b) => {
-    const aScore = Number(a.ranking?.score || 0);
-    const bScore = Number(b.ranking?.score || 0);
-
-    if (aScore !== bScore) return bScore - aScore;
-
-    const aSort = Number(a.localSortable || 999999999999);
-    const bSort = Number(b.localSortable || 999999999999);
-
-    if (aSort !== bSort) return aSort - bSort;
-
-    return String(a.businessName || "").localeCompare(
-      String(b.businessName || "")
-    );
-  });
+  return [...mapByKey.values()].sort(compareSearchAppointments);
 }
 
 function updateAssistantMessage(data, appointments, promptText = "", isPollingRefresh = false) {
@@ -1020,7 +1085,10 @@ function renderLiveSearchResults(appointments) {
           const bookingUrl = firstAppointment.bookingUrl || "#";
           const address = firstAppointment.address || "Address not listed";
           const serviceSummary = getServiceSummary(group.appointments);
-          const topAppointments = group.appointments.slice(0, 4);
+          const topAppointments = group.appointments.slice(
+            0,
+            getPublicInventoryLimit(firstAppointment)
+          );
 
           return `
             <article class="live-result-card">
@@ -1135,7 +1203,8 @@ function renderBusinessCards(appointments) {
     const verificationStatus =
       firstAppointment.verificationStatus || "unclaimed";
 
-    const isVerifiedBusiness = verificationStatus === "verified";
+    const isVerifiedBusiness =
+      isVerifiedSearchBusiness(firstAppointment);
 
 const businessUrl =
   firstAppointment.businessUrl ||
@@ -1155,7 +1224,10 @@ const businessUrl =
     const reviewSummary = firstAppointment.reviewSummary || null;
     const activeDeal = firstAppointment.activeDeal || null;
     const profile = firstAppointment.publicProfile || {};
-    const nextAppointments = group.appointments.slice(0, 4);
+    const nextAppointments = group.appointments.slice(
+      0,
+      getPublicInventoryLimit(firstAppointment)
+    );
 
     const shouldShowDeal =
       isVerifiedBusiness &&
@@ -1170,9 +1242,13 @@ const businessUrl =
       reviewSummary.count;
 
     const card = document.createElement("article");
-    card.className = businessUrl
-      ? "business-card clickable-business-card"
-      : "business-card";
+    card.className = [
+      "business-card",
+      businessUrl ? "clickable-business-card" : "",
+      isVerifiedBusiness ? "verified-business-card" : ""
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     card.id = makeBusinessCardId(businessName);
 
@@ -1318,21 +1394,8 @@ const businessUrl =
 function groupAppointmentsByBusiness(appointments) {
   const groups = {};
 
-  const sortedAppointments = [...appointments].sort((a, b) => {
-    const aScore = Number(a.ranking?.score || 0);
-    const bScore = Number(b.ranking?.score || 0);
-
-    if (aScore !== bScore) return bScore - aScore;
-
-    const aSort = Number(a.localSortable || 999999999999);
-    const bSort = Number(b.localSortable || 999999999999);
-
-    if (aSort !== bSort) return aSort - bSort;
-
-    return String(a.businessName || "").localeCompare(
-      String(b.businessName || "")
-    );
-  });
+  const sortedAppointments =
+    [...appointments].sort(compareSearchAppointments);
 
   sortedAppointments.forEach((appointment) => {
     const key = appointment.businessName || "Unknown Business";

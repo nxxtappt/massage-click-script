@@ -102,10 +102,28 @@ function buildScrapeArgsFromBody(body = {}) {
 }
 
 
+// NEXTAPPT VERIFIED CONTROLS HOTFIX V2: adminRoutes
 function cleanNumberOrNull(value) {
   if (value === undefined || value === null || value === "") return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function clampAdminInteger(value, fallback, min, max) {
+  const parsed = Number.parseInt(value, 10);
+  const safe = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.max(min, Math.min(max, safe));
+}
+
+function cleanAdminBoolean(value, fallback = true) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (value === false || value === 0) return false;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["false", "0", "off", "no"].includes(normalized)) return false;
+  if (["true", "1", "on", "yes"].includes(normalized)) return true;
+
+  return fallback;
 }
 
 function cleanStringArray(value) {
@@ -185,6 +203,22 @@ function normalizeAdminBusiness(business = {}) {
       business.enabled === false || business.enabled === "false"
         ? false
         : true,
+    verifiedRank: clampAdminInteger(
+      business.verifiedRank ?? business.verified_rank,
+      0,
+      0,
+      100
+    ),
+    publicInventoryVisible: cleanAdminBoolean(
+      business.publicInventoryVisible ?? business.public_inventory_visible,
+      true
+    ),
+    publicInventoryLimit: clampAdminInteger(
+      business.publicInventoryLimit ?? business.public_inventory_limit,
+      4,
+      1,
+      20
+    ),
     latitude: cleanNumberOrNull(business.latitude),
     longitude: cleanNumberOrNull(business.longitude),
     services

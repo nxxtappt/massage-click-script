@@ -987,6 +987,39 @@ function normalizeBusinessDefaults(business) {
     ...business
   };
 
+  // NEXTAPPT VERIFIED CONTROLS HOTFIX V2: public/admin.js
+  normalized.verifiedRank = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.trunc(
+        Number(
+          normalized.verifiedRank ??
+          normalized.verified_rank ??
+          0
+        ) || 0
+      )
+    )
+  );
+
+  normalized.publicInventoryVisible =
+    normalized.publicInventoryVisible !== false &&
+    normalized.public_inventory_visible !== false;
+
+  normalized.publicInventoryLimit = Math.max(
+    1,
+    Math.min(
+      20,
+      Math.trunc(
+        Number(
+          normalized.publicInventoryLimit ??
+          normalized.public_inventory_limit ??
+          4
+        ) || 4
+      )
+    )
+  );
+
   if (!Array.isArray(normalized.services)) {
     normalized.services = [];
   }
@@ -1066,6 +1099,9 @@ function createBlankBusiness() {
     credentialId: "",
     integrationStatus: "active",
     enabled: true,
+    verifiedRank: 0,
+    publicInventoryVisible: true,
+    publicInventoryLimit: 4,
     priority: "normal",
     discoveryStatus: "manual",
     services: [createBlankService()],
@@ -1860,6 +1896,45 @@ function renderBusinessCard(business, index) {
         </div>
       </div>
 
+      <section class="admin-search-inventory-controls">
+        <div class="admin-search-inventory-controls-heading">
+          <div>
+            <strong>Search &amp; Inventory Controls</strong>
+            <small>
+              Verified rank only affects verified businesses. Inventory visibility does not delete stored appointments.
+            </small>
+          </div>
+        </div>
+
+        <div class="business-edit-grid admin-search-inventory-controls-grid">
+          ${renderInput(
+            "Verified Search Rank (0-100)",
+            "verifiedRank",
+            business.verifiedRank ?? 0,
+            index,
+            "number"
+          )}
+
+          <div class="admin-field checkbox-wrap">
+            <span>Public Inventory</span>
+            ${renderCheckbox(
+              "Show appointments publicly",
+              "publicInventoryVisible",
+              business.publicInventoryVisible !== false,
+              index
+            )}
+          </div>
+
+          ${renderInput(
+            "Visible Appointment Times (1-20)",
+            "publicInventoryLimit",
+            business.publicInventoryLimit ?? 4,
+            index,
+            "number"
+          )}
+        </div>
+      </section>
+
       <details class="business-details">
         <summary>Business Details</summary>
 
@@ -1915,6 +1990,20 @@ function attachBusinessInputListeners() {
 
       if (field === "latitude" || field === "longitude") {
         value = value === "" ? null : Number(value);
+      }
+
+      if (field === "verifiedRank") {
+        value = Math.max(
+          0,
+          Math.min(100, Math.trunc(Number(value) || 0))
+        );
+      }
+
+      if (field === "publicInventoryLimit") {
+        value = Math.max(
+          1,
+          Math.min(20, Math.trunc(Number(value) || 4))
+        );
       }
 
       businessesCache[index][field] = value;

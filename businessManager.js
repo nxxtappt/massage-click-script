@@ -344,6 +344,60 @@ function normalizeBusinessShape(business = {}) {
       business.claimedByEmail || business.claimed_by_email || "",
     claimId: business.claimId || business.claim_id || "",
     enabled: business.enabled !== false,
+
+    // NEXTAPPT VERIFIED CONTROLS HOTFIX V2: businessManager
+    verifiedRank: Math.max(
+      0,
+      Math.min(
+        100,
+        Math.trunc(
+          toNumberOrNull(
+            pick(
+              business.verifiedRank,
+              business.verified_rank
+            )
+          ) ?? 0
+        )
+      )
+    ),
+    publicInventoryVisible: ![
+      false,
+      0,
+      "false",
+      "0",
+      "off",
+      "no"
+    ].includes(
+      typeof pick(
+        business.publicInventoryVisible,
+        business.public_inventory_visible
+      ) === "string"
+        ? String(
+            pick(
+              business.publicInventoryVisible,
+              business.public_inventory_visible
+            )
+          ).trim().toLowerCase()
+        : pick(
+            business.publicInventoryVisible,
+            business.public_inventory_visible
+          )
+    ),
+    publicInventoryLimit: Math.max(
+      1,
+      Math.min(
+        20,
+        Math.trunc(
+          toNumberOrNull(
+            pick(
+              business.publicInventoryLimit,
+              business.public_inventory_limit
+            )
+          ) ?? 4
+        )
+      )
+    ),
+
     priority: business.priority || "",
     discoveryStatus:
       business.discoveryStatus || business.discovery_status || "",

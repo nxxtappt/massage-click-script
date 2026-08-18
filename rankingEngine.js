@@ -12,6 +12,8 @@ const DEFAULT_USER_LOCATION = {
 
 const DEFAULT_TIME_ZONE = "America/Chicago";
 
+// NEXTAPPT VERIFIED CONTROLS HOTFIX V2: rankingEngine
+
 function normalize(value) {
   return String(value || "")
     .toLowerCase()
@@ -216,6 +218,35 @@ function scoreServiceRelevance(appointment = {}, query = {}) {
   return 0;
 }
 
+function isVerifiedBusiness(appointment = {}) {
+  const status = normalize(
+    appointment.verificationStatus ||
+      appointment.verification_status ||
+      ""
+  );
+
+  return (
+    appointment.claimed === true ||
+    status === "verified" ||
+    status === "claimed verified"
+  );
+}
+
+function getVerifiedRank(appointment = {}) {
+  if (!isVerifiedBusiness(appointment)) return 0;
+
+  const parsed = Number.parseInt(
+    appointment.verifiedRank ??
+      appointment.verified_rank ??
+      0,
+    10
+  );
+
+  if (!Number.isFinite(parsed)) return 0;
+
+  return Math.max(0, Math.min(100, parsed));
+}
+
 function scoreBusinessPriority(appointment = {}) {
   const priority = normalize(
     appointment.priority ||
@@ -261,6 +292,8 @@ function scoreAppointment(appointment = {}, query = {}) {
           : null,
       soonnessMinutes,
       freshnessMinutes,
+      isVerifiedBusiness: isVerifiedBusiness(appointment),
+      verifiedRank: getVerifiedRank(appointment),
       serviceType: normalizeServiceType(
         appointment.serviceType ||
           appointment.serviceCategory ||
@@ -275,6 +308,20 @@ function sortAppointmentsByRanking(appointments = [], query = {}) {
   return appointments
     .map((appointment) => scoreAppointment(appointment, query))
     .sort((a, b) => {
+      const verifiedDiff =
+        Number(isVerifiedBusiness(b)) -
+        Number(isVerifiedBusiness(a));
+
+      if (verifiedDiff !== 0) return verifiedDiff;
+
+      if (isVerifiedBusiness(a) && isVerifiedBusiness(b)) {
+        const rankDiff =
+          getVerifiedRank(b) -
+          getVerifiedRank(a);
+
+        if (rankDiff !== 0) return rankDiff;
+      }
+
       const scoreDiff = Number(b.ranking?.score || 0) - Number(a.ranking?.score || 0);
       if (scoreDiff !== 0) return scoreDiff;
 
@@ -311,5 +358,7 @@ module.exports = {
   scoreBusiness,
   milesBetween,
   getAppointmentDistanceMiles,
-  getSoonnessMinutes
+  getSoonnessMinutes,
+  isVerifiedBusiness,
+  getVerifiedRank
 };

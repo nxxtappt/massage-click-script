@@ -204,10 +204,11 @@ body {
   align-items: start;
 }
 
+/* NEXTAPPT VERIFIED CONTROLS HOTFIX V2: public/styles.css
+   Only the LEFT-SIDE LIST CARD changes. Map-pin styles below are intentionally untouched. */
 .business-card.verified-business-card {
-  border: 2px solid #002b49;
-  box-shadow: 0 18px 40px rgba(0, 43, 73, 0.18);
-  background: linear-gradient(180deg, #ffffff 0%, #f4f9fc 100%);
+  outline: 4px solid #002b49;
+  outline-offset: -4px;
 }
 
 .logo-circle {
@@ -247,11 +248,6 @@ body {
   margin: 0 0 4px;
   line-height: 1.15;
   color: #0f172a;
-}
-
-.business-card.verified-business-card .business-title-row h2 {
-  color: #002b49;
-  font-weight: 900;
 }
 
 .business-address {

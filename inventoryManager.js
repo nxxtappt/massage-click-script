@@ -231,6 +231,18 @@ function getBusinessMetadataMap() {
         businessUrl: business.businessUrl || `/business/${slug}`,
         enabled: business.enabled !== false,
         businessEnabled: business.enabled !== false,
+
+        // NEXTAPPT VERIFIED CONTROLS HOTFIX V2: inventoryManager
+        verifiedRank: Math.max(
+          0,
+          Math.min(100, Math.trunc(toNumber(business.verifiedRank) ?? 0))
+        ),
+        publicInventoryVisible: business.publicInventoryVisible !== false,
+        publicInventoryLimit: Math.max(
+          1,
+          Math.min(20, Math.trunc(toNumber(business.publicInventoryLimit) ?? 4))
+        ),
+
         subscriptionPlan: business.subscriptionPlan || "",
         subscriptionStatus: business.subscriptionStatus || "",
         reviewSummary: business.reviewSummary || null,
@@ -439,6 +451,47 @@ function normalizeInventoryRow(row = {}) {
         ? row.businessEnabled !== false
         : true,
 
+    verifiedRank: hasBusinessMetadata
+      ? metadata.verifiedRank || 0
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            Math.trunc(
+              toNumber(row.verifiedRank ?? row.verified_rank) ?? 0
+            )
+          )
+        ),
+
+    publicInventoryVisible: hasBusinessMetadata
+      ? metadata.publicInventoryVisible !== false
+      : ![
+          false,
+          0,
+          "false",
+          "0",
+          "off",
+          "no"
+        ].includes(
+          typeof (row.publicInventoryVisible ?? row.public_inventory_visible) === "string"
+            ? String(row.publicInventoryVisible ?? row.public_inventory_visible)
+                .trim()
+                .toLowerCase()
+            : (row.publicInventoryVisible ?? row.public_inventory_visible)
+        ),
+
+    publicInventoryLimit: hasBusinessMetadata
+      ? metadata.publicInventoryLimit || 4
+      : Math.max(
+          1,
+          Math.min(
+            20,
+            Math.trunc(
+              toNumber(row.publicInventoryLimit ?? row.public_inventory_limit) ?? 4
+            )
+          )
+        ),
+
     latitude,
     longitude,
     address: hasBusinessMetadata
@@ -507,6 +560,9 @@ function normalizeFilters(filters = {}) {
     includeDisabledBusinesses:
       filters.includeDisabledBusinesses === true ||
       String(filters.includeDisabledBusinesses) === "true",
+    includeHiddenInventory:
+      filters.includeHiddenInventory === true ||
+      String(filters.includeHiddenInventory) === "true",
     includeInferred:
       filters.includeInferred !== false && String(filters.includeInferred) !== "false",
     includeConfirmed:
@@ -717,6 +773,13 @@ function filterInventory(appointments = [], filters = {}) {
     }
 
     if (!normalizedFilters.includeDisabledBusinesses && normalized.businessEnabled === false) {
+      return false;
+    }
+
+    if (
+      !normalizedFilters.includeHiddenInventory &&
+      normalized.publicInventoryVisible === false
+    ) {
       return false;
     }
 
