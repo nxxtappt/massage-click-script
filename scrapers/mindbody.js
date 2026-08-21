@@ -179,39 +179,24 @@ async function removeBlockingPageOverlays(page) {
 }
 
 async function clickTextWithFallback(frame, text, options = {}) {
+  // NEXTAPPT MINDBODY INTERACTIVE-TEXT-CLICK FIX V5
   const { exact = true, timeout = 5000, required = true } = options;
 
   if (!text) {
-    if (required) throw new Error("Missing text to click.");
+    if (required) {
+      throw new Error("Missing text to click.");
+    }
     return false;
   }
 
-  const locator = frame.getByText(text, { exact });
-  const count = await locator.count().catch(() => 0);
-
-  for (let index = 0; index < count; index += 1) {
-    const candidate = locator.nth(index);
-    const visible = await candidate.isVisible().catch(() => false);
-
-    if (!visible) continue;
-
-    try {
-      await candidate.scrollIntoViewIfNeeded().catch(() => null);
-      await candidate.click({ timeout });
-      return true;
-    } catch {
-      // Try the next visible match before using the DOM fallback.
-    }
-  }
-
-  console.log(
-    `Visible Playwright click failed for "${text}", trying visible JS click fallback...`
-  );
-
-  const clicked = await frame.evaluate(
+  const result = await frame.evaluate(
     ({ targetText, exactMatch }) => {
       const normalize = (value) =>
-        String(value || "").replace(/\s+/g, " ").trim();
+        String(value || "")
+          .replace(/\s+/g, " ")
+          .trim();
+
+      const wanted = normalize(targetText);
 
       const isVisible = (element) => {
         if (!element) return false;
@@ -228,47 +213,55 @@ async function clickTextWithFallback(frame, text, options = {}) {
         );
       };
 
-      const wanted = normalize(targetText);
+      const isDisabled = (element) => {
+        if (!element) return true;
 
-      const selectors = [
+        if ("disabled" in element && element.disabled) {
+          return true;
+        }
+
+        if (element.getAttribute("aria-disabled") === "true") {
+          return true;
+        }
+
+        return false;
+      };
+
+      const textMatches = (candidateText) => {
+        const normalized = normalize(candidateText);
+
+        if (!normalized) return false;
+
+        return exactMatch
+          ? normalized === wanted
+          : normalized.includes(wanted);
+      };
+
+      const interactiveSelector = [
         "button",
         "a",
+        "label",
         "[role='button']",
-        "div",
-        "span",
-        "p"
-      ];
+        "[role='radio']",
+        "[role='option']",
+        "input[type='radio']",
+        "input[type='checkbox']"
+      ].join(", ");
 
-      for (const selector of selectors) {
-        const elements = Array.from(document.querySelectorAll(selector));
+      const clickInteractive = (element) => {
+        if (!element) return null;
+        if (!isVisible(element)) return null;
+        if (isDisabled(element)) return null;
 
-        const match = elements.find((element) => {
-          if (!isVisible(element)) return false;
-
-          const candidateText = normalize(element.textContent);
-          if (!candidateText) return false;
-
-          return exactMatch
-            ? candidateText === wanted
-            : candidateText.includes(wanted);
-        });
-
-        if (!match) continue;
-
-        const interactive =
-          match.closest("button, a, [role='button']") || match;
-
-        if (!isVisible(interactive)) continue;
-
-        interactive.scrollIntoView({
+        element.scrollIntoView({
           block: "center",
           inline: "center"
         });
 
-        if (typeof interactive.click === "function") {
-          interactive.click();
+        if (typeof element.click === "function") {
+          element.click();
         } else {
-          interactive.dispatchEvent(
+          element.dispatchEvent(
             new MouseEvent("click", {
               bubbles: true,
               cancelable: true,
@@ -277,10 +270,78 @@ async function clickTextWithFallback(frame, text, options = {}) {
           );
         }
 
-        return true;
+        return {
+          clicked: true,
+          tagName: element.tagName,
+          role: element.getAttribute("role") || "",
+          text:
+            normalize(element.textContent) ||
+            normalize(element.getAttribute("aria-label")) ||
+            normalize(element.value) ||
+            ""
+        };
+      };
+
+      // 1. Prefer real interactive controls whose own visible/accessibility text
+      // matches the requested text.
+      const interactiveElements = Array.from(
+        document.querySelectorAll(interactiveSelector)
+      );
+
+      for (const element of interactiveElements) {
+        if (!isVisible(element) || isDisabled(element)) continue;
+
+        const candidateTexts = [
+          element.textContent,
+          element.getAttribute("aria-label"),
+          element.getAttribute("title"),
+          element.value
+        ];
+
+        if (!candidateTexts.some(textMatches)) continue;
+
+        const clicked = clickInteractive(element);
+        if (clicked) return clicked;
       }
 
-      return false;
+      // 2. Find visible text descendants, but only succeed if they belong to
+      // a real interactive ancestor. Never click a raw div/span/p as success.
+      const textElements = Array.from(
+        document.querySelectorAll(
+          "span, div, p, strong, em, small, h1, h2, h3, h4, h5, h6"
+        )
+      );
+
+      for (const element of textElements) {
+        if (!isVisible(element)) continue;
+        if (!textMatches(element.textContent)) continue;
+
+        const interactive = element.closest(interactiveSelector);
+
+        if (!interactive) continue;
+
+        const clicked = clickInteractive(interactive);
+        if (clicked) return clicked;
+      }
+
+      // 3. Support a label whose exact text is in a nested descendant and
+      // whose associated input itself has no textContent.
+      const labels = Array.from(document.querySelectorAll("label"));
+
+      for (const label of labels) {
+        if (!isVisible(label) || isDisabled(label)) continue;
+        if (!textMatches(label.textContent)) continue;
+
+        const clicked = clickInteractive(label);
+        if (clicked) return clicked;
+      }
+
+      return {
+        clicked: false,
+        tagName: "",
+        role: "",
+        text: ""
+      };
     },
     {
       targetText: text,
@@ -288,11 +349,26 @@ async function clickTextWithFallback(frame, text, options = {}) {
     }
   );
 
-  if (!clicked && required) {
-    throw new Error(`Could not click visible text: ${text}`);
+  if (result && result.clicked) {
+    console.log(
+      `[MINDBODY] Native interactive click: "${text}" -> ` +
+        `${result.tagName || "control"}` +
+        `${result.role ? ` role=${result.role}` : ""}`
+    );
+    return true;
   }
 
-  return clicked;
+  console.log(
+    `[MINDBODY] No enabled interactive control found for "${text}".`
+  );
+
+  if (required) {
+    throw new Error(
+      `Could not click enabled interactive control for text: ${text}`
+    );
+  }
+
+  return false;
 }
 
 async function clickFirstMatchingText(frame, page, texts = [], options = {}) {
@@ -314,6 +390,7 @@ async function clickFirstMatchingText(frame, page, texts = [], options = {}) {
 }
 
 async function expandCategoryIfNeeded(frame, page, business = {}) {
+  // NEXTAPPT MINDBODY CATEGORY-TOGGLE FIX V3
   const categoryText =
     business.categoryText ||
     business.categoryName ||
@@ -325,17 +402,6 @@ async function expandCategoryIfNeeded(frame, page, business = {}) {
     business.serviceId ||
     "";
 
-  const wantedCategory = String(categoryText)
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!wantedCategory) {
-    throw new Error(
-      `Missing categoryText/categoryName for ${business.serviceName}`
-    );
-  }
-
   if (!serviceId) {
     throw new Error(
       `Missing serviceButtonId/platformServiceId for ${business.serviceName}`
@@ -343,31 +409,38 @@ async function expandCategoryIfNeeded(frame, page, business = {}) {
   }
 
   const serviceSelector =
-    `button[data-service-id="${serviceId}"]:visible`;
+    `button[data-service-id="${serviceId}"]`;
 
-  const alreadyVisible = await frame
-    .locator(serviceSelector)
-    .first()
-    .isVisible()
-    .catch(() => false);
+  const visibleService = frame
+    .locator(`${serviceSelector}:visible`)
+    .first();
 
-  if (alreadyVisible) {
+  if (await visibleService.isVisible().catch(() => false)) {
     console.log(
-      `[MINDBODY] Category already expanded: ${categoryText}`
+      `[MINDBODY] Service already visible: ${business.serviceName} (${serviceId})`
     );
-
     return true;
   }
 
-  const result = await frame.evaluate(
-    ({ wantedCategory }) => {
+  if (!categoryText) {
+    throw new Error(
+      `Service ${business.serviceName} (${serviceId}) is hidden and no categoryText/categoryName is configured.`
+    );
+  }
+
+  console.log(
+    `[MINDBODY] Opening category "${categoryText}" for service ${serviceId}...`
+  );
+
+  const toggleResult = await frame.evaluate(
+    ({ categoryText }) => {
       const normalize = (value) =>
         String(value || "")
           .toLowerCase()
           .replace(/\s+/g, " ")
           .trim();
 
-      const isVisible = (element) => {
+      const visible = (element) => {
         if (!element) return false;
 
         const style = window.getComputedStyle(element);
@@ -382,48 +455,71 @@ async function expandCategoryIfNeeded(frame, page, business = {}) {
         );
       };
 
-      const categoryElements = Array.from(
+      const wanted = normalize(categoryText);
+
+      const categoryCandidates = Array.from(
         document.querySelectorAll(
           "h1, h2, h3, h4, h5, h6, p, span, div"
         )
       ).filter((element) => {
-        return (
-          isVisible(element) &&
-          normalize(element.textContent) === wantedCategory
-        );
+        return visible(element) && normalize(element.textContent) === wanted;
       });
 
-      for (const categoryElement of categoryElements) {
+      const openWords = new Set(["show", "expand", "open"]);
+      const closedWords = new Set(["hide", "collapse", "close"]);
+
+      for (const categoryElement of categoryCandidates) {
         let container = categoryElement.parentElement;
         let depth = 0;
 
-        while (container && depth < 8) {
+        while (container && depth < 10) {
           const controls = Array.from(
             container.querySelectorAll(
               "button, a, [role='button']"
             )
-          ).filter((element) => {
-            if (!isVisible(element)) return false;
+          ).filter(visible);
 
-            const controlText = normalize(element.textContent);
+          for (const control of controls) {
+            const text = normalize(control.textContent);
+            const ariaLabel = normalize(control.getAttribute("aria-label"));
+            const title = normalize(control.getAttribute("title"));
+            const ariaExpanded = control.getAttribute("aria-expanded");
 
-            return (
-              controlText === "expand" ||
-              controlText === "collapse"
-            );
-          });
+            const labels = [text, ariaLabel, title].filter(Boolean);
 
-          if (controls.length === 1) {
-            const control = controls[0];
-            const controlText = normalize(control.textContent);
+            const alreadyOpen =
+              ariaExpanded === "true" ||
+              labels.some((label) => closedWords.has(label)) ||
+              labels.some(
+                (label) =>
+                  label.includes(wanted) &&
+                  (label.includes("hide") ||
+                    label.includes("collapse") ||
+                    label.includes("close"))
+              );
 
-            if (controlText === "collapse") {
+            if (alreadyOpen) {
               return {
                 success: true,
-                alreadyExpanded: true,
-                clickedTag: control.tagName,
-                containerText: normalize(container.textContent)
+                alreadyOpen: true,
+                clicked: false,
+                controlText: text || ariaLabel || title || ""
               };
+            }
+
+            const isOpenControl =
+              ariaExpanded === "false" ||
+              labels.some((label) => openWords.has(label)) ||
+              labels.some(
+                (label) =>
+                  label.includes(wanted) &&
+                  (label.includes("show") ||
+                    label.includes("expand") ||
+                    label.includes("open"))
+              );
+
+            if (!isOpenControl) {
+              continue;
             }
 
             control.scrollIntoView({
@@ -445,14 +541,10 @@ async function expandCategoryIfNeeded(frame, page, business = {}) {
 
             return {
               success: true,
-              alreadyExpanded: false,
-              clickedTag: control.tagName,
-              containerText: normalize(container.textContent)
+              alreadyOpen: false,
+              clicked: true,
+              controlText: text || ariaLabel || title || ""
             };
-          }
-
-          if (controls.length > 1) {
-            break;
           }
 
           container = container.parentElement;
@@ -462,50 +554,64 @@ async function expandCategoryIfNeeded(frame, page, business = {}) {
 
       return {
         success: false,
-        alreadyExpanded: false
+        alreadyOpen: false,
+        clicked: false,
+        controlText: ""
       };
     },
-    {
-      wantedCategory
-    }
+    { categoryText }
   );
 
-  if (!result.success) {
-    throw new Error(
-      `Could not locate the Expand control for category: ${categoryText}`
-    );
-  }
-
-  if (result.alreadyExpanded) {
+  if (toggleResult.success) {
     console.log(
-      `[MINDBODY] Category already expanded: ${categoryText}`
+      toggleResult.alreadyOpen
+        ? `[MINDBODY] Category already open: ${categoryText}`
+        : `[MINDBODY] Clicked category toggle "${toggleResult.controlText || "toggle"}" for ${categoryText}`
     );
-  } else {
-    console.log(
-      `[MINDBODY] Expanded intended category: ${categoryText}`
-    );
-  }
 
-  await frame
-    .locator(serviceSelector)
-    .first()
-    .waitFor({
-      state: "visible",
-      timeout: 12000
-    })
-    .catch(() => {
-      throw new Error(
-        `Category "${categoryText}" was clicked, but service ` +
-          `"${business.serviceName}" (${serviceId}) did not become visible.`
+    await wait(page, 1200);
+
+    if (await visibleService.isVisible().catch(() => false)) {
+      console.log(
+        `[MINDBODY] Service became visible after opening category: ${business.serviceName}`
       );
-    });
+      return true;
+    }
+  }
 
-  await wait(page, 1000);
+  // One simple fallback: click the category heading itself.
+  console.log(
+    `[MINDBODY] Category toggle did not expose service. Trying category text click once...`
+  );
 
-  return true;
+  const clickedCategoryText = await clickTextWithFallback(
+    frame,
+    categoryText,
+    {
+      required: false,
+      exact: true,
+      timeout: 3500
+    }
+  ).catch(() => false);
+
+  if (clickedCategoryText) {
+    await wait(page, 1000);
+  }
+
+  if (await visibleService.isVisible().catch(() => false)) {
+    console.log(
+      `[MINDBODY] Service became visible after category text click: ${business.serviceName}`
+    );
+    return true;
+  }
+
+  throw new Error(
+    `Could not expose visible Mindbody service "${business.serviceName}" (${serviceId}) inside category "${categoryText}".`
+  );
 }
 
 async function clickServiceButton(frame, page, business) {
+  // NEXTAPPT MINDBODY DOM-SERVICE-CLICK FIX V4
   const serviceId =
     business.serviceButtonId ||
     business.platformServiceId ||
@@ -522,9 +628,7 @@ async function clickServiceButton(frame, page, business) {
   console.log(`Service ID: ${serviceId}`);
 
   const button = frame
-    .locator(
-      `button[data-service-id="${serviceId}"]:visible`
-    )
+    .locator(`button[data-service-id="${serviceId}"]:visible`)
     .first();
 
   const buttonIsVisible = await button
@@ -533,49 +637,35 @@ async function clickServiceButton(frame, page, business) {
 
   if (!buttonIsVisible) {
     throw new Error(
-      `Service button is present but not visible for ` +
-        `${business.serviceName} (${serviceId}).`
+      `Mindbody service ${business.serviceName} (${serviceId}) is not visible after category expansion.`
     );
   }
 
-  await removeBlockingPageOverlays(page);
+  // Let category expansion/layout settle, but do not use a pointer click.
   await wait(page, 500);
-  await button.scrollIntoViewIfNeeded();
 
-  try {
-    await button.click({
-      timeout: 6000
+  console.log(
+    `[MINDBODY] Selecting visible service ${serviceId} with native DOM click.`
+  );
+
+  await button.evaluate((element) => {
+    element.scrollIntoView({
+      block: "center",
+      inline: "center"
     });
-  } catch (error) {
-    const message = String(error?.message || error);
-    const pointerIntercepted =
-      message.includes("intercepts pointer events") ||
-      message.includes("Timeout");
 
-    if (!pointerIntercepted) {
-      throw error;
-    }
+    // Native HTMLElement.click() bypasses hit-testing/overlay interception
+    // while still invoking the button's registered click handler.
+    element.click();
+  });
 
-    console.log(
-      "[MINDBODY] Host-page overlay blocked the service click. " +
-        "Removing overlays and retrying with a forced click..."
-    );
+  // Mindbody can take a moment to render the next step.
+  await wait(page, 3500);
 
-    await removeBlockingPageOverlays(page);
-    await wait(page, 500);
+  let text = await getBodyText(frame);
+  let lower = text.toLowerCase();
 
-    await button.click({
-      timeout: 6000,
-      force: true
-    });
-  }
-
-  await wait(page, 5000);
-
-  const text = await getBodyText(frame);
-  const lower = text.toLowerCase();
-
-  const progressed =
+  const hasProgressed = () =>
     lower.includes("first available") ||
     lower.includes("select employee") ||
     lower.includes("select staff") ||
@@ -591,15 +681,24 @@ async function clickServiceButton(frame, page, business) {
     lower.includes("no appointments available") ||
     lower.includes("fully booked");
 
-  if (!progressed) {
+  if (!hasProgressed()) {
+    // Give a slow widget one final short opportunity to update.
+    await wait(page, 2000);
+    text = await getBodyText(frame);
+    lower = text.toLowerCase();
+  }
+
+  if (!hasProgressed()) {
+    console.log("----- MINDBODY TEXT AFTER SERVICE CLICK FAILURE -----");
+    console.log(text);
+
     throw new Error(
-      `Clicked ${business.serviceName}, but the Mindbody widget ` +
-        `did not advance beyond service selection.`
+      `Native DOM click on visible service ${business.serviceName} (${serviceId}) did not advance the Mindbody widget.`
     );
   }
 
   console.log(
-    `[MINDBODY] Successfully selected service: ${business.serviceName}`
+    `[MINDBODY] Successfully selected service with native DOM click: ${business.serviceName}`
   );
 
   return true;
