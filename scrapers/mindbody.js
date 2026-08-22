@@ -705,36 +705,109 @@ async function clickServiceButton(frame, page, business) {
 }
 
 async function handleAddOnsIfPresent(frame, page) {
-  const text = await getBodyText(frame);
-  const lower = text.toLowerCase();
+  // NEXTAPPT MINDBODY ADD-ON BYPASS FIX V6
+  const beforeText = await getBodyText(frame);
+  const beforeLower = beforeText.toLowerCase();
 
-  const addOnLikely =
+  const looksLikeAddOnScreen = (lower) =>
     lower.includes("add-on") ||
+    lower.includes("add on") ||
     lower.includes("addon") ||
+    lower.includes("add ons") ||
     lower.includes("enhancement") ||
+    lower.includes("enhance your") ||
     lower.includes("upgrade") ||
     lower.includes("extras") ||
-    lower.includes("no thanks");
+    lower.includes("additional service") ||
+    lower.includes("additional services") ||
+    lower.includes("optional service") ||
+    lower.includes("optional services") ||
+    lower.includes("select enhancement") ||
+    lower.includes("select enhancements") ||
+    lower.includes("choose enhancement") ||
+    lower.includes("choose enhancements") ||
+    lower.includes("would you like to add") ||
+    lower.includes("customize your") ||
+    lower.includes("personalize your");
 
-  if (!addOnLikely) return false;
+  if (!looksLikeAddOnScreen(beforeLower)) return false;
 
-  const clicked = await clickFirstMatchingText(
-    frame,
-    page,
-    [
-      "No Thanks",
-      "No thanks",
-      "Skip",
-      "Skip Add-ons",
-      "Skip Add-Ons",
-      "Continue without add-ons",
-      "Continue Without Add-ons",
-      "Continue"
-    ],
-    { waitAfter: 3500 }
+  console.log("[MINDBODY] Optional add-on/enhancement step detected.");
+
+  const skipTexts = [
+    "No Thanks", "No thanks", "No, Thanks", "No, thanks",
+    "Skip Add-ons", "Skip Add-Ons", "Skip Add Ons", "Skip add-ons",
+    "Skip for now", "Skip For Now", "Not Now", "Not now",
+    "None", "None Selected",
+    "No Add-ons", "No add-ons", "No Add Ons", "No add ons",
+    "No Addons", "No addons",
+    "No Enhancements", "No enhancements",
+    "No Extras", "No extras",
+    "Continue without add-ons", "Continue Without Add-ons",
+    "Continue without Add-ons", "Continue without add ons",
+    "Continue without enhancements", "Continue Without Enhancements",
+    "Continue without extras", "Continue Without Extras",
+    "Maybe Later", "Maybe later", "Skip"
+  ];
+
+  let clicked = await clickFirstMatchingText(frame, page, skipTexts, { waitAfter: 2500 });
+
+  if (!clicked) {
+    clicked = await clickFirstMatchingText(
+      frame,
+      page,
+      ["Continue", "Next"],
+      { waitAfter: 2500 }
+    );
+  }
+
+  if (!clicked) {
+    console.log("----- MINDBODY UNHANDLED ADD-ON SCREEN -----");
+    console.log(beforeText);
+    throw new Error(
+      "Mindbody add_on_bypass_failed: add-on/enhancement screen detected but no skip/continue control was found."
+    );
+  }
+
+  const afterText = await getBodyText(frame);
+  const afterLower = afterText.toLowerCase();
+
+  const changed = afterText.trim() !== beforeText.trim();
+
+  const reachedNextStage =
+    afterLower.includes("first available") ||
+    afterLower.includes("select employee") ||
+    afterLower.includes("select staff") ||
+    afterLower.includes("select provider") ||
+    afterLower.includes("choose employee") ||
+    afterLower.includes("choose provider") ||
+    afterLower.includes("select date & time") ||
+    afterLower.includes("select date and time") ||
+    afterLower.includes("choose date & time") ||
+    afterLower.includes("choose date and time") ||
+    afterLower.includes("availability for") ||
+    afterLower.includes("available times") ||
+    afterLower.includes("next available appointment") ||
+    afterLower.includes("no appointments available") ||
+    afterLower.includes("fully booked");
+
+  const stillOnAddOnScreen = looksLikeAddOnScreen(afterLower);
+
+  if (!changed && !reachedNextStage && stillOnAddOnScreen) {
+    console.log("----- MINDBODY ADD-ON SCREEN DID NOT ADVANCE -----");
+    console.log(afterText);
+    throw new Error(
+      "Mindbody add_on_bypass_failed: skip/continue control was clicked but the add-on screen did not advance."
+    );
+  }
+
+  console.log(
+    stillOnAddOnScreen
+      ? "[MINDBODY] Add-on step advanced to another optional add-on screen."
+      : "[MINDBODY] Optional add-on/enhancement step bypassed."
   );
 
-  return Boolean(clicked);
+  return true;
 }
 
 async function handleProviderIfPresent(frame, page, business) {
@@ -827,6 +900,7 @@ async function clickNextAvailableIfNeeded(frame, page, business = {}) {
 }
 
 async function waitForProgressAfterService(frame, page) {
+  // NEXTAPPT MINDBODY ADD-ON BYPASS FIX V6
   for (let i = 0; i < 10; i++) {
     const text = await getBodyText(frame);
     const lower = text.toLowerCase();
@@ -836,11 +910,24 @@ async function waitForProgressAfterService(frame, page) {
       lower.includes("select employee") ||
       lower.includes("select staff") ||
       lower.includes("select provider") ||
+      lower.includes("first available") ||
       lower.includes("add-on") ||
+      lower.includes("add on") ||
       lower.includes("addon") ||
+      lower.includes("add ons") ||
+      lower.includes("enhancement") ||
+      lower.includes("enhance your") ||
+      lower.includes("upgrade") ||
+      lower.includes("extras") ||
+      lower.includes("additional service") ||
+      lower.includes("optional service") ||
       lower.includes("no thanks") ||
       lower.includes("select date & time") ||
+      lower.includes("select date and time") ||
+      lower.includes("choose date & time") ||
+      lower.includes("choose date and time") ||
       lower.includes("availability for") ||
+      lower.includes("available times") ||
       lower.includes("next available appointment") ||
       lower.includes("no appointments available") ||
       lower.includes("fully booked")
@@ -855,21 +942,25 @@ async function waitForProgressAfterService(frame, page) {
 }
 
 async function runModernMindbodyFlow(frame, page, business) {
+  // NEXTAPPT MINDBODY ADD-ON BYPASS FIX V6
   await waitForProgressAfterService(frame, page);
 
-  for (let step = 0; step < 6; step++) {
+  const isAvailabilityStage = (lower) =>
+    lower.includes("availability for") ||
+    lower.includes("select date & time") ||
+    lower.includes("select date and time") ||
+    lower.includes("choose date & time") ||
+    lower.includes("choose date and time") ||
+    lower.includes("available times") ||
+    lower.includes("next available appointment") ||
+    lower.includes("no appointments available") ||
+    lower.includes("fully booked");
+
+  for (let step = 0; step < 10; step++) {
     const text = await getBodyText(frame);
     const lower = text.toLowerCase();
 
-    if (
-      lower.includes("availability for") ||
-      lower.includes("select date & time") ||
-      lower.includes("next available appointment") ||
-      lower.includes("no appointments available") ||
-      lower.includes("fully booked")
-    ) {
-      return text;
-    }
+    if (isAvailabilityStage(lower)) return text;
 
     if (await handleAddOnsIfPresent(frame, page)) continue;
 
@@ -883,7 +974,17 @@ async function runModernMindbodyFlow(frame, page, business) {
     await wait(page, 1500);
   }
 
-  return await getBodyText(frame);
+  const finalText = await getBodyText(frame);
+  const finalLower = finalText.toLowerCase();
+
+  if (isAvailabilityStage(finalLower)) return finalText;
+
+  console.log("----- MINDBODY FLOW STALLED BEFORE AVAILABILITY -----");
+  console.log(finalText);
+
+  throw new Error(
+    "Mindbody flow_stalled: service was selected but the widget never reached availability."
+  );
 }
 
 async function scrapeMindbodyBusiness(page, business, attemptNumber) {
