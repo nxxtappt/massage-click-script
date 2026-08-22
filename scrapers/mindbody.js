@@ -1,21 +1,37 @@
 function extractAppointmentTimes(text) {
-  const timeRegex = /\b(1[0-2]|[1-9]):[0-5][0-9]\s?(AM|PM)\b/g;
-  const matches = text.match(timeRegex) || [];
-  return [...new Set(matches)];
+  // NEXTAPPT MINDBODY MULTI-DAY FIX V7
+  const source = String(text || "");
+  const regex = /\b(1[0-2]|0?[1-9])(?::([0-5][0-9]))?\s*(AM|PM)\b/gi;
+  const times = [];
+  let match;
+
+  while ((match = regex.exec(source)) !== null) {
+    const hour = String(Number(match[1]));
+    const minute = match[2] || "00";
+    const ampm = String(match[3]).toUpperCase();
+    times.push(`${hour}:${minute} ${ampm}`);
+  }
+
+  return [...new Set(times)];
 }
 
 function extractAvailabilityDate(text) {
-  let dateMatch = text.match(/Availability for ([A-Za-z]+ \d{1,2}, \d{4})/);
-  if (dateMatch) return dateMatch[1];
+  // NEXTAPPT MINDBODY MULTI-DAY FIX V7
+  const source = String(text || "");
 
-  dateMatch = text.match(/Go to ([A-Za-z]+ \d{1,2}, \d{4})/);
-  if (dateMatch) return dateMatch[1];
+  const patterns = [
+    /Availability for ([A-Za-z]+ \d{1,2}, \d{4})/i,
+    /Available on ([A-Za-z]+ \d{1,2}, \d{4})/i,
+    /Appointments for ([A-Za-z]+ \d{1,2}, \d{4})/i,
+    /Go to ([A-Za-z]+ \d{1,2}, \d{4})/i,
+    /fully booked for today,\s*([A-Za-z]+ \d{1,2}, \d{4})/i,
+    /Next available appointment[\s\S]*?([A-Za-z]+ \d{1,2}, \d{4})/i
+  ];
 
-  dateMatch = text.match(/fully booked for today, ([A-Za-z]+ \d{1,2}, \d{4})/);
-  if (dateMatch) return dateMatch[1];
-
-  dateMatch = text.match(/Next available appointment[\s\S]*?([A-Za-z]+ \d{1,2}, \d{4})/);
-  if (dateMatch) return dateMatch[1];
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match) return match[1];
+  }
 
   return null;
 }
@@ -705,10 +721,7 @@ async function clickServiceButton(frame, page, business) {
 }
 
 async function handleAddOnsIfPresent(frame, page) {
-  // NEXTAPPT MINDBODY ADD-ON BYPASS FIX V6
-  const beforeText = await getBodyText(frame);
-  const beforeLower = beforeText.toLowerCase();
-
+  // NEXTAPPT MINDBODY ADD-ON FLOW FIX V7
   const looksLikeAddOnScreen = (lower) =>
     lower.includes("add-on") ||
     lower.includes("add on") ||
@@ -730,83 +743,123 @@ async function handleAddOnsIfPresent(frame, page) {
     lower.includes("customize your") ||
     lower.includes("personalize your");
 
-  if (!looksLikeAddOnScreen(beforeLower)) return false;
+  const beforeText = await getBodyText(frame);
+  const beforeLower = beforeText.toLowerCase();
+
+  if (!looksLikeAddOnScreen(beforeLower)) {
+    return false;
+  }
 
   console.log("[MINDBODY] Optional add-on/enhancement step detected.");
 
   const skipTexts = [
-    "No Thanks", "No thanks", "No, Thanks", "No, thanks",
-    "Skip Add-ons", "Skip Add-Ons", "Skip Add Ons", "Skip add-ons",
-    "Skip for now", "Skip For Now", "Not Now", "Not now",
-    "None", "None Selected",
-    "No Add-ons", "No add-ons", "No Add Ons", "No add ons",
-    "No Addons", "No addons",
-    "No Enhancements", "No enhancements",
-    "No Extras", "No extras",
-    "Continue without add-ons", "Continue Without Add-ons",
-    "Continue without Add-ons", "Continue without add ons",
-    "Continue without enhancements", "Continue Without Enhancements",
-    "Continue without extras", "Continue Without Extras",
-    "Maybe Later", "Maybe later", "Skip"
+    "No Thanks",
+    "No thanks",
+    "No, Thanks",
+    "No, thanks",
+    "None",
+    "None Selected",
+    "No Add-ons",
+    "No add-ons",
+    "No Add Ons",
+    "No add ons",
+    "No Addons",
+    "No addons",
+    "No Enhancements",
+    "No enhancements",
+    "No Extras",
+    "No extras",
+    "Skip Add-ons",
+    "Skip Add-Ons",
+    "Skip Add Ons",
+    "Skip add-ons",
+    "Skip for now",
+    "Skip For Now",
+    "Not Now",
+    "Not now",
+    "Maybe Later",
+    "Maybe later",
+    "Continue without add-ons",
+    "Continue Without Add-ons",
+    "Continue without Add-ons",
+    "Continue without add ons",
+    "Continue without enhancements",
+    "Continue Without Enhancements",
+    "Continue without extras",
+    "Continue Without Extras",
+    "Skip"
   ];
 
-  let clicked = await clickFirstMatchingText(frame, page, skipTexts, { waitAfter: 2500 });
+  const selectedSkip = await clickFirstMatchingText(
+    frame,
+    page,
+    skipTexts,
+    { waitAfter: 1200 }
+  );
 
-  if (!clicked) {
-    clicked = await clickFirstMatchingText(
-      frame,
-      page,
-      ["Continue", "Next"],
-      { waitAfter: 2500 }
+  if (selectedSkip) {
+    console.log(
+      `[MINDBODY] Selected add-on bypass option: ${selectedSkip}`
     );
   }
 
-  if (!clicked) {
-    console.log("----- MINDBODY UNHANDLED ADD-ON SCREEN -----");
-    console.log(beforeText);
-    throw new Error(
-      "Mindbody add_on_bypass_failed: add-on/enhancement screen detected but no skip/continue control was found."
+  let currentText = await getBodyText(frame);
+  let currentLower = currentText.toLowerCase();
+
+  // Selecting None / No Thanks can simply set a radio or checkbox.
+  // If the add-on page remains, click Continue/Next afterward.
+  if (looksLikeAddOnScreen(currentLower)) {
+    const continued = await clickFirstMatchingText(
+      frame,
+      page,
+      [
+        "Continue",
+        "Next",
+        "Continue to availability",
+        "Continue To Availability",
+        "View Availability",
+        "Select Date & Time",
+        "Select Date and Time"
+      ],
+      { waitAfter: 2500 }
+    );
+
+    if (!continued) {
+      console.log("----- MINDBODY UNHANDLED ADD-ON SCREEN -----");
+      console.log(currentText);
+
+      throw new Error(
+        "Mindbody add_on_bypass_failed: add-on screen remained after selection and no Continue/Next control was found."
+      );
+    }
+
+    console.log(
+      `[MINDBODY] Continued after add-on selection using: ${continued}`
     );
   }
 
   const afterText = await getBodyText(frame);
   const afterLower = afterText.toLowerCase();
 
-  const changed = afterText.trim() !== beforeText.trim();
+  // A business can have multiple consecutive optional add-on groups.
+  if (looksLikeAddOnScreen(afterLower)) {
+    if (afterText.trim() === beforeText.trim()) {
+      console.log("----- MINDBODY ADD-ON SCREEN DID NOT ADVANCE -----");
+      console.log(afterText);
 
-  const reachedNextStage =
-    afterLower.includes("first available") ||
-    afterLower.includes("select employee") ||
-    afterLower.includes("select staff") ||
-    afterLower.includes("select provider") ||
-    afterLower.includes("choose employee") ||
-    afterLower.includes("choose provider") ||
-    afterLower.includes("select date & time") ||
-    afterLower.includes("select date and time") ||
-    afterLower.includes("choose date & time") ||
-    afterLower.includes("choose date and time") ||
-    afterLower.includes("availability for") ||
-    afterLower.includes("available times") ||
-    afterLower.includes("next available appointment") ||
-    afterLower.includes("no appointments available") ||
-    afterLower.includes("fully booked");
+      throw new Error(
+        "Mindbody add_on_bypass_failed: add-on controls were activated but the screen did not advance."
+      );
+    }
 
-  const stillOnAddOnScreen = looksLikeAddOnScreen(afterLower);
-
-  if (!changed && !reachedNextStage && stillOnAddOnScreen) {
-    console.log("----- MINDBODY ADD-ON SCREEN DID NOT ADVANCE -----");
-    console.log(afterText);
-    throw new Error(
-      "Mindbody add_on_bypass_failed: skip/continue control was clicked but the add-on screen did not advance."
+    console.log(
+      "[MINDBODY] Advanced to another optional add-on/enhancement screen."
     );
+
+    return true;
   }
 
-  console.log(
-    stillOnAddOnScreen
-      ? "[MINDBODY] Add-on step advanced to another optional add-on screen."
-      : "[MINDBODY] Optional add-on/enhancement step bypassed."
-  );
-
+  console.log("[MINDBODY] Optional add-on/enhancement step bypassed.");
   return true;
 }
 
@@ -942,11 +995,13 @@ async function waitForProgressAfterService(frame, page) {
 }
 
 async function runModernMindbodyFlow(frame, page, business) {
-  // NEXTAPPT MINDBODY ADD-ON BYPASS FIX V6
+  // NEXTAPPT MINDBODY MULTI-DAY FIX V7
   await waitForProgressAfterService(frame, page);
 
   const isAvailabilityStage = (lower) =>
     lower.includes("availability for") ||
+    lower.includes("available on") ||
+    lower.includes("appointments for") ||
     lower.includes("select date & time") ||
     lower.includes("select date and time") ||
     lower.includes("choose date & time") ||
@@ -954,30 +1009,39 @@ async function runModernMindbodyFlow(frame, page, business) {
     lower.includes("available times") ||
     lower.includes("next available appointment") ||
     lower.includes("no appointments available") ||
-    lower.includes("fully booked");
+    lower.includes("fully booked") ||
+    lower.includes("calendar");
 
-  for (let step = 0; step < 10; step++) {
+  for (let step = 0; step < 12; step++) {
     const text = await getBodyText(frame);
     const lower = text.toLowerCase();
 
-    if (isAvailabilityStage(lower)) return text;
+    if (isAvailabilityStage(lower)) {
+      return text;
+    }
 
-    if (await handleAddOnsIfPresent(frame, page)) continue;
+    if (await handleAddOnsIfPresent(frame, page)) {
+      continue;
+    }
 
     if (await handleProviderIfPresent(frame, page, business)) {
       await clickContinueIfPresent(frame, page);
       continue;
     }
 
-    if (await clickContinueIfPresent(frame, page)) continue;
+    if (await clickContinueIfPresent(frame, page)) {
+      continue;
+    }
 
-    await wait(page, 1500);
+    await wait(page, 1200);
   }
 
   const finalText = await getBodyText(frame);
   const finalLower = finalText.toLowerCase();
 
-  if (isAvailabilityStage(finalLower)) return finalText;
+  if (isAvailabilityStage(finalLower)) {
+    return finalText;
+  }
 
   console.log("----- MINDBODY FLOW STALLED BEFORE AVAILABILITY -----");
   console.log(finalText);
@@ -987,9 +1051,393 @@ async function runModernMindbodyFlow(frame, page, business) {
   );
 }
 
+function normalizeMindbodyDateToKey(value) {
+  if (!value) return "";
+
+  const raw = String(value).trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  const parsed = new Date(raw);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return formatDateKey(parsed);
+}
+
+function addMindbodyDays(dateKey, amount) {
+  const date = parseDateKey(dateKey);
+  if (!date) return "";
+
+  date.setDate(date.getDate() + Number(amount || 0));
+  return formatDateKey(date);
+}
+
+function buildMindbodyDateWindow(business = {}) {
+  const start =
+    business.scrapeStartDate ||
+    formatDateKey(new Date());
+
+  const end =
+    business.scrapeEndDate ||
+    start;
+
+  if (!isDateKey(start) || !isDateKey(end)) {
+    return isDateKey(start) ? [start] : [];
+  }
+
+  const dates = [];
+  let cursor = start;
+
+  for (let guard = 0; guard < 31; guard++) {
+    dates.push(cursor);
+
+    if (cursor >= end) {
+      break;
+    }
+
+    cursor = addMindbodyDays(cursor, 1);
+
+    if (!cursor) {
+      break;
+    }
+  }
+
+  return dates;
+}
+
+function getMindbodyDateLabels(dateKey) {
+  const date = parseDateKey(dateKey);
+
+  if (!date) {
+    return {
+      dateKey,
+      long: dateKey,
+      full: dateKey,
+      monthDay: dateKey,
+      slash: dateKey,
+      shortSlash: dateKey,
+      day: ""
+    };
+  }
+
+  const long = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
+
+  const full = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
+
+  const monthDay = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric"
+  }).format(date);
+
+  return {
+    dateKey,
+    long,
+    full,
+    monthDay,
+    slash:
+      `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+    shortSlash:
+      `${date.getMonth() + 1}/${date.getDate()}`,
+    day: String(date.getDate())
+  };
+}
+
+async function navigateMindbodyToDate(frame, page, dateKey) {
+  const labels = getMindbodyDateLabels(dateKey);
+
+  const result = await frame.evaluate(({ labels }) => {
+    const normalize = (value) =>
+      String(value || "")
+        .toLowerCase()
+        .replace(/[,\u00a0]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const isVisible = (element) => {
+      if (!element) return false;
+
+      const style = window.getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+
+      return (
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        Number(style.opacity) !== 0 &&
+        box.width > 0 &&
+        box.height > 0
+      );
+    };
+
+    const isDisabled = (element) => {
+      if (!element) return true;
+      if ("disabled" in element && element.disabled) return true;
+      if (element.getAttribute("aria-disabled") === "true") return true;
+      return false;
+    };
+
+    const wanted = [
+      labels.dateKey,
+      labels.long,
+      labels.full,
+      labels.monthDay,
+      labels.slash,
+      labels.shortSlash
+    ]
+      .map(normalize)
+      .filter(Boolean);
+
+    const selectors = [
+      "button",
+      "a",
+      "[role='button']",
+      "[role='gridcell']",
+      "[role='option']",
+      "td",
+      "label",
+      "time"
+    ].join(", ");
+
+    const candidates = Array.from(
+      document.querySelectorAll(selectors)
+    );
+
+    const describe = (element) => {
+      return [
+        element.textContent,
+        element.getAttribute("aria-label"),
+        element.getAttribute("title"),
+        element.getAttribute("data-date"),
+        element.getAttribute("data-value"),
+        element.getAttribute("data-day"),
+        element.getAttribute("datetime"),
+        element.getAttribute("value")
+      ]
+        .map(normalize)
+        .filter(Boolean);
+    };
+
+    const activate = (element, strategy) => {
+      if (!element || !isVisible(element) || isDisabled(element)) {
+        return null;
+      }
+
+      const actual =
+        element.matches(
+          "button, a, label, [role='button'], [role='option']"
+        )
+          ? element
+          : element.querySelector(
+              "button, a, label, [role='button'], [role='option']"
+            ) || element;
+
+      if (!isVisible(actual) || isDisabled(actual)) {
+        return null;
+      }
+
+      actual.scrollIntoView({
+        block: "center",
+        inline: "center"
+      });
+
+      if (typeof actual.click === "function") {
+        actual.click();
+      } else {
+        actual.dispatchEvent(
+          new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          })
+        );
+      }
+
+      return {
+        clicked: true,
+        strategy,
+        tagName: actual.tagName,
+        text: normalize(actual.textContent),
+        ariaLabel: normalize(actual.getAttribute("aria-label")),
+        title: normalize(actual.getAttribute("title"))
+      };
+    };
+
+    // Prefer controls with full date semantics.
+    for (const element of candidates) {
+      if (!isVisible(element) || isDisabled(element)) continue;
+
+      const values = describe(element);
+
+      if (
+        values.some((value) =>
+          wanted.some(
+            (target) =>
+              value === target ||
+              value.includes(target)
+          )
+        )
+      ) {
+        const activated = activate(
+          element,
+          "date_specific_control"
+        );
+
+        if (activated) return activated;
+      }
+    }
+
+    // Fallback: a day number, but only inside an obvious calendar/date root.
+    const calendarSelectors = [
+      "[role='grid']",
+      "[role='dialog']",
+      "[class*='calendar']",
+      "[class*='datepicker']",
+      "[class*='date-picker']",
+      "[class*='datePicker']",
+      "[data-testid*='calendar']",
+      "[data-testid*='date']"
+    ].join(", ");
+
+    const calendarRoots = Array.from(
+      document.querySelectorAll(calendarSelectors)
+    ).filter(isVisible);
+
+    for (const root of calendarRoots) {
+      const dayCandidates = Array.from(
+        root.querySelectorAll(
+          "button, a, [role='button'], [role='gridcell'], td"
+        )
+      );
+
+      for (const element of dayCandidates) {
+        if (!isVisible(element) || isDisabled(element)) continue;
+
+        const text = normalize(element.textContent);
+
+        if (text !== normalize(labels.day)) continue;
+
+        const activated = activate(
+          element,
+          "calendar_day_number"
+        );
+
+        if (activated) return activated;
+      }
+    }
+
+    return {
+      clicked: false,
+      strategy: "not_found"
+    };
+  }, { labels });
+
+  if (result && result.clicked) {
+    console.log(
+      `[MINDBODY] Activated ${dateKey} via ${result.strategy}.`
+    );
+
+    return result;
+  }
+
+  const goToText = `Go to ${labels.long}`;
+
+  const clickedGoTo = await clickTextWithFallback(
+    frame,
+    goToText,
+    {
+      required: false,
+      exact: true,
+      timeout: 4000
+    }
+  ).catch(() => false);
+
+  if (clickedGoTo) {
+    await wait(page, 1500);
+
+    return {
+      clicked: true,
+      strategy: "go_to_date_text"
+    };
+  }
+
+  return {
+    clicked: false,
+    strategy: "not_found"
+  };
+}
+
 async function scrapeMindbodyBusiness(page, business, attemptNumber) {
+  // NEXTAPPT MINDBODY MULTI-DAY FIX V7
   const startedAt = Date.now();
   const scrapeWindow = getScrapeWindowPayload(business);
+  const networkDiagnostics = [];
+
+  const onResponse = async (response) => {
+    try {
+      if (networkDiagnostics.length >= 30) return;
+
+      const url = response.url();
+      const lowerUrl = url.toLowerCase();
+
+      if (
+        !lowerUrl.includes("mindbody") &&
+        !lowerUrl.includes("healcode")
+      ) {
+        return;
+      }
+
+      if (
+        !lowerUrl.includes("avail") &&
+        !lowerUrl.includes("appointment") &&
+        !lowerUrl.includes("schedule") &&
+        !lowerUrl.includes("book") &&
+        !lowerUrl.includes("service")
+      ) {
+        return;
+      }
+
+      const headers = await response.allHeaders().catch(() => ({}));
+      const contentType = String(headers["content-type"] || "");
+
+      const entry = {
+        url,
+        status: response.status(),
+        method: response.request().method(),
+        resourceType: response.request().resourceType(),
+        contentType
+      };
+
+      if (
+        contentType.includes("application/json") ||
+        contentType.includes("text/json")
+      ) {
+        const body = await response.text().catch(() => "");
+
+        if (body) {
+          entry.bodyPreview = body.slice(0, 1800);
+        }
+      }
+
+      networkDiagnostics.push(entry);
+    } catch {
+      // Diagnostics must never break scraping.
+    }
+  };
+
+  page.on("response", onResponse);
 
   console.log(
     `\n===== Scraping ${business.businessName} | ${business.serviceName} | Attempt ${attemptNumber} =====`
@@ -1013,8 +1461,10 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
   await removeBlockingPageOverlays(page);
   await wait(page, 2000);
 
-  const frame = page.frames().find((frame) =>
-    frame.url().includes("go.mindbodyonline.com/book/widgets/appointments")
+  const frame = page.frames().find((candidate) =>
+    candidate.url().includes(
+      "go.mindbodyonline.com/book/widgets/appointments"
+    )
   );
 
   if (!frame) {
@@ -1026,19 +1476,165 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
   );
 
   await expandCategoryIfNeeded(frame, page, business);
-
   await clickServiceButton(frame, page, business);
 
-  let text = await runModernMindbodyFlow(frame, page, business);
+  let text = await runModernMindbodyFlow(
+    frame,
+    page,
+    business
+  );
 
-  text = await clickNextAvailableIfNeeded(frame, page, business);
+  text = await clickNextAvailableIfNeeded(
+    frame,
+    page,
+    business
+  );
 
-  const times = extractAppointmentTimes(text);
-  const date = extractAvailabilityDate(text);
-  const status = determineStatus(text, times);
+  const targetDates = buildMindbodyDateWindow(business);
+  const appointments = [];
+  const daySnapshots = [];
+
+  const initialDate =
+    normalizeMindbodyDateToKey(
+      extractAvailabilityDate(text)
+    ) ||
+    scrapeWindow.scrapeStartDate ||
+    "";
+
+  if (
+    initialDate &&
+    dateIsInsideScrapeWindow(initialDate, business)
+  ) {
+    const initialTimes = extractAppointmentTimes(text);
+
+    for (const time of initialTimes) {
+      appointments.push({
+        date: initialDate,
+        localDateKey: initialDate,
+        time,
+        source: "mindbody_widget"
+      });
+    }
+
+    daySnapshots.push({
+      date: initialDate,
+      times: initialTimes,
+      source: "initial_widget_state"
+    });
+  }
+
+  for (const dateKey of targetDates) {
+    if (
+      daySnapshots.some(
+        (snapshot) => snapshot.date === dateKey
+      )
+    ) {
+      continue;
+    }
+
+    console.log(
+      `[MINDBODY] Checking calendar date: ${dateKey}`
+    );
+
+    const navigation = await navigateMindbodyToDate(
+      frame,
+      page,
+      dateKey
+    );
+
+    if (!navigation.clicked) {
+      console.log(
+        `[MINDBODY] Could not directly activate calendar date ${dateKey}.`
+      );
+
+      daySnapshots.push({
+        date: dateKey,
+        times: [],
+        source: "date_control_not_found"
+      });
+
+      continue;
+    }
+
+    await wait(page, 2200);
+
+    const dayText = await getBodyText(frame);
+    const dayTimes = extractAppointmentTimes(dayText);
+
+    for (const time of dayTimes) {
+      appointments.push({
+        date: dateKey,
+        localDateKey: dateKey,
+        time,
+        source: "mindbody_calendar",
+        dateControl: navigation
+      });
+    }
+
+    daySnapshots.push({
+      date: dateKey,
+      times: dayTimes,
+      source: navigation.strategy || "calendar_click"
+    });
+
+    console.log(
+      `[MINDBODY] ${dateKey}: ${dayTimes.length} appointment time(s)`
+    );
+  }
+
+  const dedupedAppointments = [];
+  const seen = new Set();
+
+  for (const appointment of appointments) {
+    const key = `${appointment.date}|${appointment.time}`;
+
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    dedupedAppointments.push(appointment);
+  }
+
+  const allTimes = [
+    ...new Set(
+      dedupedAppointments.map((item) => item.time)
+    )
+  ];
+
+  const finalText = await getBodyText(frame);
+
+  const firstDate =
+    dedupedAppointments[0]?.date ||
+    normalizeMindbodyDateToKey(
+      extractAvailabilityDate(finalText)
+    ) ||
+    null;
+
+  let status;
+
+  if (dedupedAppointments.length > 0) {
+    status = "success";
+  } else {
+    status = determineStatus(finalText, allTimes);
+
+    if (
+      status === "unknown" ||
+      status === "service_selection_failed"
+    ) {
+      status = "no_times_found";
+    }
+  }
 
   console.log("----- FINAL WIDGET TEXT -----");
-  console.log(text);
+  console.log(finalText);
+
+  console.log("----- MINDBODY DATE SNAPSHOTS -----");
+  console.log(JSON.stringify(daySnapshots, null, 2));
+
+  if (networkDiagnostics.length) {
+    console.log(
+      `[MINDBODY] Captured ${networkDiagnostics.length} relevant network diagnostic response(s).`
+    );
+  }
 
   const result = {
     businessName: business.businessName,
@@ -1056,17 +1652,27 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
     provider: business.skipProvider
       ? "Auto-selected"
       : business.providerText || "First Available",
-    date,
-    times,
+
+    appointments: dedupedAppointments,
+
+    // Legacy compatibility/debug fields.
+    date: firstDate,
+    times: allTimes,
+
     status,
     attemptNumber,
     scrapeDurationMs: Date.now() - startedAt,
     lastChecked: new Date().toISOString(),
-    rawWidgetText: text,
+    rawWidgetText: finalText,
+    mindbodyDaySnapshots: daySnapshots,
+    mindbodyNetworkDiagnostics: networkDiagnostics,
     ...scrapeWindow
   };
 
-  return maybeApplyScrapeWindowToResult(result, business);
+  return maybeApplyScrapeWindowToResult(
+    result,
+    business
+  );
 }
 
 module.exports = {
