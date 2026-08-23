@@ -96,13 +96,16 @@ function collectPlatformConfig(platform, integration = {}, business = {}, existi
 }
 
 function normalizeIntegration(integration = {}, business = {}) {
+  // NEXTAPPT PERSISTED-INTEGRATION STATUS SOURCE FIX V2
   const raw = cleanObject(integration.raw_json || integration.rawJson);
+
   const platform = normalizeKey(
     integration.platform ||
       integration.provider ||
       raw.platform ||
       business.platform
   );
+
   const integrationType = normalizeIntegrationType(
     integration.integrationType ||
       integration.integration_type ||
@@ -111,6 +114,33 @@ function normalizeIntegration(integration = {}, business = {}) {
       business.integration_type ||
       "scrape"
   );
+
+  const status =
+    normalizeKey(
+      integration.status ||
+        integration.integrationStatus ||
+        integration.integration_status ||
+        raw.status ||
+        "active"
+    ) || "active";
+
+  const persistedIntegration =
+    integration.persistedIntegration === true ||
+    integration.persisted_integration === true ||
+    Object.prototype.hasOwnProperty.call(integration, "integration_type") ||
+    Object.prototype.hasOwnProperty.call(integration, "business_id") ||
+    Object.prototype.hasOwnProperty.call(integration, "created_at") ||
+    Object.prototype.hasOwnProperty.call(integration, "updated_at");
+
+  const statusDisablesIntegration = [
+    "disabled",
+    "inactive",
+    "deleted"
+  ].includes(status);
+
+  const enabled = persistedIntegration
+    ? !statusDisablesIntegration
+    : integration.enabled !== false;
 
   const baseConfig = {
     ...cleanObject(raw.config),
@@ -173,16 +203,14 @@ function normalizeIntegration(integration = {}, business = {}) {
       business.bookingUrl ||
       business.booking_url ||
       "",
-    status:
-      normalizeKey(
-        integration.status ||
-          integration.integrationStatus ||
-          integration.integration_status ||
-          raw.status ||
-          "active"
-      ) || "active",
-    enabled: integration.enabled !== false && raw.enabled !== false,
-    priority: Number(integration.priority ?? raw.priority ?? 100),
+    status,
+    enabled,
+    persistedIntegration,
+    priority: Number(
+      integration.priority ??
+      raw.priority ??
+      100
+    ),
     isDefault:
       integration.isDefault === true ||
       integration.is_default === true ||
@@ -248,12 +276,20 @@ function normalizeBusinessIntegrations(business = {}) {
 }
 
 function integrationIsUsable(integration = {}) {
-  return (
-    integration.enabled !== false &&
-    !["disabled", "inactive", "deleted"].includes(
-      normalizeKey(integration.status)
-    )
-  );
+  // NEXTAPPT PERSISTED-INTEGRATION STATUS SOURCE FIX V2
+  const status = normalizeKey(integration.status);
+
+  if (
+    ["disabled", "inactive", "deleted"].includes(status)
+  ) {
+    return false;
+  }
+
+  if (integration.persistedIntegration === true) {
+    return true;
+  }
+
+  return integration.enabled !== false;
 }
 
 function resolveEnabledIntegration(business = {}, options = {}) {
