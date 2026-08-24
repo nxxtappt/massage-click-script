@@ -244,6 +244,41 @@
       ]
     },
 
+    austindeep: {
+      key: "austindeep",
+      label: "Austin Deep Custom",
+      description: "Austin Deep custom availability API backed by Mindbody.",
+      capabilities: ["scrape", "provider_selection"],
+      integrationTypes: ["scrape"],
+      integrationFields: [
+        bookingUrl,
+        text("site", "Austin Deep Site Slug", {
+          required: true,
+          storage: "config",
+          help: "Examples: barton-creek or lake-austin. This selects the Austin Deep/Mindbody site."
+        }),
+        text("locationId", "API Location ID", {
+          required: true,
+          storage: "config",
+          defaultValue: "1",
+          help: "Mindbody/API locationId for this site. Barton Creek and Lake Austin currently use 1."
+        })
+      ],
+      serviceFields: [
+        ...commonServiceFields,
+        text("platformServiceId", "Mindbody Session Type ID", {
+          required: true,
+          storage: "service",
+          aliases: ["serviceId", "sessionTypeId", "serviceButtonId"],
+          help: "Austin Deep Mindbody session type ID, e.g. 136 for THE DEEP 30min."
+        }),
+        text("providerText", "Provider Text", {
+          storage: "serviceConfig",
+          defaultValue: "Any Available Therapist"
+        })
+      ]
+    },
+
     booker: {
       key: "booker",
       label: "Booker",

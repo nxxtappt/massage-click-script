@@ -14,6 +14,7 @@ const { scrapeSchedulistaBusiness } = require("./scrapers/schedulista");
 const { scrapeMeevoAvailability } = require("./scrapers/meevo");
 const vagaroModule = require("./scrapers/vagaroMarketplace");
 const { scrapeAxl3Business } = require("./scrapers/axl3");
+const { scrapeAustinDeepBusiness } = require("./scrapers/austindeep");
 const { scrapeBookerBusiness } = require("./scrapers/booker");
 const { scrapeOakHavenBusiness } = require("./scrapers/oakhaven");
 const { scrapeMindbodyOldBusiness } = require("./scrapers/mindbody-old");
@@ -158,7 +159,8 @@ function usesDedicatedBrowser(job = {}) {
   return (
     String(job.integrationType || "").toLowerCase() === "api" ||
     platform === "meevo" ||
-    platform === "square"
+    platform === "square" ||
+    platform === "austindeep"
   );
 }
 
@@ -619,6 +621,36 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+      if (scrapeTarget.platform === "austindeep") {
+        const result = await scrapeAustinDeepBusiness(scrapeTarget);
+        await closeScrapePage(page, context);
+
+        return {
+          ...result,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: "austindeep",
+          serviceName:
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
+          service:
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
+          serviceType:
+            scrapeTarget.serviceType || result.serviceType || "deep_tissue",
+          durationMinutes:
+            scrapeTarget.durationMinutes || result.durationMinutes || null,
+          platformServiceId:
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.sessionTypeId ||
+            scrapeTarget.serviceId ||
+            result.platformServiceId ||
+            null,
+          provider: result.provider || "Any Available Therapist",
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          attemptNumber: attempt,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+
       if (scrapeTarget.platform === "axl3") {
         await closeScrapePage(page, context);
         const result = await scrapeAxl3Business(browser, scrapeTarget);
@@ -949,6 +981,7 @@ async function run() {
     "schedulista",
     "meevo",
     "axl3",
+    "austindeep",
     "booker",
     "zenoti",
     "oakhaven",
