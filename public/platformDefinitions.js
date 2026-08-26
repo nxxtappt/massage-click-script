@@ -275,8 +275,8 @@
 
     axl3: {
       key: "axl3",
-      label: "Acuity / AXL3",
-      description: "Acuity/AXL3 appointment booking flow.",
+      label: "AXL3",
+      description: "AXL3 appointment booking flow.",
       capabilities: ["scrape", "service_discovery"],
       integrationTypes: ["scrape"],
       integrationFields: [bookingUrl],
