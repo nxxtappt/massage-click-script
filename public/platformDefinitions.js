@@ -227,6 +227,52 @@
       ]
     },
 
+
+    acuity: {
+      key: "acuity",
+      label: "Acuity Scheduling",
+      description:
+        "Acuity / Squarespace Scheduling public availability endpoint. Uses one JSON request per configured appointment type.",
+      capabilities: ["scrape"],
+      integrationTypes: ["scrape"],
+      integrationFields: [
+        bookingUrl,
+        text("acuityOwnerId", "Acuity Owner ID", {
+          storage: "config",
+          aliases: ["ownerId", "owner"],
+          help:
+            "Optional for modern /schedule/{owner} URLs because it is parsed automatically. Configure this for custom .as.me links when automatic discovery is not possible."
+        }),
+        text("calendarId", "Acuity Calendar ID", {
+          storage: "config",
+          defaultValue: "any",
+          help:
+            "Use any to combine all calendars/providers for the service. Set a specific calendar ID for a location-specific business record."
+        }),
+        text("timezone", "Acuity Timezone", {
+          storage: "config",
+          defaultValue: "America/Chicago",
+          help: "IANA timezone such as America/Chicago."
+        })
+      ],
+      serviceFields: [
+        ...commonServiceFields,
+        text("platformServiceId", "Acuity Appointment Type ID", {
+          required: true,
+          storage: "service",
+          aliases: ["appointmentTypeId", "appointmentTypeID", "serviceId", "serviceButtonId"],
+          help:
+            "The Acuity appointmentTypeId for this public service. This is stable and is the only required Acuity-specific service identifier."
+        }),
+        text("acuityCalendarId", "Calendar ID Override", {
+          storage: "serviceConfig",
+          aliases: ["calendarId", "calendarID"],
+          help:
+            "Optional per-service calendar override. Leave blank to use the integration Calendar ID or any."
+        })
+      ]
+    },
+
     axl3: {
       key: "axl3",
       label: "Acuity / AXL3",

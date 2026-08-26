@@ -24,6 +24,7 @@ const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
 const { scrapeSquareBusiness } = require("./scrapers/square");
 const { scrapeJaneBusiness } = require("./scrapers/jane");
+const { scrapeAcuityBusiness } = require("./scrapers/acuity");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 const businessManager = require("./businessManager");
 const inventoryManager = require("./inventoryManager");
@@ -160,7 +161,8 @@ function usesDedicatedBrowser(job = {}) {
     String(job.integrationType || "").toLowerCase() === "api" ||
     platform === "meevo" ||
     platform === "square" ||
-    platform === "austindeep"
+    platform === "austindeep" ||
+    platform === "acuity"
   );
 }
 
@@ -749,6 +751,35 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+
+      if (scrapeTarget.platform === "acuity") {
+        await closeScrapePage(page, context);
+
+        const result = await scrapeAcuityBusiness(scrapeTarget);
+
+        return {
+          ...result,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: "acuity",
+          serviceName:
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
+          service:
+            scrapeTarget.serviceName || result.serviceName || result.service || "",
+          serviceType: scrapeTarget.serviceType || result.serviceType || "",
+          durationMinutes:
+            scrapeTarget.durationMinutes || result.durationMinutes || null,
+          platformServiceId:
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceId ||
+            result.platformServiceId ||
+            null,
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          attemptNumber: attempt,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+
       if (scrapeTarget.platform === "jane") {
         const result = await scrapeJaneBusiness(page, scrapeTarget, attempt);
         await closeScrapePage(page, context);
@@ -989,6 +1020,7 @@ async function run() {
     "mangomint",
     "hand-stone",
     "square",
+    "acuity",
     "jane",
     "vagaro"
   ].filter((platform) => Boolean(getPlatformDefinition(platform)));
