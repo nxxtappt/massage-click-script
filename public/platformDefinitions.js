@@ -228,6 +228,52 @@
     },
 
 
+    "scissors-scotch": {
+      key: "scissors-scotch",
+      label: "Scissors & Scotch",
+      description:
+        "Scissors & Scotch public booking availability POST endpoint. Uses location, variation, date, and owner identifiers from the public booking flow.",
+      capabilities: ["scrape", "provider_selection"],
+      integrationTypes: ["scrape"],
+      integrationFields: [
+        bookingUrl,
+        text("locationId", "Scissors & Scotch Location ID", {
+          required: true,
+          storage: "config",
+          aliases: ["location_id", "bookingLocationId", "platformLocationId"],
+          help:
+            "Numeric location_id sent to /new-book/api/availability/times."
+        }),
+        text("owner", "Scissors & Scotch Owner", {
+          required: true,
+          storage: "config",
+          aliases: ["ownerId", "owner_id", "bookingOwner"],
+          help:
+            "The owner value sent by the public booking flow, for example ses_.... If this value later proves session-scoped, the scraper can be upgraded to discover it automatically."
+        }),
+        text("timezone", "Timezone", {
+          storage: "config",
+          defaultValue: "America/Chicago",
+          help: "IANA timezone used to convert begin_at UTC timestamps for display."
+        })
+      ],
+      serviceFields: [
+        ...commonServiceFields,
+        text("platformServiceId", "Scissors & Scotch Variation ID", {
+          required: true,
+          storage: "service",
+          aliases: [
+            "variationId",
+            "variation_id",
+            "serviceId",
+            "serviceButtonId"
+          ],
+          help:
+            "Numeric variation ID placed in the availability request variation_ids array."
+        })
+      ]
+    },
+
     acuity: {
       key: "acuity",
       label: "Acuity Scheduling",

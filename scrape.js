@@ -25,6 +25,7 @@ const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
 const { scrapeSquareBusiness } = require("./scrapers/square");
 const { scrapeJaneBusiness } = require("./scrapers/jane");
 const { scrapeAcuityBusiness } = require("./scrapers/acuity");
+const { scrapeScissorsScotchBusiness } = require("./scrapers/scissors-scotch");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
 const businessManager = require("./businessManager");
 const inventoryManager = require("./inventoryManager");
@@ -162,7 +163,8 @@ function usesDedicatedBrowser(job = {}) {
     platform === "meevo" ||
     platform === "square" ||
     platform === "austindeep" ||
-    platform === "acuity"
+    platform === "acuity" ||
+    platform === "scissors-scotch"
   );
 }
 
@@ -780,6 +782,49 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+
+      if (scrapeTarget.platform === "scissors-scotch") {
+        await closeScrapePage(page, context);
+
+        const result = await scrapeScissorsScotchBusiness(scrapeTarget);
+
+        return {
+          ...result,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl,
+          platform: "scissors-scotch",
+          serviceName:
+            scrapeTarget.serviceName ||
+            result.serviceName ||
+            result.service ||
+            "",
+          service:
+            scrapeTarget.serviceName ||
+            result.serviceName ||
+            result.service ||
+            "",
+          serviceType:
+            scrapeTarget.serviceType ||
+            result.serviceType ||
+            "hair",
+          durationMinutes:
+            scrapeTarget.durationMinutes ||
+            result.durationMinutes ||
+            null,
+          platformServiceId:
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceId ||
+            result.platformServiceId ||
+            null,
+          provider:
+            result.provider ||
+            "Any Available Professional",
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          attemptNumber: attempt,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+
       if (scrapeTarget.platform === "jane") {
         const result = await scrapeJaneBusiness(page, scrapeTarget, attempt);
         await closeScrapePage(page, context);
@@ -1082,7 +1127,9 @@ async function run() {
   }
 
   let browser = null;
-  let results = [];
+  let results = [,
+    "scissors-scotch"
+  ];
 
   console.log("[INVENTORY] Starting a new PostgreSQL-backed scrape run.");
 
