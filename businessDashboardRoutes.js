@@ -24,28 +24,15 @@ const {
 const router = express.Router();
 
 const {
-  storagePath
-} = require("./storagePaths");
-
-const {
   getBusinessPlan
 } = require("./businessPlanManager");
 
 const businessManager = require("./businessManager");
-
-const LOGO_UPLOAD_DIR = storagePath(
-  "public",
-  "uploads",
-  "business-logos"
-);
-
-function ensureLogoUploadDir() {
-  if (!fs.existsSync(LOGO_UPLOAD_DIR)) {
-    fs.mkdirSync(LOGO_UPLOAD_DIR, {
-      recursive: true
-    });
-  }
-}
+const {
+  MAX_LOGO_BYTES,
+  saveBusinessLogoAsset,
+  getBusinessLogoAsset
+} = require("./businessLogoAssetManager");
 
 function readJsonFile(fileName, fallback) {
   const filePath = path.join(__dirname, fileName);
@@ -80,6 +67,18 @@ function slugify(value) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
     .slice(0, 80) || "business";
+}
+
+function isAllowedLogoUrl(value) {
+  const logoUrl = String(value || "").trim();
+
+  if (!logoUrl) return true;
+
+  return (
+    /^https?:\/\/[^\s]+$/i.test(logoUrl) ||
+    logoUrl.startsWith("/uploads/business-logos/") ||
+    logoUrl.startsWith("/api/business-dashboard/logo/")
+  );
 }
 
 function getSessionToken(req) {
@@ -422,19 +421,44 @@ async function buildDashboard(session) {
   };
 }
 
-function getRequestBuffer(req) {
+function createHttpError(message, statusCode = 500) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function getRequestBuffer(req, maxBytes) {
   return new Promise((resolve, reject) => {
     const chunks = [];
+    let totalBytes = 0;
+    let settled = false;
 
     req.on("data", (chunk) => {
+      if (settled) return;
+
+      totalBytes += chunk.length;
+
+      if (Number.isFinite(maxBytes) && totalBytes > maxBytes) {
+        settled = true;
+        chunks.length = 0;
+        reject(createHttpError("Logo upload is too large. Maximum size is 3MB.", 413));
+        return;
+      }
+
       chunks.push(chunk);
     });
 
     req.on("end", () => {
+      if (settled) return;
+      settled = true;
       resolve(Buffer.concat(chunks));
     });
 
-    req.on("error", reject);
+    req.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    });
   });
 }
 
@@ -515,33 +539,79 @@ function parseMultipartFile(req, buffer) {
   return null;
 }
 
-function getLogoExtension(file) {
-  const mimeType = String(file.mimeType || "").toLowerCase();
-  const originalName = String(file.originalName || "").toLowerCase();
+function detectLogoType(buffer) {
+  if (!Buffer.isBuffer(buffer)) return null;
 
-  if (mimeType === "image/png" || originalName.endsWith(".png")) {
-    return ".png";
+  if (
+    buffer.length >= 8 &&
+    buffer.subarray(0, 8).equals(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    )
+  ) {
+    return { contentType: "image/png", extension: ".png" };
   }
 
   if (
-    mimeType === "image/jpeg" ||
-    mimeType === "image/jpg" ||
-    originalName.endsWith(".jpg") ||
-    originalName.endsWith(".jpeg")
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff
   ) {
-    return ".jpg";
+    return { contentType: "image/jpeg", extension: ".jpg" };
   }
 
-  if (mimeType === "image/webp" || originalName.endsWith(".webp")) {
-    return ".webp";
+  if (buffer.length >= 6) {
+    const signature = buffer.subarray(0, 6).toString("ascii");
+
+    if (signature === "GIF87a" || signature === "GIF89a") {
+      return { contentType: "image/gif", extension: ".gif" };
+    }
   }
 
-  if (mimeType === "image/gif" || originalName.endsWith(".gif")) {
-    return ".gif";
+  if (
+    buffer.length >= 12 &&
+    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+    buffer.subarray(8, 12).toString("ascii") === "WEBP"
+  ) {
+    return { contentType: "image/webp", extension: ".webp" };
   }
 
-  return "";
+  return null;
 }
+
+router.get("/logo/:businessId", async (req, res) => {
+  try {
+    const asset = await getBusinessLogoAsset(req.params.businessId);
+
+    if (!asset) {
+      return res.status(404).send("Logo not found.");
+    }
+
+    const checksum = String(asset.checksum_sha256 || "");
+    const requestedVersion = String(req.query.v || "");
+    const versionMatches = requestedVersion === checksum.slice(0, 16);
+    const etag = `"${checksum}"`;
+
+    res.set({
+      "Cache-Control": versionMatches
+        ? "public, max-age=31536000, immutable"
+        : "public, max-age=0, must-revalidate",
+      "Content-Type": asset.content_type,
+      "Content-Length": String(asset.byte_size),
+      "ETag": etag,
+      "X-Content-Type-Options": "nosniff"
+    });
+
+    if (req.headers["if-none-match"] === etag) {
+      return res.status(304).end();
+    }
+
+    return res.send(asset.file_bytes);
+  } catch (error) {
+    console.error("[BUSINESS LOGO READ ERROR]", error);
+    return res.status(500).send("Unable to load logo.");
+  }
+});
 
 router.get("/health", (req, res) => {
   res.json({
@@ -676,13 +746,32 @@ router.post("/profile", requireBusinessSession, async (req, res) => {
       });
     }
 
-    const requestedLogoUrl = String(req.body?.logoUrl || "").trim();
+    const requestBody = req.body || {};
+    const requestedLogoUrl = String(requestBody.logoUrl || "").trim();
     const requestedLogoAlt = String(req.body?.logoAlt || "").trim();
+    const currentLogoUrl = String(currentBusiness.logoUrl || "").trim();
+    const hasExpectedLogoUrl = Object.prototype.hasOwnProperty.call(
+      requestBody,
+      "expectedLogoUrl"
+    );
+    const expectedLogoUrl = String(requestBody.expectedLogoUrl || "").trim();
+    const logoConflict =
+      hasExpectedLogoUrl &&
+      expectedLogoUrl !== currentLogoUrl &&
+      requestedLogoUrl !== currentLogoUrl;
+
+    if (!isAllowedLogoUrl(requestedLogoUrl)) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Logo URL must start with http:// or https://, or use a NextAppt logo path."
+      });
+    }
 
     const logoUrl =
-      requestedLogoUrl ||
-      currentBusiness.logoUrl ||
-      "";
+      logoConflict
+        ? currentLogoUrl
+        : requestedLogoUrl || currentLogoUrl;
 
     const phone =
       String(req.body?.phone || "").trim() ||
@@ -764,7 +853,10 @@ router.post("/profile", requireBusinessSession, async (req, res) => {
 
     res.json({
       success: true,
-      message: "Business profile saved.",
+      message: logoConflict
+        ? "Business profile saved. A newer logo change was kept."
+        : "Business profile saved.",
+      logoConflict,
       profile: {
         businessName,
         logoUrl: updatedBusiness.logoUrl || logoUrl || "",
@@ -975,8 +1067,6 @@ router.post("/deal", requireBusinessSession, async (req, res) => {
 
 router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => {
   try {
-    ensureLogoUploadDir();
-
     const currentBusiness = await findBusinessForSession(req.businessSession);
 
     if (!currentBusiness) {
@@ -986,7 +1076,17 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
       });
     }
 
-    const buffer = await getRequestBuffer(req);
+    const maxMultipartBytes = MAX_LOGO_BYTES + 128 * 1024;
+    const contentLength = Number(req.headers["content-length"] || 0);
+
+    if (contentLength > maxMultipartBytes) {
+      return res.status(413).json({
+        success: false,
+        error: "Logo file is too large. Maximum size is 3MB."
+      });
+    }
+
+    const buffer = await getRequestBuffer(req, maxMultipartBytes);
     const file = parseMultipartFile(req, buffer);
 
     if (!file) {
@@ -996,21 +1096,38 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
       });
     }
 
-    const maxBytes = 3 * 1024 * 1024;
-
-    if (file.buffer.length > maxBytes) {
-      return res.status(400).json({
+    if (file.buffer.length > MAX_LOGO_BYTES) {
+      return res.status(413).json({
         success: false,
         error: "Logo file is too large. Maximum size is 3MB."
       });
     }
 
-    const extension = getLogoExtension(file);
+    const detectedType = detectLogoType(file.buffer);
 
-    if (!extension) {
+    if (!detectedType) {
       return res.status(400).json({
         success: false,
-        error: "Unsupported logo file type. Use PNG, JPG, WEBP, or GIF."
+        error:
+          "Unsupported or invalid logo file. Use a real PNG, JPG, WEBP, or GIF image."
+      });
+    }
+
+    const declaredType = String(file.mimeType || "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
+    const normalizedDeclaredType =
+      declaredType === "image/jpg" ? "image/jpeg" : declaredType;
+
+    if (
+      normalizedDeclaredType &&
+      normalizedDeclaredType !== "application/octet-stream" &&
+      normalizedDeclaredType !== detectedType.contentType
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "The logo file content does not match its declared image type."
       });
     }
 
@@ -1020,42 +1137,38 @@ router.post("/profile/logo-upload", requireBusinessSession, async (req, res) => 
       req.businessSession.businessName ||
       "Business";
 
-    const safeSlug = slugify(businessName);
-    const fileName = `${safeSlug}-${Date.now()}${extension}`;
-    const filePath = path.join(LOGO_UPLOAD_DIR, fileName);
-
-    fs.writeFileSync(filePath, file.buffer);
-
-    const logoUrl = `/uploads/business-logos/${fileName}`;
     const logoAlt =
       currentBusiness.logoAlt ||
       `${businessName} logo`;
 
-    await businessManager.saveBusiness(
+    const savedLogo = await saveBusinessLogoAsset(
+      getBusinessIdentity(currentBusiness, req.businessSession),
       {
-        ...currentBusiness,
-        logoUrl,
-        logoAlt,
-        updatedAt: new Date().toISOString()
-      },
-      {
-        source: "postgres"
+        buffer: file.buffer,
+        contentType: detectedType.contentType,
+        logoAlt
       }
     );
+
+    await businessManager.getAllBusinesses({
+      includeDisabled: true,
+      source: "postgres"
+    });
 
     res.json({
       success: true,
       message: "Logo uploaded successfully.",
       profile: {
         businessName,
-        logoUrl,
-        logoAlt
+        logoUrl: savedLogo.logoUrl,
+        logoAlt: savedLogo.logoAlt,
+        logoVersion: savedLogo.version
       }
     });
   } catch (error) {
     console.error("[BUSINESS DASHBOARD LOGO UPLOAD ERROR]", error);
 
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       error: error.message
     });
@@ -1116,6 +1229,8 @@ router.get("/analytics", requireBusinessSession, async (req, res) => {
 
 router.get("/dashboard", requireBusinessSession, async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
+
     res.json({
       success: true,
       dashboard: await buildDashboard(req.businessSession)

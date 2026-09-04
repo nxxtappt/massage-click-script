@@ -409,9 +409,6 @@
       attachAnalyticsHandlers();
     };
 
-  // The original dashboard script loads itself before this upgrade
-  // script executes, so reload once to render the upgraded panel.
-  if (getSessionToken()) {
-    loadDashboard();
-  }
+  // business-dashboard.js waits for DOMContentLoaded, so this wrapper is
+  // installed before the first dashboard request and no duplicate load is needed.
 })();

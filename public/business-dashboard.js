@@ -1,11 +1,54 @@
 const content = document.getElementById("content");
 const statusBox = document.getElementById("statusBox");
 const logoutBtn = document.getElementById("logoutBtn");
+const dashboardNav = document.getElementById("dashboardNav");
+const dashboardAccount = document.getElementById("dashboardAccount");
+const dashboardTitle = document.getElementById("dashboardTitle");
+const dashboardSubtitle = document.getElementById("dashboardSubtitle");
 
 function setStatus(message, type = "info") {
   if (!statusBox) return;
   statusBox.textContent = message;
   statusBox.className = `status-box ${type}`;
+  statusBox.hidden = false;
+}
+
+function hideStatus() {
+  if (!statusBox) return;
+  statusBox.hidden = true;
+}
+
+function setDashboardNav(items = [], accountLabel = "") {
+  if (dashboardNav) {
+    dashboardNav.innerHTML = items
+      .map(
+        (item, index) => `
+          <a
+            class="business-dashboard-nav-link${index === 0 ? " active" : ""}"
+            href="#${escapeHtml(item.id)}"
+            data-dashboard-nav="${escapeHtml(item.id)}"
+          >
+            ${escapeHtml(item.label)}
+          </a>
+        `
+      )
+      .join("");
+    dashboardNav.hidden = items.length === 0;
+
+    dashboardNav.querySelectorAll("[data-dashboard-nav]").forEach((link) => {
+      link.addEventListener("click", () => {
+        dashboardNav
+          .querySelectorAll("[data-dashboard-nav]")
+          .forEach((item) => item.classList.remove("active"));
+        link.classList.add("active");
+      });
+    });
+  }
+
+  if (dashboardAccount) {
+    dashboardAccount.textContent = accountLabel;
+    dashboardAccount.hidden = !accountLabel;
+  }
 }
 
 function getSessionToken() {
@@ -76,9 +119,11 @@ async function fetchJson(url, options = {}) {
     headers["x-business-session"] = token;
   }
 
+  const method = String(options.method || "GET").toUpperCase();
   const response = await fetch(url, {
     ...options,
-    headers
+    headers,
+    cache: options.cache || (method === "GET" ? "no-store" : "default")
   });
 
   return parseJsonResponse(response);
@@ -104,6 +149,12 @@ async function fetchFormJson(url, formData) {
 
 function renderLoginRequest() {
   logoutBtn.style.display = "none";
+  setDashboardNav([]);
+
+  if (dashboardTitle) dashboardTitle.textContent = "Business Dashboard";
+  if (dashboardSubtitle) {
+    dashboardSubtitle.textContent = "Manage how your business appears on NextAppt.";
+  }
 
   content.innerHTML = `
     <div class="admin-business-card">
@@ -190,183 +241,275 @@ function renderField(label, value) {
   `;
 }
 
-function renderBusinessProfilePanel(dashboard) {
+function getBusinessProfileChecklist(dashboard) {
   const profile = dashboard.profile || {};
-  const logoAltPlaceholder =
-    (profile.businessName || dashboard.businessName || "Business") + " logo";
+  const publicProfile = profile.publicProfile || {};
+
+  return [
+    { label: "Logo", complete: Boolean(profile.logoUrl) },
+    { label: "Phone", complete: Boolean(profile.phone) },
+    { label: "Website", complete: Boolean(profile.website) },
+    {
+      label: "Short description",
+      complete: Boolean(publicProfile.shortDescription)
+    },
+    { label: "Business bio", complete: Boolean(publicProfile.bio) }
+  ];
+}
+
+function renderDashboardOverview(dashboard) {
+  const profile = dashboard.profile || {};
+  const checklist = getBusinessProfileChecklist(dashboard);
+  const completedCount = checklist.filter((item) => item.complete).length;
+  const completionPercent = Math.round(
+    (completedCount / Math.max(checklist.length, 1)) * 100
+  );
+  const missingItems = checklist
+    .filter((item) => !item.complete)
+    .map((item) => item.label);
+  const businessId = dashboard.businessId || "";
+  const publicBusinessUrl = businessId
+    ? `/business/${encodeURIComponent(businessId)}`
+    : "";
 
   return `
-    <div class="admin-business-card">
+    <div class="dashboard-overview-card">
+      <div class="dashboard-overview-heading">
+        <div>
+          <span class="dashboard-eyebrow">Business overview</span>
+          <h3>${escapeHtml(profile.businessName || dashboard.businessName)}</h3>
+          <p>Keep your listing complete, connected, and ready for customers.</p>
+        </div>
+
+        <div class="dashboard-overview-actions">
+          <a class="secondary-btn dashboard-link-btn" href="#business-profile">
+            Edit business profile
+          </a>
+          ${
+            publicBusinessUrl
+              ? `
+                <a
+                  class="primary-btn dashboard-link-btn"
+                  href="${escapeHtml(publicBusinessUrl)}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  View public listing
+                </a>
+              `
+              : ""
+          }
+        </div>
+      </div>
+
+      <div class="dashboard-summary-grid">
+        <div class="dashboard-summary-item">
+          <span>Listing status</span>
+          <strong>${escapeHtml(profile.verificationStatus || "Verified")}</strong>
+        </div>
+        <div class="dashboard-summary-item">
+          <span>Availability connection</span>
+          <strong>${escapeHtml(profile.integrationStatus || "Needs setup")}</strong>
+          <small>${escapeHtml(profile.connectedProvider || "Not connected")}</small>
+        </div>
+        <div class="dashboard-summary-item">
+          <span>Last availability update</span>
+          <strong>${escapeHtml(formatValue(profile.lastSyncTimestamp))}</strong>
+        </div>
+      </div>
+
+      <div class="profile-strength" aria-label="Business profile completeness">
+        <div class="profile-strength-copy">
+          <div>
+            <strong>Profile completeness</strong>
+            <span>${completedCount} of ${checklist.length} essentials complete</span>
+          </div>
+          <strong>${completionPercent}%</strong>
+        </div>
+        <div
+          class="profile-strength-track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="${completionPercent}"
+        >
+          <span style="width:${completionPercent}%"></span>
+        </div>
+        ${
+          missingItems.length
+            ? `<p>Add ${escapeHtml(missingItems.join(", "))} to finish your public profile.</p>`
+            : `<p>Your public profile essentials are complete.</p>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderBusinessProfilePanel(dashboard) {
+  const profile = dashboard.profile || {};
+  const publicProfile = profile.publicProfile || {};
+  const businessName = profile.businessName || dashboard.businessName || "Business";
+  const logoAltPlaceholder = `${businessName} logo`;
+  const logoFallback = businessName.trim().charAt(0).toUpperCase() || "N";
+  const hostedLogoUrl = /^https?:\/\//i.test(profile.logoUrl || "")
+    ? profile.logoUrl
+    : "";
+
+  return `
+    <div class="admin-business-card business-profile-card">
       <div class="business-card-header">
         <div>
+          <span class="dashboard-eyebrow">Public listing</span>
           <h3>Business Profile</h3>
-          <p>Review your business information, marketplace status, and public logo.</p>
+          <p>Update the information customers see on NextAppt.</p>
         </div>
-
-        <div class="business-header-actions">
-          <span class="platform-pill">
-            ${escapeHtml(profile.verificationStatus || "verified")}
-          </span>
-        </div>
+        <span class="platform-pill">
+          ${escapeHtml(profile.verificationStatus || "verified")}
+        </span>
       </div>
 
-      <div class="business-edit-grid">
-        ${renderField("Business Name", profile.businessName || dashboard.businessName)}
-        ${renderField("Verification Status", profile.verificationStatus)}
-        ${renderField("Connected Provider", profile.connectedProvider)}
-        ${renderField("Integration Status", profile.integrationStatus)}
-        ${renderField("Last Sync Timestamp", profile.lastSyncTimestamp)}
+      <form
+        id="businessProfileForm"
+        data-current-logo-url="${escapeHtml(profile.logoUrl || "")}"
+        novalidate
+      >
+        <div class="profile-editor-grid">
+          <section class="profile-logo-editor" aria-labelledby="businessLogoHeading">
+            <div>
+              <h4 id="businessLogoHeading">Business logo</h4>
+              <p class="field-help">Shown on your search card and public business page.</p>
+            </div>
 
-        <div class="admin-field">
-          <span>Upload Logo File</span>
-
-          <input
-            id="profileLogoFile"
-            type="file"
-            accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
-          />
-        </div>
-
-        <div class="admin-field">
-          <span>Logo URL</span>
-
-          <input
-            id="profileLogoUrl"
-            type="url"
-            value="${escapeHtml(profile.logoUrl || "")}"
-            placeholder="Or paste a hosted logo URL"
-          />
-        </div>
-
-        <div class="admin-field">
-          <span>Logo Alt Text</span>
-
-          <input
-            id="profileLogoAlt"
-            value="${escapeHtml(profile.logoAlt || "")}"
-            placeholder="${escapeHtml(logoAltPlaceholder)}"
-          />
-        </div>
-
-        <div class="admin-field">
-          <span>Phone</span>
-          <input
-            id="profilePhone"
-            value="${escapeHtml(profile.phone || "")}"
-            placeholder="Business phone"
-          />
-        </div>
-
-        <div class="admin-field">
-          <span>Website</span>
-          <input
-            id="profileWebsite"
-            type="url"
-            value="${escapeHtml(profile.website || "")}"
-            placeholder="https://example.com"
-          />
-        </div>
-
-        <div class="admin-field admin-field-full">
-          <span>Search Card Short Description</span>
-          <textarea
-            id="profileShortDescription"
-            rows="2"
-            maxlength="220"
-            placeholder="Short sentence shown on verified search cards."
-          >${escapeHtml(profile.publicProfile?.shortDescription || "")}</textarea>
-        </div>
-
-        <div class="admin-field admin-field-full">
-          <span>Business Bio</span>
-          <textarea
-            id="profileBio"
-            rows="5"
-            maxlength="2500"
-            placeholder="Longer business bio for the public business page."
-          >${escapeHtml(profile.publicProfile?.bio || "")}</textarea>
-        </div>
-      </div>
-
-      ${
-        profile.logoUrl
-          ? `
-            <div style="margin-top:14px;display:flex;align-items:center;gap:12px;">
-              <div
-                style="
-                  width:64px;
-                  height:64px;
-                  border-radius:999px;
-                  overflow:hidden;
-                  border:1px solid #e5e7eb;
-                  background:#f9fafb;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                "
-              >
+            <div class="profile-logo-preview-row">
+              <div class="profile-logo-preview">
                 <img
                   id="currentLogoPreview"
-                  src="${escapeHtml(profile.logoUrl)}"
-                  alt="${escapeHtml(profile.logoAlt || "Business logo")}"
-                  style="width:100%;height:100%;object-fit:cover;"
+                  ${profile.logoUrl ? `src="${escapeHtml(profile.logoUrl)}"` : ""}
+                  alt="${escapeHtml(profile.logoAlt || logoAltPlaceholder)}"
+                  ${profile.logoUrl ? "" : "hidden"}
                 />
+                <span id="currentLogoFallback" ${profile.logoUrl ? "hidden" : ""}>
+                  ${escapeHtml(logoFallback)}
+                </span>
               </div>
-
-              <p style="margin:0;font-size:13px;color:#555;">
-                Current public logo preview
-              </p>
+              <div>
+                <strong id="logoPreviewLabel">
+                  ${profile.logoUrl ? "Current logo" : "No logo uploaded"}
+                </strong>
+                <span id="selectedLogoFileName">
+                  Choose a new image to replace it.
+                </span>
+              </div>
             </div>
-          `
-          : `
-            <div style="margin-top:14px;">
-              <p style="margin:0;font-size:13px;color:#555;">
-                No logo uploaded yet.
-              </p>
-            </div>
-          `
-      }
 
-      <div
-        id="selectedLogoPreviewWrap"
-        style="display:none;margin-top:14px;align-items:center;gap:12px;"
-      >
-        <div
-          style="
-            width:64px;
-            height:64px;
-            border-radius:999px;
-            overflow:hidden;
-            border:1px solid #e5e7eb;
-            background:#f9fafb;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-          "
-        >
-          <img
-            id="selectedLogoPreview"
-            alt="Selected logo preview"
-            style="width:100%;height:100%;object-fit:cover;"
-          />
+            <label class="admin-field">
+              <span>Choose logo image</span>
+              <input
+                id="profileLogoFile"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+              />
+              <small class="field-help">PNG, JPG, WEBP, or GIF. Maximum 3MB.</small>
+            </label>
+
+            <label class="admin-field">
+              <span>Logo alt text</span>
+              <input
+                id="profileLogoAlt"
+                value="${escapeHtml(profile.logoAlt || "")}"
+                placeholder="${escapeHtml(logoAltPlaceholder)}"
+              />
+              <small class="field-help">A short description for screen readers.</small>
+            </label>
+
+            <details class="profile-advanced-logo">
+              <summary>Use a hosted logo URL instead</summary>
+              <label class="admin-field">
+                <span>Logo URL</span>
+                <input
+                  id="profileLogoUrl"
+                  type="url"
+                  value="${escapeHtml(hostedLogoUrl)}"
+                  placeholder="https://example.com/logo.png"
+                />
+              </label>
+            </details>
+          </section>
+
+          <section class="profile-details-editor" aria-labelledby="businessDetailsHeading">
+            <div>
+              <h4 id="businessDetailsHeading">Contact and description</h4>
+              <p class="field-help">Give customers enough information to choose your business.</p>
+            </div>
+
+            <div class="business-edit-grid profile-contact-grid">
+              <label class="admin-field">
+                <span>Phone</span>
+                <input
+                  id="profilePhone"
+                  type="tel"
+                  value="${escapeHtml(profile.phone || "")}"
+                  placeholder="Business phone"
+                  autocomplete="tel"
+                />
+              </label>
+
+              <label class="admin-field">
+                <span>Website</span>
+                <input
+                  id="profileWebsite"
+                  type="url"
+                  value="${escapeHtml(profile.website || "")}"
+                  placeholder="https://example.com"
+                  autocomplete="url"
+                />
+              </label>
+
+              <label class="admin-field admin-field-full">
+                <span>Search card description</span>
+                <textarea
+                  id="profileShortDescription"
+                  rows="3"
+                  maxlength="220"
+                  placeholder="A short sentence shown on your verified search card."
+                >${escapeHtml(publicProfile.shortDescription || "")}</textarea>
+                <small class="field-help">
+                  <span id="profileShortDescriptionCount">0</span>/220 characters
+                </small>
+              </label>
+
+              <label class="admin-field admin-field-full">
+                <span>Business bio</span>
+                <textarea
+                  id="profileBio"
+                  rows="6"
+                  maxlength="2500"
+                  placeholder="Tell customers what makes your business different."
+                >${escapeHtml(publicProfile.bio || "")}</textarea>
+                <small class="field-help">
+                  <span id="profileBioCount">0</span>/2500 characters
+                </small>
+              </label>
+            </div>
+          </section>
         </div>
 
-        <p style="margin:0;font-size:13px;color:#555;">
-          Selected logo preview
-        </p>
-      </div>
+        <div class="profile-save-bar">
+          <button id="saveBusinessProfileBtn" class="primary-btn" type="submit">
+            Save Business Profile
+          </button>
+          <span id="businessProfileDirty" class="unsaved-indicator" hidden>
+            Unsaved changes
+          </span>
+        </div>
 
-      <div class="settings-actions">
-        <button id="uploadLogoFileBtn" class="primary-btn">
-          Upload Logo File
-        </button>
-
-        <button id="saveBusinessProfileBtn" class="secondary-btn">
-          Save Logo URL
-        </button>
-      </div>
-
-      <div id="businessProfileStatus" class="status-box"></div>
+        <div
+          id="businessProfileStatus"
+          class="status-box profile-status"
+          role="status"
+          aria-live="polite"
+        ></div>
+      </form>
     </div>
   `;
 }
@@ -649,92 +792,166 @@ function renderAnalyticsPanel(dashboard) {
 }
 
 function attachBusinessProfileHandlers() {
+  const form = document.getElementById("businessProfileForm");
   const saveBusinessProfileBtn = document.getElementById("saveBusinessProfileBtn");
-  const uploadLogoFileBtn = document.getElementById("uploadLogoFileBtn");
   const logoFileInput = document.getElementById("profileLogoFile");
+  const logoUrlInput = document.getElementById("profileLogoUrl");
   const businessProfileStatus = document.getElementById("businessProfileStatus");
-  const selectedLogoPreviewWrap = document.getElementById("selectedLogoPreviewWrap");
-  const selectedLogoPreview = document.getElementById("selectedLogoPreview");
+  const businessProfileDirty = document.getElementById("businessProfileDirty");
+  const currentLogoPreview = document.getElementById("currentLogoPreview");
+  const currentLogoFallback = document.getElementById("currentLogoFallback");
+  const logoPreviewLabel = document.getElementById("logoPreviewLabel");
+  const selectedLogoFileName = document.getElementById("selectedLogoFileName");
+  const shortDescription = document.getElementById("profileShortDescription");
+  const bio = document.getElementById("profileBio");
+  let saveInFlight = false;
+  let selectedObjectUrl = "";
+
+  if (!form || !saveBusinessProfileBtn) return;
+
+  const setProfileStatus = (message, type = "info") => {
+    if (!businessProfileStatus) return;
+    businessProfileStatus.textContent = message;
+    businessProfileStatus.className = `status-box profile-status ${type}`;
+  };
+
+  const updateCharacterCount = (input, outputId) => {
+    const output = document.getElementById(outputId);
+    if (output) output.textContent = String(input?.value.length || 0);
+  };
+
+  const markDirty = () => {
+    if (businessProfileDirty) businessProfileDirty.hidden = false;
+  };
+
+  const setBusy = (busy) => {
+    saveInFlight = busy;
+    saveBusinessProfileBtn.disabled = busy;
+    saveBusinessProfileBtn.setAttribute("aria-busy", busy ? "true" : "false");
+    saveBusinessProfileBtn.textContent = busy
+      ? "Saving Business Profile..."
+      : "Save Business Profile";
+  };
+
+  updateCharacterCount(shortDescription, "profileShortDescriptionCount");
+  updateCharacterCount(bio, "profileBioCount");
+
+  shortDescription?.addEventListener("input", () => {
+    updateCharacterCount(shortDescription, "profileShortDescriptionCount");
+  });
+
+  bio?.addEventListener("input", () => {
+    updateCharacterCount(bio, "profileBioCount");
+  });
+
+  form.querySelectorAll("input, textarea").forEach((control) => {
+    control.addEventListener("input", markDirty);
+    control.addEventListener("change", markDirty);
+  });
+
+  if (currentLogoPreview) {
+    currentLogoPreview.addEventListener("error", () => {
+      currentLogoPreview.hidden = true;
+      if (currentLogoFallback) currentLogoFallback.hidden = false;
+      if (logoPreviewLabel) logoPreviewLabel.textContent = "Logo could not be loaded";
+    });
+  }
 
   if (logoFileInput) {
     logoFileInput.addEventListener("change", () => {
       const file = logoFileInput.files && logoFileInput.files[0];
 
       if (!file) {
-        if (selectedLogoPreviewWrap) {
-          selectedLogoPreviewWrap.style.display = "none";
+        if (selectedObjectUrl) URL.revokeObjectURL(selectedObjectUrl);
+        selectedObjectUrl = "";
+
+        if (currentLogoPreview && form.dataset.currentLogoUrl) {
+          currentLogoPreview.src = form.dataset.currentLogoUrl;
+          currentLogoPreview.hidden = false;
+          if (currentLogoFallback) currentLogoFallback.hidden = true;
+        } else if (currentLogoPreview) {
+          currentLogoPreview.removeAttribute("src");
+          currentLogoPreview.hidden = true;
+          if (currentLogoFallback) currentLogoFallback.hidden = false;
+        }
+
+        if (logoPreviewLabel) logoPreviewLabel.textContent = "Current logo";
+        if (selectedLogoFileName) {
+          selectedLogoFileName.textContent = "Choose a new image to replace it.";
         }
         return;
       }
 
-      if (selectedLogoPreview && selectedLogoPreviewWrap) {
-        selectedLogoPreview.src = URL.createObjectURL(file);
-        selectedLogoPreviewWrap.style.display = "flex";
+      if (file.size > 3 * 1024 * 1024) {
+        logoFileInput.value = "";
+        setProfileStatus("Logo file is too large. Maximum size is 3MB.", "error");
+        return;
       }
 
-      if (businessProfileStatus) {
-        businessProfileStatus.textContent = `Selected file: ${file.name}`;
-        businessProfileStatus.className = "status-box info";
+      const allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+
+      if (file.type && !allowedTypes.includes(file.type)) {
+        logoFileInput.value = "";
+        setProfileStatus("Choose a PNG, JPG, WEBP, or GIF logo image.", "error");
+        return;
       }
+
+      if (selectedObjectUrl) URL.revokeObjectURL(selectedObjectUrl);
+      selectedObjectUrl = URL.createObjectURL(file);
+
+      if (currentLogoPreview) {
+        currentLogoPreview.src = selectedObjectUrl;
+        currentLogoPreview.hidden = false;
+      }
+
+      if (currentLogoFallback) currentLogoFallback.hidden = true;
+
+      if (logoPreviewLabel) logoPreviewLabel.textContent = "New logo preview";
+      if (selectedLogoFileName) selectedLogoFileName.textContent = file.name;
+      setProfileStatus(
+        "Your new logo is selected. Save the business profile to publish it.",
+        "info"
+      );
     });
   }
 
-  if (uploadLogoFileBtn) {
-    uploadLogoFileBtn.addEventListener("click", async () => {
-      try {
-        const file = logoFileInput?.files?.[0];
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-        if (!file) {
-          throw new Error("Choose a logo file first.");
-        }
+    if (saveInFlight) return;
 
-        if (businessProfileStatus) {
-          businessProfileStatus.textContent = "Uploading logo file...";
-          businessProfileStatus.className = "status-box info";
-        }
+    try {
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      setBusy(true);
+      setProfileStatus("Saving your business profile...", "info");
+
+      const expectedLogoUrl = form.dataset.currentLogoUrl || "";
+      let logoUrl = logoUrlInput?.value.trim() || "";
+      const file = logoFileInput?.files?.[0];
+
+      if (file) {
+        setProfileStatus("Uploading your logo and saving your profile...", "info");
 
         const formData = new FormData();
         formData.append("logoFile", file);
 
-        await fetchFormJson(
+        const uploadData = await fetchFormJson(
           "/api/business-dashboard/profile/logo-upload",
           formData
         );
 
-        if (businessProfileStatus) {
-          businessProfileStatus.textContent = "Logo file uploaded successfully.";
-          businessProfileStatus.className = "status-box success";
-        }
+        logoUrl = uploadData.profile?.logoUrl || logoUrl;
 
-        setStatus("Business logo uploaded.", "success");
-
-        await loadDashboard();
-      } catch (error) {
-        console.error("BUSINESS LOGO UPLOAD ERROR:", error);
-
-        if (businessProfileStatus) {
-          businessProfileStatus.textContent = error.message;
-          businessProfileStatus.className = "status-box error";
-        }
-
-        setStatus(`Logo upload error: ${error.message}`, "error");
-      }
-    });
-  }
-
-  if (!saveBusinessProfileBtn) {
-    return;
-  }
-
-  saveBusinessProfileBtn.addEventListener("click", async () => {
-    try {
-      if (businessProfileStatus) {
-        businessProfileStatus.textContent = "Saving logo URL...";
-        businessProfileStatus.className = "status-box info";
+        if (logoUrlInput) logoUrlInput.value = logoUrl;
       }
 
       const payload = {
-        logoUrl: document.getElementById("profileLogoUrl")?.value.trim() || "",
+        logoUrl,
+        expectedLogoUrl,
         logoAlt: document.getElementById("profileLogoAlt")?.value.trim() || "",
         phone: document.getElementById("profilePhone")?.value.trim() || "",
         website: document.getElementById("profileWebsite")?.value.trim() || "",
@@ -743,7 +960,7 @@ function attachBusinessProfileHandlers() {
         bio: document.getElementById("profileBio")?.value.trim() || ""
       };
 
-      await fetchJson("/api/business-dashboard/profile", {
+      const data = await fetchJson("/api/business-dashboard/profile", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -751,23 +968,24 @@ function attachBusinessProfileHandlers() {
         body: JSON.stringify(payload)
       });
 
-      if (businessProfileStatus) {
-        businessProfileStatus.textContent = "Logo URL saved successfully.";
-        businessProfileStatus.className = "status-box success";
-      }
+      if (selectedObjectUrl) URL.revokeObjectURL(selectedObjectUrl);
+      selectedObjectUrl = "";
 
-      setStatus("Business logo URL saved.", "success");
-
-      await loadDashboard();
+      await loadDashboard({
+        notice: data.message || "Business profile saved.",
+        noticeType: data.logoConflict ? "info" : "success",
+        profileNotice: data.message || "Business profile saved.",
+        profileNoticeType: data.logoConflict ? "info" : "success"
+      });
     } catch (error) {
       console.error("BUSINESS PROFILE SAVE ERROR:", error);
 
-      if (businessProfileStatus) {
-        businessProfileStatus.textContent = error.message;
-        businessProfileStatus.className = "status-box error";
+      setProfileStatus(error.message, "error");
+      setStatus(`Profile save error: ${error.message}`, "error");
+    } finally {
+      if (document.body.contains(saveBusinessProfileBtn)) {
+        setBusy(false);
       }
-
-      setStatus(`Logo save error: ${error.message}`, "error");
     }
   });
 }
@@ -1153,50 +1371,82 @@ function attachDealHandlers() {
 function renderDashboard(dashboard) {
   logoutBtn.style.display = "inline-flex";
 
-const entitlements = dashboard.entitlements || {};
-const isPremium = dashboard.isPremium === true;
+  const entitlements = dashboard.entitlements || {};
+  const businessName =
+    dashboard.profile?.businessName || dashboard.businessName || "Your business";
 
-content.innerHTML = `
-  <div class="business-list">
-    ${renderBusinessProfilePanel(dashboard)}
+  if (dashboardTitle) dashboardTitle.textContent = businessName;
+  if (dashboardSubtitle) {
+    dashboardSubtitle.textContent = "Manage your NextAppt listing and connections.";
+  }
 
-    ${
-      entitlements.canUseApiIntegration
-        ? renderCredentialConnectionPanel(dashboard)
-        : renderLockedPremiumPanel(
-            "Connect CRM/API",
-            "Premium businesses can connect API credentials so NextAppt can display richer live availability."
-          )
-    }
+  setDashboardNav(
+    [
+      { id: "dashboard-overview", label: "Overview" },
+      { id: "business-profile", label: "Business Profile" },
+      { id: "business-connections", label: "Connections" },
+      { id: "business-booking", label: "Booking" },
+      { id: "business-deal", label: "Deals" },
+      { id: "business-analytics", label: "Analytics" }
+    ],
+    dashboard.email || ""
+  );
 
-    ${
-      entitlements.canUseBookingWidget
-        ? renderBookingWidgetPanel(dashboard)
-        : renderLockedPremiumPanel(
-            "Booking Widget",
-            "Premium businesses can add a booking widget or booking iframe directly to their public business page."
-          )
-    }
+  content.innerHTML = `
+    <div class="business-list business-dashboard-sections">
+      <section id="dashboard-overview" class="dashboard-section">
+        ${renderDashboardOverview(dashboard)}
+      </section>
 
-    ${
-      entitlements.canUseBookingWidget
-        ? renderDealPanel(dashboard)
-        : renderLockedPremiumPanel(
-            "Search Card Deal",
-            "Premium businesses can post a small deal or promotion on their verified search card."
-          )
-    }
+      <section id="business-profile" class="dashboard-section">
+        ${renderBusinessProfilePanel(dashboard)}
+      </section>
 
-    ${
-      entitlements.canViewAnalytics
-        ? renderAnalyticsPanel(dashboard)
-        : renderLockedPremiumPanel(
-            "Appointment Analytics",
-            "Premium businesses can see appointment clicks, popular days, popular times, and customer demand signals."
-          )
-    }
-  </div>
-`;
+      <section id="business-connections" class="dashboard-section">
+        ${
+          entitlements.canUseApiIntegration
+            ? renderCredentialConnectionPanel(dashboard)
+            : renderLockedPremiumPanel(
+                "Connect CRM/API",
+                "Premium businesses can connect API credentials so NextAppt can display richer live availability."
+              )
+        }
+      </section>
+
+      <section id="business-booking" class="dashboard-section">
+        ${
+          entitlements.canUseBookingWidget
+            ? renderBookingWidgetPanel(dashboard)
+            : renderLockedPremiumPanel(
+                "Booking Widget",
+                "Premium businesses can add a booking widget or booking iframe directly to their public business page."
+              )
+        }
+      </section>
+
+      <section id="business-deal" class="dashboard-section">
+        ${
+          entitlements.canUseBookingWidget
+            ? renderDealPanel(dashboard)
+            : renderLockedPremiumPanel(
+                "Search Card Deal",
+                "Premium businesses can post a small deal or promotion on their verified search card."
+              )
+        }
+      </section>
+
+      <section id="business-analytics" class="dashboard-section">
+        ${
+          entitlements.canViewAnalytics
+            ? renderAnalyticsPanel(dashboard)
+            : renderLockedPremiumPanel(
+                "Appointment Analytics",
+                "Premium businesses can see appointment clicks, popular days, popular times, and customer demand signals."
+              )
+        }
+      </section>
+    </div>
+  `;
 
   attachBusinessProfileHandlers();
   attachCredentialConnectionHandlers(dashboard);
@@ -1272,7 +1522,7 @@ async function verifyLoginCode(email) {
   }
 }
 
-async function loadDashboard() {
+async function loadDashboard(options = {}) {
   const token = getSessionToken();
 
   if (!token) {
@@ -1282,13 +1532,29 @@ async function loadDashboard() {
   }
 
   try {
-    const data = await fetchJson("/api/business-dashboard/dashboard");
+    const data = await fetchJson("/api/business-dashboard/dashboard", {
+      cache: "no-store"
+    });
 
     console.log("BUSINESS DASHBOARD DATA:", data);
 
     renderDashboard(data.dashboard);
 
-    setStatus("Dashboard loaded.", "success");
+    if (options.notice) {
+      setStatus(options.notice, options.noticeType || "success");
+    } else {
+      hideStatus();
+    }
+
+    if (options.profileNotice) {
+      const profileStatus = document.getElementById("businessProfileStatus");
+
+      if (profileStatus) {
+        profileStatus.textContent = options.profileNotice;
+        profileStatus.className =
+          `status-box profile-status ${options.profileNoticeType || "success"}`;
+      }
+    }
   } catch (error) {
     console.error("BUSINESS DASHBOARD LOAD ERROR:", error);
 
@@ -1315,4 +1581,6 @@ logoutBtn.addEventListener("click", async () => {
   setStatus("Logged out.", "success");
 });
 
-loadDashboard();
+window.addEventListener("DOMContentLoaded", () => {
+  loadDashboard();
+});

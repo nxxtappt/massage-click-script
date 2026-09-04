@@ -3,26 +3,28 @@
 <head>
   <link rel="icon" href="/favicon.ico?v=1" sizes="any">
 
-<link
-  rel="icon"
-  type="image/png"
-  sizes="32x32"
-  href="/favicon-32x32.png?v=1"
->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="/favicon-32x32.png?v=1"
+  >
 
-<link
-  rel="icon"
-  type="image/png"
-  sizes="16x16"
-  href="/favicon-16x16.png?v=1"
->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="16x16"
+    href="/favicon-16x16.png?v=1"
+  >
 
-<link
-  rel="apple-touch-icon"
-  sizes="180x180"
-  href="/apple-touch-icon.png?v=1"
->
+  <link
+    rel="apple-touch-icon"
+    sizes="180x180"
+    href="/apple-touch-icon.png?v=1"
+  >
+
   <meta charset="UTF-8" />
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
@@ -31,8 +33,21 @@
   <title>NextAppt Business Dashboard</title>
 
   <link rel="stylesheet" href="/admin.css" />
-  <link rel="stylesheet" href="/business-dashboard-analytics.css?v=20260808-persistent-analytics" />
-  <link rel="stylesheet" href="/siteLegal.css?v=20260808-legal-footer" />
+
+  <link
+    rel="stylesheet"
+    href="/business-dashboard-analytics.css?v=20260808-persistent-analytics"
+  />
+
+  <link
+    rel="stylesheet"
+    href="/business-dashboard-ux.css?v=20260902-dashboard-ux-logo-fix"
+  />
+
+  <link
+    rel="stylesheet"
+    href="/siteLegal.css.css?v=20260808-legal-footer"
+  />
 </head>
 
 <body>
@@ -46,15 +61,28 @@
           <p>Business Dashboard</p>
         </div>
       </div>
+
+      <nav
+        id="dashboardNav"
+        class="business-dashboard-nav"
+        aria-label="Business dashboard sections"
+        hidden
+      ></nav>
+
+      <p
+        id="dashboardAccount"
+        class="business-dashboard-account"
+        hidden
+      ></p>
     </aside>
 
     <main class="main">
       <header class="topbar">
         <div>
-          <h2>Business Dashboard</h2>
+          <h2 id="dashboardTitle">Business Dashboard</h2>
 
-          <p>
-            Verified business access portal
+          <p id="dashboardSubtitle">
+            Manage how your business appears on NextAppt.
           </p>
         </div>
 
@@ -84,8 +112,14 @@
   </div>
 
   <script src="/legalAcceptanceUi.js?v=20260808"></script>
-  <script src="/business-dashboard.js"></script>
-  <script src="/businessDashboardAnalyticsUpgrade.js?v=20260808-persistent-analytics"></script>
+
+  <script
+    src="/business-dashboard.js?v=20260902-dashboard-ux-logo-fix"
+  ></script>
+
+  <script
+    src="/businessDashboardAnalyticsUpgrade.js?v=20260902-dashboard-ux-logo-fix"
+  ></script>
 
   <footer class="site-legal-footer">
     <div class="site-legal-footer-inner">
@@ -99,6 +133,5 @@
       </nav>
     </div>
   </footer>
-
 </body>
 </html>
