@@ -91,6 +91,7 @@ function requireAdminAuth(req, res, next) {
 
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/ai", aiSearchRoutes);
+app.use(require("./publicAvailabilityRoutes"));
 app.use(seoRoutes);
 app.use(austinSearchRoutes);
 

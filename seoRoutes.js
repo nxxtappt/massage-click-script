@@ -13,6 +13,8 @@ const router = express.Router();
 
 const DEFAULT_PUBLIC_PATHS = [
   "/",
+  "/availability/austin",
+  "/availability-methodology",
   ...listMarketplaceMetros()
     .map((metro) => `/${metro.slug}`)
 ];

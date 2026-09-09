@@ -410,16 +410,23 @@ async function sendMarketplaceSearchPage(
       "utf8"
     );
 
-  const html =
+  let html =
     renderMarketplaceSearchHtml(
       templateHtml,
       context
     );
 
-  res.set(
-    "Cache-Control",
-    "public, max-age=60"
-  );
+  // NEXTAPPT AI READABILITY: visible HTML for users and non-JavaScript readers.
+  if (metro.slug === "austin") {
+    try {
+      const preview = await require("./publicAvailabilityRoutes").renderPreview(category?.slug || "");
+      html = html.replace("</main>", `${preview}</main>`);
+    } catch (error) {
+      console.error("[READABLE INVENTORY PREVIEW]", error.message);
+      html = html.replace("</main>", '<section aria-label="Readable appointment inventory"><h2>Appointment inventory</h2><p>The readable inventory is temporarily unavailable. This is not a zero-availability result. Please retry later.</p><a href="/availability/austin">Retry readable inventory</a></section></main>');
+    }
+  }
+  res.set("Cache-Control", "no-store");
 
   res
     .status(200)
