@@ -399,21 +399,32 @@ async function selectCategory(page, business = {}) {
   const categoryName = clean(
     business.categoryName || business.categoryText || business.boulevardCategoryName
   );
-  if (!categoryName) return;
+  if (!categoryName) return false;
 
+  const escapedCategory = categoryName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const categoryPattern = new RegExp(`^\\s*${escapedCategory}\\s*$`, "i");
   const candidates = [
-    page.getByRole("link", { name: categoryName, exact: true }),
-    page.getByRole("button", { name: categoryName, exact: true }),
-    page.getByText(categoryName, { exact: true })
+    page.getByRole("link", { name: categoryPattern }),
+    page.getByRole("button", { name: categoryPattern }),
+    page.getByText(categoryPattern)
   ];
 
   for (const candidate of candidates) {
-    if (await clickIfVisible(candidate)) return;
+    if (await clickIfVisible(candidate)) return true;
+  }
+
+  const serviceId = stripServicePrefix(
+    business.platformServiceId || business.serviceId || business.serviceButtonId
+  );
+
+  if (serviceId) {
+    // A stable Boulevard service UUID is more authoritative than an optional
+    // or stale category label. Let selectService() attempt the UUID directly.
+    return false;
   }
 
   throw new Error(`Boulevard category not found: ${categoryName}`);
 }
-
 async function selectService(page, business = {}) {
   const serviceName = clean(business.serviceName || business.service);
   const serviceId = stripServicePrefix(

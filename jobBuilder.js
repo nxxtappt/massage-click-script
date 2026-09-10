@@ -344,14 +344,18 @@ function getEnabledServicesForBusiness(business) {
             service.categoryName ||
             business.categoryText ||
             business.categoryName ||
-            "Massage",
+            (normalize(business.platform) === "boulevard"
+              ? service.categorySlug || service.marketplaceCategory || ""
+              : "Massage"),
 
           categoryName:
             service.categoryName ||
             service.categoryText ||
             business.categoryName ||
             business.categoryText ||
-            "Massage",
+            (normalize(business.platform) === "boulevard"
+              ? service.categorySlug || service.marketplaceCategory || ""
+              : "Massage"),
 
           parentServiceText:
             service.parentServiceText ||
@@ -508,8 +512,18 @@ function getEnabledServicesForBusiness(business) {
         business.serviceButtonId ||
         null,
 
-      categoryText: business.categoryText || business.categoryName || "Massage",
-      categoryName: business.categoryName || business.categoryText || "Massage",
+      categoryText:
+        business.categoryText ||
+        business.categoryName ||
+        (normalize(business.platform) === "boulevard"
+          ? business.categorySlug || business.marketplaceCategory || ""
+          : "Massage"),
+      categoryName:
+        business.categoryName ||
+        business.categoryText ||
+        (normalize(business.platform) === "boulevard"
+          ? business.categorySlug || business.marketplaceCategory || ""
+          : "Massage"),
       parentServiceText: business.parentServiceText || "",
       providerText: business.providerText || "First Available",
       skipProvider: Boolean(business.skipProvider),
