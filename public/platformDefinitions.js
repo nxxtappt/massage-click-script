@@ -649,11 +649,16 @@
           storage: "config",
           help: "Exact public location name when the widget requires a location selection."
         }),
-        text("boulevardAuthorizedEmailEnv", "Authorized Email Environment Variable", {
-          required: true,
+        text("boulevardAvailabilityEmail", "Boulevard Availability Email", {
+          type: "email",
           storage: "config",
           help:
-            "Render environment-variable name only, for example BOULEVARD_EMAIL_BUSINESS_NAME. Never enter the email address here."
+            "Dedicated client-facing email that NextAppt submits into Boulevard's public booking form to reveal times. This is not a Boulevard business login or API credential."
+        }),
+        text("boulevardAuthorizedEmailEnv", "Advanced: Email Environment Variable Name (Optional)", {
+          storage: "config",
+          help:
+            "Optional alternative to the direct email field. Enter only a Render variable name such as BOULEVARD_EMAIL_BUSINESS_NAME, not a credential."
         }),
         boolean("boulevardOptIn", "Business Explicitly Authorized Availability Checks", {
           storage: "config",

@@ -52,19 +52,39 @@ function validateBoulevardAuthorization(business = {}) {
 }
 
 function resolveAuthorizedEmail(business = {}, env = process.env) {
+  const configuredEmail = clean(
+    business.boulevardAvailabilityEmail ||
+      business.boulevardClientEmail ||
+      business.boulevardAuthorizedEmail
+  );
+
+  if (configuredEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(configuredEmail)) {
+      throw new Error(
+        "Boulevard Availability Email must be a valid client-facing email address."
+      );
+    }
+
+    return { email: configuredEmail, source: "business_config" };
+  }
+
   const envName = clean(
     business.boulevardAuthorizedEmailEnv || business.boulevardEmailEnv
   );
 
   if (!envName) {
     throw new Error(
-      "Boulevard authorized email is not configured. Set boulevardAuthorizedEmailEnv on the business and add that environment variable to Render."
+      "Boulevard Availability Email is not configured. Enter the dedicated client-facing email in the Boulevard configuration, or configure an optional Render environment variable."
     );
+  }
+
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(envName)) {
+    return { email: envName, source: "legacy_direct_email" };
   }
 
   if (!EMAIL_ENV_NAME_PATTERN.test(envName)) {
     throw new Error(
-      "boulevardAuthorizedEmailEnv must be an uppercase environment-variable name containing only letters, digits, and underscores."
+      "Boulevard Email Environment Variable must be an uppercase variable name, or enter the actual address in Boulevard Availability Email."
     );
   }
 
@@ -76,9 +96,8 @@ function resolveAuthorizedEmail(business = {}, env = process.env) {
     );
   }
 
-  return { email, envName };
+  return { email, envName, source: "environment" };
 }
-
 function normalizeWidgetUrl(business = {}) {
   const explicitUrl = clean(
     business.boulevardWidgetUrl ||
