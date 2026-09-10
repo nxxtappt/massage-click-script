@@ -22,6 +22,7 @@ const { scrapeZenoti } = require("./scrapers/zenoti");
 const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
 const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
+const { scrapeBoulevardBusiness } = require("./scrapers/boulevard");
 const { scrapeSquareBusiness } = require("./scrapers/square");
 const { scrapeJaneBusiness } = require("./scrapers/jane");
 const { scrapeAcuityBusiness } = require("./scrapers/acuity");
@@ -925,6 +926,35 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+      // BOULEVARD SCRAPER START
+      if (scrapeTarget.platform === "boulevard") {
+        const result = await scrapeBoulevardBusiness(page, scrapeTarget);
+        await closeScrapePage(page, context);
+
+        return {
+          ...result,
+          businessName: scrapeTarget.businessName,
+          bookingUrl: scrapeTarget.bookingUrl || result.bookingUrl,
+          platform: "boulevard",
+          service: scrapeTarget.serviceName || result.serviceName || result.service || "",
+          serviceName: scrapeTarget.serviceName || result.serviceName || result.service || "",
+          serviceType: scrapeTarget.serviceType || result.serviceType || "",
+          durationMinutes:
+            scrapeTarget.durationMinutes || result.durationMinutes || null,
+          platformServiceId:
+            scrapeTarget.platformServiceId ||
+            scrapeTarget.serviceId ||
+            result.platformServiceId ||
+            null,
+          provider: "First Available",
+          attemptNumber: attempt,
+          scrapeDurationMs: Date.now() - startedAt,
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+      // BOULEVARD SCRAPER END
+
       if (scrapeTarget.platform === "zenoti") {
         await closeScrapePage(page, context);
 
@@ -1128,7 +1158,8 @@ async function run() {
 
   let browser = null;
   let results = [,
-    "scissors-scotch"
+    "scissors-scotch",
+    "boulevard"
   ];
 
   console.log("[INVENTORY] Starting a new PostgreSQL-backed scrape run.");
