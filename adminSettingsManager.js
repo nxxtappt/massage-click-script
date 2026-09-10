@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS = Object.freeze({
     jobTimeoutSeconds: 1800,
     staleJobMinutes: 20
   },
-  platforms: {},
+  platforms: { boulevard: true },
   serviceRules: {
     scheduledPriorities: ["high"],
     scheduledDiscoveryStatuses: ["approved"],

@@ -1140,7 +1140,14 @@ function getAllServicesForBusiness(business) {
 }
 
 function getPlatformsFromBusinesses() {
-  return uniqueSorted(settingsBusinessesCache.map((business) => business.platform));
+  const configuredPlatforms = Object.keys(
+    globalThis.NEXTAPPT_PLATFORM_DEFINITIONS || {}
+  );
+
+  return uniqueSorted([
+    ...configuredPlatforms,
+    ...settingsBusinessesCache.map((business) => business.platform)
+  ]);
 }
 
 function getBusinessesForPlatform(platform) {
@@ -1959,6 +1966,11 @@ function renderBusinessCard(business, index) {
           ${renderInput("Integration Type", "integrationType", business.integrationType || "scraper", index)}
           ${renderInput("API Provider", "apiProvider", business.apiProvider, index)}
           ${renderInput("Credential ID", "credentialId", business.credentialId, index)}
+          ${renderInput("Verification Status", "verificationStatus", business.verificationStatus || "unclaimed", index)}
+          <div class="admin-field checkbox-wrap">
+            <span>Business Verification</span>
+            ${renderCheckbox("Claimed / verified business", "claimed", business.claimed === true, index)}
+          </div>
           ${renderSquareIntegrationFields(business, index)}
           <div class="admin-field checkbox-wrap">
             <span>Status</span>

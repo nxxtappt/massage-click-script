@@ -1098,7 +1098,8 @@ async function run() {
     "acuity",
     "jane",
     "vagaro"
-  ].filter((platform) => Boolean(getPlatformDefinition(platform)));
+  ,
+    "boulevard"].filter((platform) => Boolean(getPlatformDefinition(platform)));
 
   const scrapeableBusinesses = businesses.filter((business) => {
     return (
@@ -1157,10 +1158,7 @@ async function run() {
   }
 
   let browser = null;
-  let results = [,
-    "scissors-scotch",
-    "boulevard"
-  ];
+  let results = [];
 
   console.log("[INVENTORY] Starting a new PostgreSQL-backed scrape run.");
 

@@ -627,6 +627,68 @@
       ]
     },
 
+    boulevard: {
+      key: "boulevard",
+      label: "Boulevard",
+      description:
+        "Boulevard public booking widget availability for verified businesses that explicitly authorize use of a dedicated email.",
+      capabilities: ["scrape", "service_discovery", "provider_selection"],
+      integrationTypes: ["scrape"],
+      integrationFields: [
+        bookingUrl,
+        url("boulevardWidgetUrl", "Boulevard Widget URL", {
+          storage: "config",
+          help:
+            "Direct https://www.joinblvd.com/b/.../widget URL. May match Booking URL."
+        }),
+        text("boulevardBusinessId", "Boulevard Business ID (Optional)", {
+          storage: "config",
+          help: "Optional widget business slug/ID when it is not already present in the URL."
+        }),
+        text("boulevardLocationName", "Boulevard Location Name (Optional)", {
+          storage: "config",
+          help: "Exact public location name when the widget requires a location selection."
+        }),
+        text("boulevardAuthorizedEmailEnv", "Authorized Email Environment Variable", {
+          required: true,
+          storage: "config",
+          help:
+            "Render environment-variable name only, for example BOULEVARD_EMAIL_BUSINESS_NAME. Never enter the email address here."
+        }),
+        boolean("boulevardOptIn", "Business Explicitly Authorized Availability Checks", {
+          storage: "config",
+          defaultValue: false,
+          help:
+            "Enable only after the verified business explicitly authorizes use of its dedicated email."
+        }),
+        boolean("boulevardAllowCustomBookingHost", "Allow Custom Booking Host", {
+          storage: "config",
+          defaultValue: false,
+          help: "Enable only when the verified business uses a trusted custom host for its Boulevard widget."
+        }),
+        number("daysForward", "Days Forward", {
+          storage: "config",
+          defaultValue: 7
+        })
+      ],
+      serviceFields: [
+        ...commonServiceFields,
+        text("platformServiceId", "Boulevard Service ID (Optional)", {
+          storage: "service",
+          aliases: ["serviceId", "serviceButtonId"],
+          help: "Optional. The scraper can also select the service by its exact public name."
+        }),
+        text("categoryName", "Boulevard Category Name (Optional)", {
+          storage: "serviceConfig",
+          aliases: ["categoryText", "boulevardCategoryName"]
+        }),
+        text("providerText", "Provider Selection", {
+          storage: "serviceConfig",
+          defaultValue: "First Available"
+        })
+      ]
+    },
+
     "hand-stone": {
       key: "hand-stone",
       label: "Hand & Stone Custom",
