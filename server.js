@@ -1,5 +1,6 @@
 require("dotenv").config();
 const aiSearchRoutes = require("./api/aiSearchRoutes");
+const createSeoDiscoveryRoutes = require("./api/seoDiscoveryRoutes");
 const { initializeAdminSettings, loadAdminSettings } = require("./adminSettingsManager");
 const express = require("express");
 const path = require("path");
@@ -91,6 +92,15 @@ function requireAdminAuth(req, res, next) {
 
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/ai", aiSearchRoutes);
+
+app.use(
+  createSeoDiscoveryRoutes({
+    businessManager,
+    inventoryManager,
+    publicDir: path.join(__dirname, "public"),
+    siteOrigin: process.env.SITE_ORIGIN || "https://nextappt.ai"
+  })
+);
 app.use(require("./publicAvailabilityRoutes"));
 app.use(seoRoutes);
 app.use(austinSearchRoutes);
