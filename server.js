@@ -155,6 +155,9 @@ app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/legal", legalRoutes);
+// Legacy claim review and approval are admin operations, not public portal operations.
+// Keep POST /api/business/claim public; this prefix only matches /claims.
+app.use("/api/business/claims", requireAdminAuth);
 app.use("/api/business", businessPortalRoutes);
 app.use("/api/business-dashboard", businessDashboardRoutes);
 app.use("/api/analytics", analyticsRoutes);

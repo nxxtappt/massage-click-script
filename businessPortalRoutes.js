@@ -1,15 +1,6 @@
 const express = require("express");
 
 const {
-  saveApiCredential,
-  listApiCredentialSummaries
-} = require("./apiCredentialManager");
-
-const {
-  testMindbodyConnection
-} = require("./mindbodyApiClient");
-
-const {
   createBusinessClaim,
   approveClaim,
   rejectClaim,
@@ -23,12 +14,14 @@ const businessManager = require("./businessManager");
 
 const router = express.Router();
 
-function slugify(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+// This legacy endpoint wrote credentials to a local file and trusted caller-supplied
+// business names. It must stay unavailable even if an old dashboard is cached.
+router.use("/credentials", (req, res) => {
+  res.status(410).json({
+    success: false,
+    error: "The legacy credential endpoint is closed. Sign in to the business dashboard to connect a CRM."
+  });
+});
 
 function normalize(value) {
   return String(value || "")
@@ -110,22 +103,6 @@ async function updateBusinessClaimStatus({ businessName, claimStatus, verificati
   });
 }
 
-async function updateBusinessPendingCredential({ businessName, apiProvider, credentialId }) {
-  const existingBusiness = await findBusinessByName(businessName);
-
-  if (!existingBusiness) {
-    return null;
-  }
-
-  return saveBusinessMerge(businessName, {
-    claimStatus: existingBusiness.claimStatus || "claimed_pending",
-    verificationStatus: existingBusiness.verificationStatus || "unverified",
-    apiProvider,
-    pendingCredentialId: credentialId,
-    apiConnectionStatus: "credential_submitted"
-  });
-}
-
 async function updateBusinessApprovedCredential({ businessName }) {
   const existingBusiness = await findBusinessByName(businessName);
 
@@ -136,11 +113,9 @@ async function updateBusinessApprovedCredential({ businessName }) {
   return saveBusinessMerge(businessName, {
     claimStatus: "claimed_verified",
     verificationStatus: "verified",
-    apiConnectionStatus:
-      existingBusiness.apiConnectionStatus === "credential_submitted"
-        ? "api_pending_verification"
-        : existingBusiness.apiConnectionStatus || "not_connected",
-    credentialId: existingBusiness.pendingCredentialId || existingBusiness.credentialId || "",
+    // Claim approval must never activate a credential submitted before
+    // verification. Only a successful owner-initiated API test can do that.
+    apiConnectionStatus: existingBusiness.apiConnectionStatus || "not_connected",
     pendingCredentialId: ""
   });
 }
@@ -297,102 +272,6 @@ router.post("/claims/:claimId/reject", async (req, res) => {
       error: error.message
     });
   }
-});
-
-router.post("/credentials", async (req, res) => {
-  try {
-    const {
-      businessName,
-      ownerEmail,
-      apiProvider,
-      credentialType = "api_key",
-      apiKey,
-      siteId,
-      locationId,
-      label = "Primary API Credential",
-      metadata = {}
-    } = req.body || {};
-
-    if (!businessName || !ownerEmail || !apiProvider || !apiKey) {
-      return res.status(400).json({
-        success: false,
-        error: "businessName, ownerEmail, apiProvider, and apiKey are required."
-      });
-    }
-
-    const credentialId = `${slugify(businessName)}-${slugify(apiProvider)}-main`;
-
-    const credentialMetadata = {
-      ...metadata,
-      ownerEmail,
-      siteId: siteId || metadata.siteId || "",
-      locationId:
-        locationId !== undefined && locationId !== ""
-          ? Number(locationId)
-          : metadata.locationId || undefined
-    };
-
-    const savedCredential = saveApiCredential({
-      credentialId,
-      businessName,
-      platform: apiProvider,
-      label,
-      credentialType,
-      value: apiKey,
-      metadata: credentialMetadata
-    });
-
-    const updatedBusiness = await updateBusinessPendingCredential({
-      businessName,
-      apiProvider,
-      credentialId
-    });
-
-    let testResult = {
-      tested: false,
-      success: null,
-      message: "No CRM test implemented for this provider yet."
-    };
-
-    if (apiProvider === "mindbody") {
-      try {
-        await testMindbodyConnection(credentialId);
-
-        testResult = {
-          tested: true,
-          success: true,
-          message: "Mindbody credential decrypted and connected successfully."
-        };
-      } catch (error) {
-        testResult = {
-          tested: true,
-          success: false,
-          message: error.message
-        };
-      }
-    }
-
-    res.json({
-      success: true,
-      credential: savedCredential,
-      business: updatedBusiness ? safeBusinessPublicView(updatedBusiness) : null,
-      testResult
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-router.get("/credentials", (req, res) => {
-  const summaries = listApiCredentialSummaries();
-
-  res.json({
-    success: true,
-    credentials: summaries
-  });
 });
 
 module.exports = router;

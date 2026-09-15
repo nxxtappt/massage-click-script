@@ -596,12 +596,12 @@ function renderCredentialConnectionPanel(dashboard) {
       </div>
 
       <div class="settings-actions">
-        <button id="saveCredentialBtn" class="primary-btn">
-          Save Encrypted Credential
+        <button id="saveCredentialBtn" class="primary-btn" disabled>
+          CRM connection temporarily paused
         </button>
       </div>
 
-      <div id="credentialStatus" class="status-box"></div>
+      <div id="credentialStatus" class="status-box">Connections are paused while a secure shared credential store is installed. Existing appointments remain available.</div>
     </div>
   `;
 }
