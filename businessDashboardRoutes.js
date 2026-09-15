@@ -10,7 +10,8 @@ const {
   createLoginCode,
   verifyLoginCode,
   validateSession,
-  destroySession
+  destroySession,
+  findVerifiedClaimByEmail
 } = require("./businessAuthManager");
 
 const {
@@ -28,6 +29,9 @@ const {
 } = require("./businessPlanManager");
 
 const businessManager = require("./businessManager");
+const crmCredentialRepository = require("./database/crmCredentialRepository");
+const { getKey } = require("./crmCredentialVault");
+const { getAdapter, listAdapters } = require("./crmProviders/registry");
 const {
   MAX_LOGO_BYTES,
   saveBusinessLogoAsset,
@@ -344,6 +348,7 @@ async function buildDashboard(session) {
     "Not synced yet";
 
   return {
+    crmProviders: listAdapters(),
     businessId:
       business?.businessId ||
       business?.id ||
@@ -1241,6 +1246,71 @@ router.get("/dashboard", requireBusinessSession, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+async function getVerifiedCrmBusiness(session) {
+  const claim = findVerifiedClaimByEmail(session.email);
+  if (!claim || normalize(claim.businessId) !== normalize(session.businessId)
+    || normalize(claim.businessName) !== normalize(session.businessName)) {
+    return null;
+  }
+  const business = await findBusinessForSession(session);
+  if (!business || normalize(business.businessId) !== normalize(session.businessId)
+    || normalize(business.businessName) !== normalize(session.businessName)) {
+    return null;
+  }
+  return business;
+}
+
+router.get("/crm/status", requireBusinessSession, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    const business = await getVerifiedCrmBusiness(req.businessSession);
+    if (!business) return res.status(403).json({ success: false, error: "Verified business account required." });
+    const status = await crmCredentialRepository.getConnectionStatus(business.businessId);
+    return res.json({ success: true, status, supportedProviders: listAdapters() });
+  } catch (error) {
+    console.error("[CRM STATUS ERROR]", error.message);
+    return res.status(503).json({ success: false, error: "CRM storage is unavailable." });
+  }
+});
+
+router.post("/crm/credentials", requireBusinessSession, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  try {
+    const business = await getVerifiedCrmBusiness(req.businessSession);
+    if (!business) return res.status(403).json({ success: false, error: "Verified business account required." });
+    if (!getBusinessPlan(business).entitlements.canUseApiIntegration) {
+      return res.status(403).json({ success: false, error: "An active Premium plan is required for API integration." });
+    }
+
+    const provider = String(req.body?.apiProvider || "").toLowerCase();
+    const adapter = getAdapter(provider);
+    const credentials = adapter.normalizeInput(req.body);
+    // Fail before making an upstream request if the shared vault isn't configured.
+    getKey();
+    const sessionTypeId = (business.services || [])
+      .filter((service) => service.enabled !== false)
+      .map((service) => Number(service.sessionTypeId || service.platformServiceId))
+      .find((id) => Number.isSafeInteger(id) && id > 0);
+    const timeZone = business.locations?.[0]?.timezone || "America/Chicago";
+    const testResult = await adapter.verifyCredentials(credentials, { sessionTypeId, timeZone });
+    const connection = await crmCredentialRepository.promoteVerifiedCredential({
+      publicBusinessId: business.businessId,
+      provider,
+      apiKey: credentials.apiKey,
+      metadata: { siteId: credentials.siteId, locationId: credentials.locationId, timeZone }
+    });
+    return res.json({ success: true, connected: true, connection, testResult });
+  } catch (error) {
+    const unsupported = /No live availability adapter/.test(error.message);
+    const missingKey = /NEXTAPPT_CREDENTIALS_KEY/.test(error.message);
+    console.warn("[CRM CONNECTION FAILED]", error.message);
+    return res.status(missingKey ? 503 : unsupported ? 400 : 422).json({
+      success: false, connected: false,
+      error: missingKey ? "Shared credential encryption is not configured." : error.message
     });
   }
 });
