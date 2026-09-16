@@ -123,7 +123,7 @@ async function promoteVerifiedCredential({ publicBusinessId, provider, apiKey, m
     await client.query(
       `UPDATE businesses SET platform=$2,
           raw_json=COALESCE(raw_json,'{}'::jsonb) ||
-            jsonb_build_object('integrationType','api','apiProvider',$2,'credentialId',$3),
+            jsonb_build_object('integrationType','api','apiProvider',$2,'credentialId',$3::text),
           updated_at=NOW() WHERE id=$1`,
       [business.id, provider, credentialId]
     );
