@@ -518,6 +518,7 @@ function renderCredentialConnectionPanel(dashboard) {
   const profile = dashboard.profile || {};
   const businessName = profile.businessName || dashboard.businessName || "";
   const ownerEmail = dashboard.email || profile.email || "";
+  const providers = dashboard.crmProviders || [];
 
   return `
     <div class="admin-business-card">
@@ -525,8 +526,8 @@ function renderCredentialConnectionPanel(dashboard) {
         <div>
           <h3>Connect CRM/API</h3>
           <p>
-            Submit secure API credentials so NextAppt can display live
-            availability for your verified business.
+            Connect and verify a supported CRM for live appointment availability.
+            Other CRMs appear here when their availability adapter is installed.
           </p>
         </div>
       </div>
@@ -549,7 +550,7 @@ function renderCredentialConnectionPanel(dashboard) {
             id="credentialOwnerEmail"
             type="email"
             value="${escapeHtml(ownerEmail)}"
-            placeholder="you@business.com"
+            disabled
           />
         </div>
 
@@ -557,51 +558,25 @@ function renderCredentialConnectionPanel(dashboard) {
           <span>CRM Provider</span>
 
           <select id="apiProvider">
-            <option value="mindbody">Mindbody</option>
-            <option value="vagaro">Vagaro</option>
-            <option value="meevo">Meevo</option>
-            <option value="booker">Booker</option>
-            <option value="zenoti">Zenoti</option>
-            <option value="other">Other</option>
+            ${providers.map((adapter) => `<option value="${escapeHtml(adapter.provider)}">${escapeHtml(adapter.label || adapter.provider)}</option>`).join("")}
           </select>
         </div>
-
-        <div class="admin-field">
-          <span>API Key / Token</span>
-
-          <input
-            id="apiKey"
-            type="password"
-            placeholder="Paste API key/token"
-          />
-        </div>
-
-        <div class="admin-field mindbody-credential-field">
-          <span>Mindbody Site ID</span>
-
-          <input
-            id="siteId"
-            placeholder="Example: 527423"
-          />
-        </div>
-
-        <div class="admin-field mindbody-credential-field">
-          <span>Location ID</span>
-
-          <input
-            id="locationId"
-            placeholder="Example: 1"
-          />
-        </div>
+        ${providers.map((adapter, index) => (adapter.fields || []).map((field) => `
+          <div class="admin-field provider-credential-field" data-provider="${escapeHtml(adapter.provider)}" style="display:${index === 0 ? "" : "none"}">
+            <span>${escapeHtml(field.label)}</span>
+            <input id="credentialField-${escapeHtml(adapter.provider)}-${escapeHtml(field.key)}"
+              type="${escapeHtml(field.type || "text")}" placeholder="${escapeHtml(field.placeholder || "")}" autocomplete="off" />
+          </div>
+        `).join("")).join("")}
       </div>
 
       <div class="settings-actions">
-        <button id="saveCredentialBtn" class="primary-btn" disabled>
-          CRM connection temporarily paused
+        <button id="saveCredentialBtn" class="primary-btn" ${providers.length ? "" : "disabled"}>
+          Connect and verify CRM
         </button>
       </div>
 
-      <div id="credentialStatus" class="status-box">Connections are paused while a secure shared credential store is installed. Existing appointments remain available.</div>
+      <div id="credentialStatus" class="status-box" aria-live="polite">Checking connection status...</div>
     </div>
   `;
 }
@@ -994,15 +969,14 @@ function attachCredentialConnectionHandlers(dashboard) {
   const saveCredentialBtn = document.getElementById("saveCredentialBtn");
   const apiProvider = document.getElementById("apiProvider");
   const credentialStatus = document.getElementById("credentialStatus");
+  const providers = dashboard.crmProviders || [];
 
   if (apiProvider) {
     apiProvider.addEventListener("change", () => {
-      const showMindbody = apiProvider.value === "mindbody";
-
       document
-        .querySelectorAll(".mindbody-credential-field")
+        .querySelectorAll(".provider-credential-field")
         .forEach((field) => {
-          field.style.display = showMindbody ? "" : "none";
+          field.style.display = field.dataset.provider === apiProvider.value ? "" : "none";
         });
     });
   }
@@ -1011,25 +985,30 @@ function attachCredentialConnectionHandlers(dashboard) {
     return;
   }
 
+  fetchJson("/api/business-dashboard/crm/status")
+    .then(({ status }) => {
+      if (credentialStatus) credentialStatus.textContent = status.connected
+        ? `${status.provider} verified and connected (${status.verifiedAt || "date unavailable"}).`
+        : "No verified API credential is active for this business yet.";
+    })
+    .catch((error) => {
+      if (credentialStatus) credentialStatus.textContent = `Unable to load CRM status: ${error.message}`;
+    });
+
   saveCredentialBtn.addEventListener("click", async () => {
     try {
       if (credentialStatus) {
-        credentialStatus.textContent = "Encrypting and saving credential...";
+        credentialStatus.textContent = "Verifying CRM access and appointment permissions...";
       }
-
-      const profile = dashboard.profile || {};
-
-      const payload = {
-        businessName: profile.businessName || dashboard.businessName || "",
-        ownerEmail:
-          document.getElementById("credentialOwnerEmail")?.value.trim() || "",
-        apiProvider: document.getElementById("apiProvider")?.value || "",
-        apiKey: document.getElementById("apiKey")?.value.trim() || "",
-        siteId: document.getElementById("siteId")?.value.trim() || "",
-        locationId: document.getElementById("locationId")?.value.trim() || ""
-      };
-
-      const data = await fetchJson("/api/business/credentials", {
+      const selected = providers.find((adapter) => adapter.provider === apiProvider?.value);
+      if (!selected) throw new Error("Select a supported CRM provider.");
+      const payload = { apiProvider: selected.provider };
+      for (const field of selected.fields || []) {
+        payload[field.key] = document.getElementById(
+          `credentialField-${selected.provider}-${field.key}`
+        )?.value.trim() || "";
+      }
+      const data = await fetchJson("/api/business-dashboard/crm/credentials", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -1038,25 +1017,16 @@ function attachCredentialConnectionHandlers(dashboard) {
       });
 
       if (credentialStatus) {
-        credentialStatus.textContent = [
-          "Credential saved encrypted.",
-          `Credential ID: ${data.credential.credentialId}`,
-          `Connection test: ${
-            data.testResult.tested ? data.testResult.success : "not tested"
-          }`,
-          `Message: ${data.testResult.message}`
-        ].join("\n");
+        credentialStatus.textContent = `CRM verified and connected. Credential ID: ${data.connection.credentialId}. ${data.testResult.message}`;
       }
-
-      const apiKey = document.getElementById("apiKey");
-
-      if (apiKey) {
-        apiKey.value = "";
-      }
+      const keyField = document.getElementById(`credentialField-${selected.provider}-apiKey`);
+      if (keyField) keyField.value = "";
     } catch (error) {
       if (credentialStatus) {
         credentialStatus.textContent = error.message;
       }
+      const keyField = document.getElementById(`credentialField-${apiProvider?.value}-apiKey`);
+      if (keyField) keyField.value = "";
     }
   });
 }
