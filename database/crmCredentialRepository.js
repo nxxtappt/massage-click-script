@@ -105,7 +105,7 @@ async function promoteVerifiedCredential({ publicBusinessId, provider, apiKey, m
                 integration_type='api', is_default=true, enabled=true,
                 status='active', config=COALESCE(config,'{}'::jsonb) || $4::jsonb,
                 raw_json=COALESCE(raw_json,'{}'::jsonb) ||
-                  jsonb_build_object('credentialId',$3,'apiProvider',$2,'integrationType','api'),
+                  jsonb_build_object('credentialId',$3::text,'apiProvider',$2::text,'integrationType','api'),
                 updated_at=NOW()
           WHERE id=$1 AND business_id=$5`,
         [current.id, provider, credentialId, JSON.stringify(metadata), business.id]
@@ -116,14 +116,14 @@ async function promoteVerifiedCredential({ publicBusinessId, provider, apiKey, m
           (business_id, name, platform, api_provider, credential_id,
            integration_type, is_default, enabled, status, priority, config, raw_json)
          VALUES ($1,$2,$3,$3,$4,'api',true,true,'active',20,$5::jsonb,
-           jsonb_build_object('credentialId',$4,'apiProvider',$3,'integrationType','api'))`,
+           jsonb_build_object('credentialId',$4::text,'apiProvider',$3::text,'integrationType','api'))`,
         [business.id, `${provider} API`, provider, credentialId, JSON.stringify(metadata)]
       );
     }
     await client.query(
       `UPDATE businesses SET platform=$2,
           raw_json=COALESCE(raw_json,'{}'::jsonb) ||
-            jsonb_build_object('integrationType','api','apiProvider',$2,'credentialId',$3::text),
+            jsonb_build_object('integrationType','api','apiProvider',$2::text,'credentialId',$3::text),
           updated_at=NOW() WHERE id=$1`,
       [business.id, provider, credentialId]
     );
