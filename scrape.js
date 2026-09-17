@@ -28,6 +28,7 @@ const { scrapeJaneBusiness } = require("./scrapers/jane");
 const { scrapeAcuityBusiness } = require("./scrapers/acuity");
 const { scrapeScissorsScotchBusiness } = require("./scrapers/scissors-scotch");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
+const { replaceApiInventory } = require("./apiInventoryRefresh");
 const businessManager = require("./businessManager");
 const inventoryManager = require("./inventoryManager");
 const { getPlatformDefinition, validateIntegration } = require("./platformIntegrationRegistry");
@@ -1073,8 +1074,7 @@ async function run() {
     filters.forceRefresh === "true";
 
   if (adminSettings.scraping.enabled === false) {
-    console.log("[ADMIN] Scraping is disabled.");
-    return;
+    throw new Error("Availability refresh is disabled in admin settings.");
   }
 
   const businesses = await businessManager.getAllBusinesses({
@@ -1108,8 +1108,13 @@ async function run() {
     );
   });
 
-  let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, filters);
+  let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, { ...filters, allowInvalidJobs: true });
   const rejectedJobs = scrapeJobs.filter((job) => job.jobValidation && !job.jobValidation.valid);
+  const rejectedApiJobs = rejectedJobs.filter((job) => job.integrationType === "api");
+  if (rejectedApiJobs.length) {
+    throw new Error("Invalid API service configuration: " + rejectedApiJobs.map((job) =>
+      `${job.businessName} / ${job.serviceName}: ${job.jobValidation.errors.join("; ")}`).join(" | "));
+  }
   scrapeJobs = scrapeJobs.filter((job) => !job.jobValidation || job.jobValidation.valid);
   if (rejectedJobs.length) {
     console.warn(`[JOB VALIDATION] Rejected ${rejectedJobs.length} invalid job(s).`);
@@ -1154,11 +1159,15 @@ async function run() {
   if (scrapeJobs.length === 0) {
     console.log("No scrape jobs matched the filters or enabled platforms.");
     console.log("[INVENTORY] No PostgreSQL inventory changes were made.");
+    if (filters.business || filters.integrationType || filters.scheduleId) {
+      throw new Error("No eligible refresh jobs. Check enabled integration, service mapping, platform settings and service rules.");
+    }
     return;
   }
 
   let browser = null;
   let results = [];
+  let failedRefreshes = 0;
 
   console.log("[INVENTORY] Starting a new PostgreSQL-backed scrape run.");
 
@@ -1435,7 +1444,7 @@ const hydratedBusinessConfig =
     normalizeResultKeyValue(result.businessName || job.businessName)
   ) || job;
 
-const mergedAppointments = mergeConfirmedAndInferredAppointments(
+const mergedAppointments = job.integrationType === "api" ? confirmedAppointments : mergeConfirmedAndInferredAppointments(
   confirmedAppointments,
   hydratedBusinessConfig,
   {
@@ -1447,7 +1456,7 @@ const resultWithInference = {
   ...result,
   appointments: mergedAppointments,
   inferenceSummary: {
-    enabled: true,
+    enabled: job.integrationType !== "api",
     confirmedAppointmentCount: confirmedAppointments.length,
     totalAppointmentCount: mergedAppointments.length,
     inferredAppointmentCount:
@@ -1456,11 +1465,16 @@ const resultWithInference = {
   }
 };
 
-await finishScrapeRun(scrapeRun.id, {
-  runStatus: resultWithInference.status === "error" ? "error" : "success",
-  appointmentsFound: mergedAppointments.length,
-  errorMessage: resultWithInference.error || null
-});
+// Failed requests must not erase the last known inventory or look successful
+// to the queue worker. Successful empty responses still reconcile normally.
+if (resultWithInference.status === "error") {
+  await finishScrapeRun(scrapeRun.id, { runStatus: "error", appointmentsFound: 0,
+    errorMessage: resultWithInference.error || "Availability request failed." });
+  failedRefreshes += 1;
+  results = upsertResult(results, resultWithInference);
+  console.error(`[REFRESH FAILED] ${job.businessName} | ${job.serviceName}: ${resultWithInference.error}`);
+  continue;
+}
 
 const confirmedInventoryResult = {
   ...result,
@@ -1468,22 +1482,33 @@ const confirmedInventoryResult = {
   appointments: confirmedAppointments
 };
 
-const reconciledInventory = await reconcileAppointmentInventoryScope({
+const inventoryScope = {
   businessServiceId,
   anchorServiceId: businessServiceId,
   scrapeStartDate: result.scrapeStartDate || job.scrapeStartDate || null,
   scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null
-});
+};
+const inventoryOptions = { scrapeRunId: scrapeRun.id, rawScrapeResultId: rawScrapeResult.id };
+let reconciledInventory, insertedInventoryAppointments;
+try {
+  if (job.integrationType === "api") {
+    const published = await replaceApiInventory(confirmedInventoryResult, inventoryScope, inventoryOptions);
+    reconciledInventory = published.reconciled;
+    insertedInventoryAppointments = published.inserted;
+  } else {
+    reconciledInventory = await reconcileAppointmentInventoryScope(inventoryScope);
+    insertedInventoryAppointments = await insertConfirmedAppointmentsFromResult(confirmedInventoryResult, inventoryOptions);
+  }
+} catch (error) {
+  await finishScrapeRun(scrapeRun.id, { runStatus: "error", appointmentsFound: 0,
+    errorMessage: "Inventory publication failed; inspect worker logs." });
+  throw error;
+}
+await finishScrapeRun(scrapeRun.id, { runStatus: "success", appointmentsFound: insertedInventoryAppointments.length });
 
 console.log(
   `[INVENTORY] Removed ${reconciledInventory.deleted} previous inventory row(s) for this service and scrape window.`
 );
-
-const insertedInventoryAppointments =
-  await insertConfirmedAppointmentsFromResult(confirmedInventoryResult, {
-    scrapeRunId: scrapeRun.id,
-    rawScrapeResultId: rawScrapeResult.id
-  });
 
 console.log(
   `[INVENTORY] Saved ${insertedInventoryAppointments.length} confirmed appointment(s) to PostgreSQL inventory.`
@@ -1534,6 +1559,7 @@ results = upsertResult(results, resultWithInference);
 
   console.log("\n===== SCRAPE COMPLETE =====");
   console.log(`Total results: ${results.length}`);
+  if (failedRefreshes) throw new Error(`${failedRefreshes} service refresh(es) failed. Existing inventory for those services was preserved; inspect service errors.`);
 }
 
 if (require.main === module) {

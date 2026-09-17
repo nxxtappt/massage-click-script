@@ -90,6 +90,12 @@ function buildScrapeArgsFromBody(body = {}) {
   addArg(args, "daysForward", body.daysForward);
   addArg(args, "scrapeWindowMode", body.scrapeWindowMode);
   addArg(args, "integrationId", body.integrationId);
+  if (body.integrationType && !["api", "scrape"].includes(body.integrationType)) {
+    const error = new Error("Refresh method must be api or scrape, or omitted for automatic selection.");
+    error.status = 400;
+    throw error;
+  }
+  addArg(args, "integrationType", body.integrationType);
   addArg(args, "scheduleId", body.scheduleId);
 
   if (body.forceRefresh === true) args.push("--forceRefresh=true");
@@ -942,7 +948,7 @@ router.post("/scrape/run-once", async (req, res) => {
 
   res.status(202).json({
     success: true,
-    message: "Scrape queued for the background worker.",
+    message: "Availability refresh queued for the background worker.",
     jobId: job.id,
     job,
     args
@@ -986,7 +992,7 @@ router.post("/scrape/targeted", async (req, res) => {
 
   res.status(202).json({
     success: true,
-    message: "Targeted scrape queued for the background worker.",
+    message: "Targeted availability refresh queued for the background worker.",
     jobId: job.id,
     job,
     args

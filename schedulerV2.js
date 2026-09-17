@@ -24,6 +24,7 @@ const CLI_OPTION_KEYS = new Set([
   "daysForward",
   "scrapeWindowMode",
   "integrationId",
+  "integrationType",
   "forceRefresh",
   "forceDirectScrape",
   "ignoreServiceRules",
@@ -196,6 +197,9 @@ function findNextOccurrence(
 
 function addCliArg(args, key, value) {
   if (!CLI_OPTION_KEYS.has(key)) return;
+  if (key === "integrationType" && value && !["api", "scrape"].includes(value)) {
+    throw new Error("Refresh method must be api or scrape, or omitted for automatic selection.");
+  }
   if (value === undefined || value === null || value === "") return;
 
   if (typeof value === "object") {

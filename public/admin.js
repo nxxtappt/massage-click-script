@@ -112,7 +112,7 @@ const views = {
   },
 
   schedules: {
-    title: "Scrape Scheduler",
+    title: "Availability Scheduler",
     subtitle: "Manage PostgreSQL schedules, groups, exceptions, queue jobs, and workers."
   },
 
@@ -3284,12 +3284,15 @@ function renderTargetedScrapePanel() {
 
   return `
     <div class="settings-panel settings-panel-full">
-      <h3>Run Targeted Scrape</h3>
+      <h3>Refresh Selected Availability</h3>
       <p class="settings-help">
-        Choose from businesses and services stored in PostgreSQL. This avoids typos and bad commands.
+        Choose a business and service. Automatic uses its configured integration; API only requires an enabled API connection. A queued job is not yet a completed refresh.
       </p>
 
       <div class="targeted-scrape-grid">
+        <label class="admin-field"><span>Refresh method</span><select id="targetIntegrationType">
+          <option value="">Automatic (configured integration)</option><option value="api">API only</option><option value="scrape">Scraping only</option>
+        </select></label>
         ${renderSelect("1. Platform", "targetPlatform", platforms, "Choose platform")}
         ${renderSelect("2. Business", "targetBusiness", [], "Choose business")}
         ${renderSelect("3. Service", "targetService", [], "Choose service")}
@@ -3312,7 +3315,7 @@ function renderTargetedScrapePanel() {
       </div>
 
       <div class="targeted-actions">
-        <button id="runTargetedScrapeBtn" class="primary-btn">Run Targeted Scrape</button>
+        <button id="runTargetedScrapeBtn" class="primary-btn">Refresh Selected Availability</button>
         <button id="clearTargetedScrapeBtn" class="secondary-btn">Reset Choices</button>
       </div>
     </div>
@@ -3400,7 +3403,7 @@ async function loadSettings() {
             <button id="saveSettingsBtn" class="primary-btn">Save Settings</button>
             <button id="reloadSettingsBtn" class="secondary-btn">Reload Settings</button>
             <button id="clearCacheBtn" class="danger-btn large-danger-btn">Clear Cache</button>
-            <button id="runScrapeOnceBtn" class="secondary-btn">Run Scrape Once</button>
+            <button id="runScrapeOnceBtn" class="secondary-btn">Refresh Availability Once</button>
             <button id="viewCacheStatsBtn" class="secondary-btn">View Cache Stats</button>
           </div>
 
@@ -3489,9 +3492,9 @@ function attachSettingsListeners(settings) {
         body: JSON.stringify({ forceRefresh: false })
       });
 
-      setStatus("Scrape run started.", "success");
+      setStatus("Availability refresh queued.", "success");
     } catch (error) {
-      setStatus(`Scrape run failed: ${error.message}`, "error");
+      setStatus(`Availability refresh failed: ${error.message}`, "error");
     }
   });
 
@@ -3603,6 +3606,7 @@ function hydrateTargetedDropdowns() {
   serviceSelect.addEventListener("change", refreshFromService);
 
   [
+    "targetIntegrationType",
     "targetDuration",
     "targetServiceType",
     "targetPriority",
@@ -3629,6 +3633,7 @@ function getCheckboxValue(id) {
 
 function buildTargetedPayload() {
   const payload = {
+    integrationType: getSelectValue("targetIntegrationType"),
     platform: getSelectValue("targetPlatform"),
     business: getSelectValue("targetBusiness"),
     service: getSelectValue("targetService"),
@@ -3660,7 +3665,7 @@ function attachTargetedScrapeListeners() {
     const payload = buildTargetedPayload();
 
     try {
-      setStatus("Starting targeted scrape...", "info");
+      setStatus("Queueing availability refresh...", "info");
 
       const data = await fetchJson("/api/admin/scrape/targeted", {
         method: "POST",
@@ -3668,26 +3673,26 @@ function attachTargetedScrapeListeners() {
         body: JSON.stringify(payload)
       });
 
-      setStatus(`Targeted scrape started. Args: ${data.args.join(" ")}`, "success");
+      setStatus(`Availability refresh queued. Job ID: ${data.jobId}. Check Scheduler → Recent Jobs for completion.`, "success");
     } catch (error) {
-      setStatus(`Targeted scrape failed: ${error.message}`, "error");
+      setStatus(`Availability refresh failed: ${error.message}`, "error");
     }
   });
 
   document.getElementById("clearTargetedScrapeBtn")?.addEventListener("click", () => {
-    ["targetPlatform", "targetBusiness", "targetService", "targetDuration", "targetServiceType", "targetPriority", "targetDiscoveryStatus"].forEach((id) => {
+    ["targetIntegrationType", "targetPlatform", "targetBusiness", "targetService", "targetDuration", "targetServiceType", "targetPriority", "targetDiscoveryStatus"].forEach((id) => {
       const element = document.getElementById(id);
       if (element) element.value = "";
     });
 
     document.getElementById("targetForceRefresh").checked = true;
     document.getElementById("targetManual").checked = true;
-    document.getElementById("targetOnDemand").checked = false;
+    if (document.getElementById("targetOnDemand")) document.getElementById("targetOnDemand").checked = false;
     document.getElementById("targetIgnoreServiceRules").checked = false;
     document.getElementById("targetSkipVagaroDiscovery").checked = true;
 
     hydrateTargetedDropdowns();
-    setStatus("Targeted scrape choices reset.", "info");
+    setStatus("Availability refresh choices reset.", "info");
   });
 }
 async function approveBusinessClaim(claimId) {
@@ -4199,7 +4204,11 @@ function renderScheduleEditor() {
         </label>
       </div>
       <details class="scheduler-advanced">
-        <summary>Scrape and queue options</summary>
+        <summary>Availability and queue options</summary>
+        <p class="settings-help">API and scraping use the same queue. API only never falls back to scraping. Enable Force refresh for a live request each run. Existing priority, service and platform rules still apply.</p>
+        <label class="admin-field"><span>Refresh method</span><select id="scheduleIntegrationType">
+          <option value="">Automatic (configured integration)</option><option value="api">API only</option><option value="scrape">Scraping only</option>
+        </select></label>
         <div class="business-edit-grid scheduler-form-grid scheduler-advanced-grid">
           <label class="admin-field">
             <span>Lookahead hours</span>
@@ -4272,6 +4281,7 @@ function renderScheduleList() {
                   ${renderSchedulerStatusPill(schedule.enabled === false ? "disabled" : "enabled")}
                 </div>
                 <p><strong>Target:</strong> ${escapeHtml(target)}</p>
+                <p><strong>Refresh method:</strong> ${escapeHtml(schedule.scrape_options?.integrationType === "api" ? "API only" : schedule.scrape_options?.integrationType === "scrape" ? "Scraping only" : "Automatic (configured integration)")}</p>
                 <p><strong>Runs:</strong> ${escapeHtml(days)} · ${escapeHtml(timing)} · ${escapeHtml(schedule.timezone || "America/Chicago")}</p>
                 <p><strong>Next:</strong> ${escapeHtml(formatSchedulerDateTime(schedule.next_run_at))}</p>
                 ${schedule.last_error ? `<p class="scheduler-error-text"><strong>Last error:</strong> ${escapeHtml(schedule.last_error)}</p>` : ""}
@@ -4461,7 +4471,7 @@ function renderWorkerAndQueuePanels() {
         </div>
       </section>
       <section class="scheduler-section">
-        <div class="scheduler-section-heading"><div><h3>Recent Jobs</h3><p>Latest queued and completed scrape jobs.</p></div></div>
+        <div class="scheduler-section-heading"><div><h3>Recent Jobs</h3><p>Latest queued and completed availability jobs (API or scraping).</p></div></div>
         <div class="scheduler-card-list compact">
           ${schedulerV2State.jobs.length ? schedulerV2State.jobs.slice(0, 30).map((job) => `
             <article class="scheduler-mini-card scheduler-job-card">
@@ -4628,6 +4638,7 @@ function resetScheduleForm() {
   if (id("scheduleLookaheadHours")) id("scheduleLookaheadHours").value = "48";
   if (id("scheduleDaysForward")) id("scheduleDaysForward").value = "";
   if (id("schedulePlatform")) id("schedulePlatform").value = "";
+  if (id("scheduleIntegrationType")) id("scheduleIntegrationType").value = "";
   if (id("scheduleQueuePriority")) id("scheduleQueuePriority").value = "100";
   if (id("scheduleMaxAttempts")) id("scheduleMaxAttempts").value = "3";
   if (id("scheduleTimeoutSeconds")) id("scheduleTimeoutSeconds").value = "1800";
@@ -4660,6 +4671,7 @@ function populateScheduleForm(schedule) {
   document.getElementById("scheduleLookaheadHours").value = options.lookaheadHours ?? 48;
   document.getElementById("scheduleDaysForward").value = options.daysForward ?? "";
   document.getElementById("schedulePlatform").value = options.platform || "";
+  document.getElementById("scheduleIntegrationType").value = options.integrationType || "";
   document.getElementById("scheduleQueuePriority").value = options.queuePriority ?? 100;
   document.getElementById("scheduleMaxAttempts").value = options.maxAttempts ?? 3;
   document.getElementById("scheduleTimeoutSeconds").value = options.timeoutSeconds ?? 1800;
@@ -4695,6 +4707,8 @@ function buildSchedulePayload(overrides = {}) {
   }
 
   const scrapeOptions = {};
+  const integrationType = getInputValue("scheduleIntegrationType");
+  if (integrationType) scrapeOptions.integrationType = integrationType;
   const numericOptions = {
     lookaheadHours: schedulerNumber(getInputValue("scheduleLookaheadHours")),
     daysForward: schedulerNumber(getInputValue("scheduleDaysForward")),

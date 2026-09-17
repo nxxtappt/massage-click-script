@@ -1085,6 +1085,9 @@ function resolveJobIntegration(business = {}, service = {}, filters = {}) {
 
 function buildScrapeJobs(businesses, filters = {}) {
   const adminSettings = loadAdminSettings();
+  if (filters.integrationType && !["api", "scrape"].includes(filters.integrationType)) {
+    throw new Error("Unknown refresh method. Use api or scrape.");
+  }
   const jobs = [];
   const businessFilterMode = getBusinessFilterMode(businesses, filters);
 
@@ -1095,12 +1098,15 @@ function buildScrapeJobs(businesses, filters = {}) {
       continue;
     }
 
-    const services = sortServicesForScraping(
-      filterServicesForInferenceAnchors(
-        getEnabledServicesForBusiness(business),
-        filters
-      ).filter((service) => shouldScrapeServiceDirectly(service, filters))
-    );
+    const enabledServices = getEnabledServicesForBusiness(business);
+    const scrapeServices = new Set(filterServicesForInferenceAnchors(enabledServices, filters)
+      .filter((service) => shouldScrapeServiceDirectly(service, filters)));
+    // APIs query each enabled service's actual session type, including services
+    // that were previously inferred from a longer scraped appointment.
+    const services = sortServicesForScraping(enabledServices.filter((service) =>
+      resolveJobIntegration(business, service, filters)?.integrationType === "api" ||
+      scrapeServices.has(service)
+    ));
 
     for (const service of services) {
       if (!servicePassesServiceRules(service, business, filters, adminSettings)) {
@@ -1152,6 +1158,7 @@ function buildScrapeJobs(businesses, filters = {}) {
         durationMinutes: service.durationMinutes,
 
         platformServiceId: service.platformServiceId,
+        sessionTypeId: service.sessionTypeId || service.session_type_id || "",
         serviceButtonId: service.serviceButtonId,
         serviceId: service.serviceId,
 
