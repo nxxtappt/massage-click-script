@@ -1,34 +1,30 @@
-const {
-  getMindbodyBookableItems
-} = require("./mindbodyApiClient");
-
-const {
-  findDimensionsMindbodyService
-} = require("./mindbodyServiceMaps");
-
-function pad2(value) {
-  return String(value).padStart(2, "0");
-}
+const { getAdapter } = require("./crmProviders/registry");
+const { readCredential } = require("./database/crmCredentialRepository");
+const { localDateTime } = require("./crmProviders/mindbody");
 
 function isDateKey(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
 }
 
-function toDateOnly(date) {
-  return date.toISOString().split("T")[0];
+function studioToday(timeZone = "America/Chicago") {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(new Date());
+  const read = (type) => parts.find((part) => part.type === type)?.value;
+  return `${read("year")}-${read("month")}-${read("day")}`;
 }
 
 function buildDateRange(options = {}) {
   const {
     scrapeStartDate = "",
     scrapeEndDate = "",
-    daysForward = 14
+    daysForward = 14,
+    timeZone = "America/Chicago"
   } = options;
 
-  if (isDateKey(scrapeStartDate) || isDateKey(scrapeEndDate)) {
-    const now = new Date();
-    const today = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  const today = studioToday(timeZone);
 
+  if (isDateKey(scrapeStartDate) || isDateKey(scrapeEndDate)) {
     const startDate = isDateKey(scrapeStartDate)
       ? scrapeStartDate
       : today;
@@ -44,17 +40,14 @@ function buildDateRange(options = {}) {
     };
   }
 
-  const now = new Date();
-
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
+  const start = new Date(`${today}T00:00:00Z`);
 
   const end = new Date(start);
-  end.setDate(end.getDate() + Math.max(1, Number(daysForward || 14)) - 1);
+  end.setUTCDate(end.getUTCDate() + Math.max(1, Number(daysForward || 14)) - 1);
 
   return {
-    startDate: toDateOnly(start),
-    endDate: toDateOnly(end),
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
     source: "days_forward"
   };
 }
@@ -134,10 +127,14 @@ function normalizeMindbodyAppointment(options = {}) {
     bookingUrl,
     service,
     appointment,
-    scrapeWindow = {}
+    scrapeWindow = {},
+    timeZone = "America/Chicago"
   } = options;
 
   const startDateTime = getStartDateTime(appointment);
+  const parts = String(startDateTime).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})?$/);
+  if (!parts) throw new Error("Mindbody returned an invalid appointment start time.");
+  const absoluteStart = parts[3] ? startDateTime : localDateTime(parts[1], parts[2], timeZone);
 
   const appointmentDate =
     appointment.rawDate ||
@@ -171,7 +168,8 @@ function normalizeMindbodyAppointment(options = {}) {
 
     therapistName: getStaffName(appointment),
 
-    startTime: startDateTime,
+    startTime: absoluteStart,
+    timezone: timeZone,
     date: appointmentDate,
     time: appointmentTime,
     rawDate: appointmentDate,
@@ -206,36 +204,17 @@ function normalizeMindbodyAppointment(options = {}) {
   };
 }
 
-function extractBookableAppointments(response = {}) {
-  const possibleArrays = [
-    response.Availabilities,
-    response.availabilities,
-    response.Appointments,
-    response.appointments,
-    response.BookableItems,
-    response.bookableItems,
-    response.Items,
-    response.items,
-    response.Data,
-    response.data
-  ];
-
-  for (const value of possibleArrays) {
-    if (Array.isArray(value)) {
-      return value;
-    }
-  }
-
-  return [];
-}
-
 async function syncMindbodyBusiness(options = {}) {
   const {
     credentialId,
     businessName,
+    businessIdentity,
     bookingUrl,
     serviceType,
     durationMinutes,
+    serviceName,
+    platformServiceId,
+    sessionTypeId,
     scrapeStartDate = "",
     scrapeEndDate = "",
     lookaheadHours = null,
@@ -243,22 +222,27 @@ async function syncMindbodyBusiness(options = {}) {
     scrapeWindowMode = ""
   } = options;
 
-  const service =
-    findDimensionsMindbodyService({
-      serviceType,
-      durationMinutes
-    });
-
-  if (!service) {
-    throw new Error(
-      `No mapped Mindbody service found for ${serviceType} ${durationMinutes}`
-    );
+  const resolvedSessionTypeId = Number(sessionTypeId || platformServiceId);
+  if (!Number.isSafeInteger(resolvedSessionTypeId) || resolvedSessionTypeId <= 0) {
+    throw new Error(`A mapped numeric Mindbody session type is required for ${serviceName || serviceType}.`);
   }
+  const service = {
+    sessionTypeId: resolvedSessionTypeId,
+    serviceName: serviceName || serviceType,
+    serviceType,
+    durationMinutes
+  };
+
+  const credential = await readCredential(credentialId, businessIdentity || businessName);
+  if (credential.provider !== "mindbody") throw new Error("Credential provider does not match Mindbody integration.");
+  const locationId = Number(credential.metadata.locationId);
+  if (!Number.isSafeInteger(locationId) || locationId <= 0) throw new Error("Mindbody Location ID is missing from the active credential.");
 
   const dateRange = buildDateRange({
     scrapeStartDate,
     scrapeEndDate,
-    daysForward
+    daysForward,
+    timeZone: credential.metadata.timeZone || "America/Chicago"
   });
 
   const scrapeWindow = {
@@ -269,61 +253,42 @@ async function syncMindbodyBusiness(options = {}) {
     scrapeWindowMode: scrapeWindowMode || dateRange.source
   };
 
-  console.log("");
-  console.log("===== MINDBODY API SYNC =====");
-  console.log("Business:", businessName);
-  console.log("Service:", service.serviceName);
-  console.log("SessionTypeId:", service.sessionTypeId);
-  console.log("Start:", dateRange.startDate);
-  console.log("End:", dateRange.endDate);
-  console.log("[MINDBODY API] Scrape window:", scrapeWindow);
-
-  const response =
-    await getMindbodyBookableItems(
-      credentialId,
-      {
-        locationId: 1,
-        sessionTypeId: service.sessionTypeId,
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate
-      }
-    );
-
-  console.log("[MINDBODY API RAW KEYS]", Object.keys(response || {}));
-  console.log(
-    "[MINDBODY API RAW SAMPLE]",
-    JSON.stringify(response, null, 2).slice(0, 5000)
-  );
-
-  const appointments =
-    extractBookableAppointments(response).filter((appointment) => {
+  const appointments = await getAdapter("mindbody").getBookableItems({
+    apiKey: credential.apiKey,
+    siteId: credential.metadata.siteId
+  }, {
+    locationId,
+    sessionTypeId: service.sessionTypeId,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+    timeZone: credential.metadata.timeZone || "America/Chicago"
+  });
+  const validAppointments = appointments.filter((appointment) => {
       const startDateTime = getStartDateTime(appointment);
 
-      if (!startDateTime) {
-        return false;
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/.test(String(startDateTime))) {
+        throw new Error("Mindbody returned an availability without a valid start time; inventory was not refreshed.");
       }
 
       if (!appointmentWithinDateRange(appointment, dateRange.startDate, dateRange.endDate)) {
         return false;
       }
 
-      const minuteMatch = String(startDateTime).match(/T\d{2}:(\d{2})/);
-      const minute = minuteMatch ? Number(minuteMatch[1]) : null;
-
-      return [0, 15, 30, 45].includes(minute);
+      return true;
     });
 
   console.log(
-    `[MINDBODY API] Found ${appointments.length} appointment(s)`
+    `[MINDBODY API] ${businessName} ${service.serviceName}: ${validAppointments.length} bookable appointment(s)`
   );
 
-  return appointments.map((appointment) =>
+  return validAppointments.map((appointment) =>
     normalizeMindbodyAppointment({
       businessName,
       bookingUrl,
       service,
       appointment,
-      scrapeWindow
+      scrapeWindow,
+      timeZone: credential.metadata.timeZone || "America/Chicago"
     })
   );
 }

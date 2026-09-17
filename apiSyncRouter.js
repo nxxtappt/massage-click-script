@@ -1,6 +1,4 @@
-const {
-  syncMindbodyBusiness
-} = require("./syncMindbodyBusiness");
+const { getAdapter } = require("./crmProviders/registry");
 
 function buildScrapeWindowPayload(target = {}, business = {}) {
   return {
@@ -72,11 +70,21 @@ async function syncBusinessViaApi(target = {}) {
       scrapeWindow.scrapeWindowMode
   });
 
-  if (apiProvider === "mindbody") {
-    return syncMindbodyBusiness({
+  const adapter = getAdapter(apiProvider);
+  if (typeof adapter.syncAppointments !== "function") {
+    throw new Error(`No live appointment sync is implemented for ${apiProvider}.`);
+  }
+
+  return adapter.syncAppointments({
       credentialId:
         business.credentialId ||
         target.credentialId,
+
+      businessIdentity:
+        business.businessId ||
+        target.businessId ||
+        business.businessName ||
+        target.businessName,
 
       businessName:
         business.businessName ||
@@ -106,13 +114,11 @@ async function syncBusinessViaApi(target = {}) {
         business.serviceButtonId ||
         "",
 
+      sessionTypeId:
+        target.sessionTypeId || business.sessionTypeId || "",
+
       ...scrapeWindow
     });
-  }
-
-  throw new Error(
-    `Unsupported API provider: ${apiProvider}`
-  );
 }
 
 module.exports = {

@@ -294,7 +294,8 @@ function integrationIsUsable(integration = {}) {
 
 function resolveEnabledIntegration(business = {}, options = {}) {
   const integrations = normalizeBusinessIntegrations(business).filter(
-    integrationIsUsable
+    (item) => integrationIsUsable(item) &&
+      (!options.integrationType || item.integrationType === normalizeIntegrationType(options.integrationType))
   );
   const requestedId = String(options.integrationId || options.id || "");
   const requestedPlatform = normalizeKey(options.platform || "");

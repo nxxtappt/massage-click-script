@@ -40,7 +40,9 @@ async function request(credentials, path, query = {}) {
     signal: AbortSignal.timeout(20000)
   });
   let data;
-  try { data = await response.json(); } catch { data = {}; }
+  try { data = await response.json(); } catch {
+    throw new Error(`Mindbody ${path} returned an unreadable response (HTTP ${response.status}).`);
+  }
   if (!response.ok) {
     // Don't log upstream bodies: they may contain identifying or sensitive data.
     throw new Error(`Mindbody ${path} returned HTTP ${response.status}. Check key, Site ID, access and service mapping.`);
@@ -48,18 +50,31 @@ async function request(credentials, path, query = {}) {
   return data || {};
 }
 
+function availabilityList(data) {
+  const items = data.Availabilities ?? data.availabilities;
+  if (!Array.isArray(items)) throw new Error("Mindbody returned an invalid availability response.");
+  return items;
+}
+
 function localDateTime(date, clock, timeZone) {
-  const hour = clock === "00:00:00" ? 0 : 23;
-  const probe = new Date(`${date}T${clock}Z`);
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const wall = Date.parse(`${date}T${clock}Z`);
+  if (!Number.isFinite(wall)) throw new Error("Invalid Mindbody local date/time.");
+  let instant = wall, suffix = "Z";
+  const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone, timeZoneName: "shortOffset", hour: "numeric"
-  }).formatToParts(probe);
-  const offset = parts.find((part) => part.type === "timeZoneName")?.value || "";
-  const match = offset.match(/^GMT([+-])(\d{1,2})(?::(\d{2}))?$/);
-  if (!match && offset !== "GMT") throw new Error("Business timezone must be a valid IANA timezone.");
-  const suffix = !match ? "Z" : `${match[1]}${String(match[2]).padStart(2, "0")}:${match[3] || "00"}`;
-  // Offset probes for the beginning/end of the studio day, including DST.
-  return `${date}T${String(hour).padStart(2, "0")}:${clock.slice(3)}${suffix}`;
+  });
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const offset = formatter.formatToParts(new Date(instant))
+      .find((part) => part.type === "timeZoneName")?.value || "";
+    const match = offset.match(/^GMT([+-])(\d{1,2})(?::(\d{2}))?$/);
+    if (!match && offset !== "GMT") throw new Error("Business timezone must be a valid IANA timezone.");
+    suffix = !match ? "Z" : `${match[1]}${String(match[2]).padStart(2, "0")}:${match[3] || "00"}`;
+    const minutes = match ? (Number(match[2]) * 60 + Number(match[3] || 0)) * (match[1] === "+" ? 1 : -1) : 0;
+    const next = wall - minutes * 60000;
+    if (next === instant) return `${date}T${clock}${suffix}`;
+    instant = next;
+  }
+  throw new Error("Mindbody local time falls in a timezone transition gap.");
 }
 
 function bookableQuery({ sessionTypeId, locationId, startDate, endDate, limit, offset,
@@ -85,8 +100,7 @@ async function getBookableItems(credentials, options) {
     const data = await request(credentials, "/appointment/bookableitems", bookableQuery({
       ...options, limit: PAGE_LIMIT, offset
     }));
-    const items = data.Availabilities || data.availabilities || [];
-    if (!Array.isArray(items)) throw new Error("Mindbody returned an invalid availability response.");
+    const items = availabilityList(data);
     all.push(...items);
     const total = Number(data.PaginationResponse?.TotalResults);
     if (!items.length || (Number.isFinite(total) && total >= 0 && offset + PAGE_LIMIT >= total)
@@ -110,10 +124,8 @@ async function verifyCredentials(credentials, { sessionTypeId, timeZone } = {}) 
     sessionTypeId, locationId: credentials.locationId,
     startDate: today, endDate: today, limit: 1, offset: 0, timeZone
   }));
-  if (!Array.isArray(items.Availabilities || items.availabilities || [])) {
-    throw new Error("Mindbody did not return an availability list.");
-  }
-  return { success: true, noOpenTimes: !(items.Availabilities || items.availabilities).length,
+  const availabilities = availabilityList(items);
+  return { success: true, noOpenTimes: !availabilities.length,
     message: "Mindbody key, site, location and appointment endpoint verified. Zero slots can be normal for this date." };
 }
 
@@ -132,5 +144,6 @@ module.exports = {
     return require("../syncMindbodyBusiness").syncMindbodyBusiness(options);
   },
   bookableQuery,
+  localDateTime,
   createRequestUrl
 };
