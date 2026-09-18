@@ -723,6 +723,316 @@ function getPublicInventoryLimit(appointment = {}) {
     : 4;
 }
 
+function isPremiumSearchBusiness(appointment = {}) {
+  const plan = String(
+    appointment.subscriptionPlan ||
+      appointment.subscription_plan ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const status = String(
+    appointment.subscriptionStatus ||
+      appointment.subscription_status ||
+      "active"
+  )
+    .trim()
+    .toLowerCase();
+
+  return (
+    plan === "premium" &&
+    ["active", "trialing"].includes(status)
+  );
+}
+
+function getAppointmentDateGroupKey(appointment = {}) {
+  if (appointment.localDateKey) {
+    return String(appointment.localDateKey);
+  }
+
+  if (appointment.date || appointment.rawDate) {
+    return String(appointment.date || appointment.rawDate);
+  }
+
+  if (appointment.startTime) {
+    const parsed = new Date(appointment.startTime);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: currentPageContext.metroTimezone || "America/Chicago",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(parsed);
+      const values = Object.fromEntries(
+        parts.map((part) => [part.type, part.value])
+      );
+
+      return `${values.year}-${values.month}-${values.day}`;
+    }
+  }
+
+  return "upcoming";
+}
+
+function getAppointmentTimeGroupKey(appointment = {}) {
+  if (appointment.localTimeKey) {
+    return String(appointment.localTimeKey);
+  }
+
+  if (appointment.time || appointment.rawTime) {
+    return String(appointment.time || appointment.rawTime)
+      .trim()
+      .toLowerCase();
+  }
+
+  if (appointment.startTime) {
+    const parsed = new Date(appointment.startTime);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleTimeString("en-US", {
+        timeZone: currentPageContext.metroTimezone || "America/Chicago",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+    }
+  }
+
+  return "time-available";
+}
+
+function formatPremiumDateLabel(appointment = {}) {
+  const dateKey = getAppointmentDateGroupKey(appointment);
+  const isoDateMatch = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (isoDateMatch) {
+    const parsed = new Date(`${dateKey}T12:00:00`);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString("en-US", {
+        timeZone: currentPageContext.metroTimezone || "America/Chicago",
+        weekday: "short",
+        month: "short",
+        day: "numeric"
+      });
+    }
+  }
+
+  return dateKey === "upcoming" ? "Upcoming" : dateKey;
+}
+
+function formatPremiumTimeLabel(appointment = {}) {
+  const rawTime = appointment.time || appointment.rawTime || "";
+
+  if (rawTime && !String(rawTime).includes("T")) {
+    return String(rawTime);
+  }
+
+  if (appointment.startTime) {
+    const parsed = new Date(appointment.startTime);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleTimeString("en-US", {
+        timeZone: currentPageContext.metroTimezone || "America/Chicago",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+  }
+
+  return "Time available";
+}
+
+function groupPremiumAppointmentsByDateAndTime(appointments = [], limitTimes = 4) {
+  const dateMap = new Map();
+  let distinctTimeCount = 0;
+
+  const sortedAppointments = [...appointments].sort((a, b) => {
+    const aSort = Number(a.localSortable || Number.MAX_SAFE_INTEGER);
+    const bSort = Number(b.localSortable || Number.MAX_SAFE_INTEGER);
+
+    if (aSort !== bSort) return aSort - bSort;
+    return compareSearchAppointments(a, b);
+  });
+
+  sortedAppointments.forEach((appointment) => {
+    const dateKey = getAppointmentDateGroupKey(appointment);
+    const timeKey = getAppointmentTimeGroupKey(appointment);
+    const combinedKey = `${dateKey}|${timeKey}`;
+
+    let dateGroup = dateMap.get(dateKey);
+
+    if (!dateGroup) {
+      dateGroup = {
+        dateKey,
+        dateLabel: formatPremiumDateLabel(appointment),
+        times: [],
+        timeMap: new Map()
+      };
+      dateMap.set(dateKey, dateGroup);
+    }
+
+    let timeGroup = dateGroup.timeMap.get(combinedKey);
+
+    if (!timeGroup) {
+      if (distinctTimeCount >= limitTimes) return;
+
+      timeGroup = {
+        timeKey,
+        timeLabel: formatPremiumTimeLabel(appointment),
+        appointment,
+        services: [],
+        serviceKeys: new Set()
+      };
+      dateGroup.timeMap.set(combinedKey, timeGroup);
+      dateGroup.times.push(timeGroup);
+      distinctTimeCount += 1;
+    }
+
+    const serviceName =
+      appointment.serviceName ||
+      appointment.service ||
+      "Available appointment";
+    const serviceKey = String(serviceName).trim().toLowerCase();
+
+    if (!timeGroup.serviceKeys.has(serviceKey)) {
+      timeGroup.serviceKeys.add(serviceKey);
+      timeGroup.services.push({
+        name: serviceName,
+        appointment
+      });
+    }
+  });
+
+  return [...dateMap.values()]
+    .filter((dateGroup) => dateGroup.times.length)
+    .map(({ timeMap, ...dateGroup }) => ({
+      ...dateGroup,
+      times: dateGroup.times.map(({ serviceKeys, ...timeGroup }) => timeGroup)
+    }));
+}
+
+function buildAppointmentTrackingPayload(appointment = {}, businessName = "", bookingUrl = "#") {
+  return {
+    businessName: appointment.businessName || businessName,
+    platform: appointment.platform || "",
+    serviceName: appointment.serviceName || "",
+    serviceCategory: appointment.serviceCategory || "",
+    durationMinutes: appointment.durationMinutes || null,
+    therapistName: appointment.therapistName || "",
+    appointmentDate: appointment.date || "",
+    appointmentTime: appointment.time || "",
+    startTime: appointment.startTime || "",
+    localDateKey: appointment.localDateKey || "",
+    localTimeKey: appointment.localTimeKey || "",
+    bookingUrl: appointment.bookingUrl || bookingUrl,
+    sourcePage: "search"
+  };
+}
+
+function renderPremiumAvailabilityGroups(appointments, businessName, bookingUrl, cardId) {
+  const dateGroups = groupPremiumAppointmentsByDateAndTime(
+    appointments,
+    getPublicInventoryLimit(appointments[0] || {})
+  );
+  let slotIndex = 0;
+
+  return `
+    <div class="premium-time-groups">
+      ${dateGroups
+        .map((dateGroup) => `
+          <section class="premium-date-section">
+            <h3 class="premium-date-label">${escapeHtml(dateGroup.dateLabel)}</h3>
+            <div class="premium-time-slots">
+              ${dateGroup.times
+                .map((slot) => {
+                  const currentIndex = slotIndex++;
+                  const panelId = `${cardId}-premium-services-${currentIndex}`;
+                  const serviceCount = slot.services.length;
+                  const serviceLabel = `${serviceCount} service${serviceCount === 1 ? "" : "s"}`;
+                  const serviceNames = slot.services.map((service) => service.name).join(", ");
+                  const appointment = slot.appointment;
+
+                  return `
+                    <article class="premium-time-slot">
+                      <div class="premium-time-row">
+                        <a
+                          class="premium-time-link"
+                          href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="${escapeAttribute(`Book ${slot.timeLabel}. Available services: ${serviceNames}`)}"
+                          data-track-appointment-click="true"
+                          data-appointment-payload="${escapeAttribute(JSON.stringify(
+                            buildAppointmentTrackingPayload(
+                              appointment,
+                              businessName,
+                              bookingUrl
+                            )
+                          ))}"
+                        >
+                          ${escapeHtml(slot.timeLabel)}
+                        </a>
+                        <button
+                          class="premium-services-toggle"
+                          type="button"
+                          aria-expanded="false"
+                          aria-controls="${escapeAttribute(panelId)}"
+                        >
+                          <span>${escapeHtml(serviceLabel)}</span>
+                          <span class="premium-services-chevron" aria-hidden="true">⌄</span>
+                        </button>
+                      </div>
+                      <div class="premium-service-panel" id="${escapeAttribute(panelId)}" hidden>
+                        <ul class="premium-service-list">
+                          ${slot.services
+                            .map((service) => `<li>${escapeHtml(service.name)}</li>`)
+                            .join("")}
+                        </ul>
+                      </div>
+                    </article>
+                  `;
+                })
+                .join("")}
+            </div>
+          </section>
+        `)
+        .join("")}
+    </div>
+  `;
+}
+
+function bindPremiumTimeToggles(card) {
+  const toggles = card.querySelectorAll(".premium-services-toggle");
+
+  toggles.forEach((toggle) => {
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const targetId = toggle.getAttribute("aria-controls");
+      const panel = targetId ? document.getElementById(targetId) : null;
+
+      if (!panel) return;
+
+      const willOpen = toggle.getAttribute("aria-expanded") !== "true";
+
+      toggles.forEach((otherToggle) => {
+        const otherId = otherToggle.getAttribute("aria-controls");
+        const otherPanel = otherId ? document.getElementById(otherId) : null;
+
+        otherToggle.setAttribute("aria-expanded", "false");
+        if (otherPanel) otherPanel.hidden = true;
+      });
+
+      toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      panel.hidden = !willOpen;
+    });
+  });
+}
+
 function compareSearchAppointments(a = {}, b = {}) {
   const verifiedDiff =
     Number(isVerifiedSearchBusiness(b)) -
@@ -1085,13 +1395,20 @@ function renderLiveSearchResults(appointments) {
           const bookingUrl = firstAppointment.bookingUrl || "#";
           const address = firstAppointment.address || "Address not listed";
           const serviceSummary = getServiceSummary(group.appointments);
+          const isPremiumBusiness = group.appointments.some(
+            isPremiumSearchBusiness
+          );
+          const liveCardId = `live-${makeBusinessCardId(businessName)}`;
           const topAppointments = group.appointments.slice(
             0,
             getPublicInventoryLimit(firstAppointment)
           );
 
           return `
-            <article class="live-result-card">
+            <article
+              class="live-result-card${isPremiumBusiness ? " premium-live-result-card" : ""}"
+              id="${escapeAttribute(liveCardId)}"
+            >
               <div class="live-result-top">
                 <div>
                   <h3>${escapeHtml(businessName)}</h3>
@@ -1107,28 +1424,43 @@ function renderLiveSearchResults(appointments) {
                 </div>
               </div>
 
-              <div class="live-result-buttons">
-                ${topAppointments
-                  .map((appointment) => {
-                    return `
-                      <a
-                        class="time-button"
-                        href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        ${escapeHtml(formatTimeButtonText(appointment))}
-                      </a>
-                    `;
-                  })
-                  .join("")}
-              </div>
+              ${
+                isPremiumBusiness
+                  ? renderPremiumAvailabilityGroups(
+                      group.appointments,
+                      businessName,
+                      bookingUrl,
+                      liveCardId
+                    )
+                  : `
+                      <div class="live-result-buttons">
+                        ${topAppointments
+                          .map((appointment) => {
+                            return `
+                              <a
+                                class="time-button"
+                                href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                ${escapeHtml(formatTimeButtonText(appointment))}
+                              </a>
+                            `;
+                          })
+                          .join("")}
+                      </div>
+                    `
+              }
             </article>
           `;
         })
         .join("")}
     </div>
   `;
+
+  liveSearchResults
+    .querySelectorAll(".premium-live-result-card")
+    .forEach(bindPremiumTimeToggles);
 }
 
 function populateFilters(appointments) {
@@ -1205,6 +1537,8 @@ function renderBusinessCards(appointments) {
 
     const isVerifiedBusiness =
       isVerifiedSearchBusiness(firstAppointment);
+    const isPremiumBusiness =
+      group.appointments.some(isPremiumSearchBusiness);
 
 const businessUrl =
   firstAppointment.businessUrl ||
@@ -1245,7 +1579,8 @@ const businessUrl =
     card.className = [
       "business-card",
       businessUrl ? "clickable-business-card" : "",
-      isVerifiedBusiness ? "verified-business-card" : ""
+      isVerifiedBusiness ? "verified-business-card" : "",
+      isPremiumBusiness ? "premium-business-card" : ""
     ]
       .filter(Boolean)
       .join(" ");
@@ -1336,40 +1671,47 @@ const businessUrl =
 
         <p class="next-label">Fresh appointment times:</p>
 
-        <div class="time-buttons">
-          ${nextAppointments
-            .map((appointment) => {
-              return `
-                <a
-                  class="time-button"
-                  href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-track-appointment-click="true"
-                  data-appointment-payload="${escapeAttribute(JSON.stringify({
-                    businessName: appointment.businessName || businessName,
-                    platform: appointment.platform || "",
-                    serviceName: appointment.serviceName || "",
-                    serviceCategory: appointment.serviceCategory || "",
-                    durationMinutes: appointment.durationMinutes || null,
-                    therapistName: appointment.therapistName || "",
-                    appointmentDate: appointment.date || "",
-                    appointmentTime: appointment.time || "",
-                    startTime: appointment.startTime || "",
-                    localDateKey: appointment.localDateKey || "",
-                    localTimeKey: appointment.localTimeKey || "",
-                    bookingUrl: appointment.bookingUrl || bookingUrl,
-                    sourcePage: "search"
-                  }))}"
-                >
-                  ${escapeHtml(formatTimeButtonText(appointment))}
-                </a>
-              `;
-            })
-            .join("")}
-        </div>
+        ${
+          isPremiumBusiness
+            ? renderPremiumAvailabilityGroups(
+                group.appointments,
+                businessName,
+                bookingUrl,
+                card.id
+              )
+            : `
+                <div class="time-buttons">
+                  ${nextAppointments
+                    .map((appointment) => {
+                      return `
+                        <a
+                          class="time-button"
+                          href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-track-appointment-click="true"
+                          data-appointment-payload="${escapeAttribute(JSON.stringify(
+                            buildAppointmentTrackingPayload(
+                              appointment,
+                              businessName,
+                              bookingUrl
+                            )
+                          ))}"
+                        >
+                          ${escapeHtml(formatTimeButtonText(appointment))}
+                        </a>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              `
+        }
       </div>
     `;
+
+    if (isPremiumBusiness) {
+      bindPremiumTimeToggles(card);
+    }
 
     if (businessUrl) {
       card.addEventListener("click", (event) => {

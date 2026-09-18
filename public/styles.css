@@ -354,6 +354,118 @@ body {
   background: #005f95;
 }
 
+.premium-time-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  max-width: 520px;
+}
+
+.premium-date-label {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.premium-time-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.premium-time-slot {
+  overflow: hidden;
+  border: 1px solid rgba(0, 95, 149, 0.2);
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+.premium-time-row {
+  display: flex;
+  min-height: 42px;
+  align-items: stretch;
+}
+
+.premium-time-link {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  padding: 9px 12px;
+  color: #003f66;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  text-decoration: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.premium-time-link:hover,
+.premium-time-link:focus-visible,
+.premium-services-toggle:hover,
+.premium-services-toggle:focus-visible {
+  background: #f0f8fd;
+  color: #005f95;
+  outline: none;
+}
+
+.premium-services-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 11px;
+  border: 0;
+  border-left: 1px solid rgba(0, 95, 149, 0.14);
+  background: transparent;
+  color: #61798b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.premium-services-chevron {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+  transition: transform 140ms ease;
+}
+
+.premium-services-toggle[aria-expanded="true"] .premium-services-chevron {
+  transform: rotate(180deg);
+}
+
+.premium-service-panel {
+  border-top: 1px solid rgba(0, 95, 149, 0.12);
+  background: #ffffff;
+}
+
+.premium-service-panel[hidden] {
+  display: none;
+}
+
+.premium-service-list {
+  max-height: 170px;
+  margin: 0;
+  padding: 8px 12px 9px 29px;
+  overflow-y: auto;
+  color: #506979;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.premium-service-list li {
+  padding: 2px 0;
+}
+
 .map-panel {
   position: sticky;
   top: 16px;
@@ -654,6 +766,21 @@ body {
     width: 100%;
     text-align: center;
     padding: 12px;
+  }
+
+  .premium-time-groups {
+    max-width: none;
+  }
+
+  .premium-time-link {
+    padding-left: 10px;
+    font-size: 13px;
+  }
+
+  .premium-services-toggle {
+    padding-left: 9px;
+    padding-right: 9px;
+    font-size: 10.5px;
   }
   .email-capture-form {
   margin-top: 22px;
