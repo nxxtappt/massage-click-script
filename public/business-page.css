@@ -343,6 +343,137 @@ h2 {
   background: #0075b9;
 }
 
+.grouped-appointment-buttons {
+  align-items: flex-start;
+}
+
+.business-availability-slot {
+  width: 330px;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid #0075b9;
+  border-radius: 999px;
+  background: #0075b9;
+  box-shadow: 0 3px 8px rgba(0, 95, 149, 0.12);
+  transition: border-radius 140ms ease, box-shadow 140ms ease;
+}
+
+.business-availability-slot.inferred {
+  border-color: #64748b;
+  background: #64748b;
+}
+
+.business-availability-slot.is-open {
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 7px 18px rgba(0, 95, 149, 0.16);
+}
+
+.business-availability-row {
+  display: flex;
+  min-height: 44px;
+  align-items: stretch;
+  background: #0075b9;
+}
+
+.business-availability-slot.inferred .business-availability-row {
+  background: #64748b;
+}
+
+.appointment-button.business-availability-time {
+  display: flex;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 11px 14px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.business-availability-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 13px;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.34);
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.appointment-button.business-availability-time:hover,
+.appointment-button.business-availability-time:focus-visible,
+.business-availability-toggle:hover,
+.business-availability-toggle:focus-visible {
+  background: rgba(0, 43, 73, 0.28);
+  color: #ffffff;
+  outline: none;
+}
+
+.business-availability-chevron {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+  transition: transform 140ms ease;
+}
+
+.business-availability-toggle[aria-expanded="true"]
+  .business-availability-chevron {
+  transform: rotate(180deg);
+}
+
+.business-availability-panel {
+  border-top: 1px solid rgba(0, 95, 149, 0.18);
+  background: #ffffff;
+}
+
+.business-availability-panel[hidden] {
+  display: none;
+}
+
+.business-availability-services {
+  max-height: 190px;
+  margin: 0;
+  padding: 9px 13px 10px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.business-availability-services li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.business-availability-services li + li {
+  border-top: 1px solid #e7edf2;
+}
+
+.business-availability-services small {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .locked-card {
   margin-bottom: 20px;
   background: #f9fafb;
@@ -392,6 +523,15 @@ h2 {
 
   h1 {
     font-size: 28px;
+  }
+
+  .grouped-appointment-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .business-availability-slot {
+    width: 100%;
   }
 }
 

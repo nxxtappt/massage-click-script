@@ -81,6 +81,184 @@ function groupAppointmentsByDate(appointments = []) {
   }, {});
 }
 
+function getBusinessAppointmentTimeKey(appointment = {}) {
+  if (appointment.localTimeKey) {
+    return String(appointment.localTimeKey);
+  }
+
+  if (appointment.time || appointment.rawTime) {
+    return String(appointment.time || appointment.rawTime)
+      .trim()
+      .toLowerCase();
+  }
+
+  if (appointment.startTime) {
+    const parsed = new Date(appointment.startTime);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleTimeString("en-US", {
+        timeZone: "America/Chicago",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+    }
+  }
+
+  return "time-available";
+}
+
+function getBusinessAppointmentSourceLabel(appointment = {}) {
+  const sourceType =
+    appointment.sourceType ||
+    appointment.inventorySource ||
+    appointment.sourceStatus ||
+    "";
+
+  return String(sourceType).toLowerCase() === "inferred"
+    ? "Inferred"
+    : "Confirmed";
+}
+
+function groupBusinessAppointmentsByTime(appointments = []) {
+  const groups = new Map();
+
+  appointments.forEach((appointment) => {
+    const timeKey = getBusinessAppointmentTimeKey(appointment);
+    let group = groups.get(timeKey);
+
+    if (!group) {
+      group = {
+        timeKey,
+        appointment,
+        services: [],
+        serviceKeys: new Set()
+      };
+      groups.set(timeKey, group);
+    } else if (
+      getBusinessAppointmentSourceLabel(group.appointment) === "Inferred" &&
+      getBusinessAppointmentSourceLabel(appointment) === "Confirmed"
+    ) {
+      group.appointment = appointment;
+    }
+
+    const serviceLabel = formatAppointmentService(appointment);
+    const serviceKey = serviceLabel.toLowerCase();
+
+    if (!group.serviceKeys.has(serviceKey)) {
+      group.serviceKeys.add(serviceKey);
+      group.services.push({
+        label: serviceLabel,
+        sourceLabel: getBusinessAppointmentSourceLabel(appointment)
+      });
+    }
+  });
+
+  return [...groups.values()].map(({ serviceKeys, ...group }) => group);
+}
+
+function renderBusinessAvailabilityTimeGroups(
+  appointments = [],
+  idPrefix = "business-availability",
+  limitTimes = 24
+) {
+  const timeGroups = groupBusinessAppointmentsByTime(appointments)
+    .slice(0, limitTimes);
+
+  return `
+    <div class="appointment-button-grid grouped-appointment-buttons">
+      ${timeGroups
+        .map((group, index) => {
+          const appointment = group.appointment;
+          const panelId = `${idPrefix}-services-${index}`;
+          const serviceCount = group.services.length;
+          const serviceCountLabel = `${serviceCount} service${serviceCount === 1 ? "" : "s"}`;
+          const serviceNames = group.services.map((service) => service.label).join(", ");
+          const sourceClass = group.services.every(
+            (service) => service.sourceLabel === "Inferred"
+          )
+            ? "inferred"
+            : "confirmed";
+
+          return `
+            <article class="business-availability-slot ${sourceClass}">
+              <div class="business-availability-row">
+                <a
+                  class="appointment-button business-availability-time"
+                  href="${escapeAttribute(appointment.bookingUrl || "#")}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="${escapeAttribute(`Book ${formatAppointmentButton(appointment)}. Available services: ${serviceNames}`)}"
+                >
+                  <span class="appointment-date-time">
+                    ${escapeHtml(formatAppointmentButton(appointment))}
+                  </span>
+                </a>
+                <button
+                  class="business-availability-toggle"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="${escapeAttribute(panelId)}"
+                >
+                  <span>${escapeHtml(serviceCountLabel)}</span>
+                  <span class="business-availability-chevron" aria-hidden="true">⌄</span>
+                </button>
+              </div>
+              <div
+                class="business-availability-panel"
+                id="${escapeAttribute(panelId)}"
+                hidden
+              >
+                <ul class="business-availability-services">
+                  ${group.services
+                    .map((service) => `
+                      <li>
+                        <span>${escapeHtml(service.label)}</span>
+                        <small>${escapeHtml(service.sourceLabel)}</small>
+                      </li>
+                    `)
+                    .join("")}
+                </ul>
+              </div>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function bindBusinessAvailabilityToggles(container) {
+  const toggles = container.querySelectorAll(".business-availability-toggle");
+
+  toggles.forEach((toggle) => {
+    toggle.addEventListener("click", () => {
+      const targetId = toggle.getAttribute("aria-controls");
+      const panel = targetId ? document.getElementById(targetId) : null;
+
+      if (!panel) return;
+
+      const willOpen = toggle.getAttribute("aria-expanded") !== "true";
+
+      toggles.forEach((otherToggle) => {
+        const otherId = otherToggle.getAttribute("aria-controls");
+        const otherPanel = otherId ? document.getElementById(otherId) : null;
+        const otherSlot = otherToggle.closest(".business-availability-slot");
+
+        otherToggle.setAttribute("aria-expanded", "false");
+        if (otherPanel) otherPanel.hidden = true;
+        if (otherSlot) otherSlot.classList.remove("is-open");
+      });
+
+      toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      panel.hidden = !willOpen;
+      toggle
+        .closest(".business-availability-slot")
+        ?.classList.toggle("is-open", willOpen);
+    });
+  });
+}
+
 function normalizeMarketplaceCategorySlug(
   value = ""
 ) {
@@ -1247,60 +1425,14 @@ async function loadBusinessInventory(page) {
             </div>
 
             ${dateGroups
-              .map(([dateKey, items]) => `
+              .map(([dateKey, items], dateIndex) => `
                 <div class="inventory-day">
                   <h4>${escapeHtml(dateKey)}</h4>
-                  <div class="appointment-button-grid">
-                    ${items
-                      .slice(0, page.isVerified ? 24 : 6)
-                      .map((appointment) => {
-                        const sourceType =
-                          appointment.sourceType ||
-                          appointment.inventorySource ||
-                          appointment.sourceStatus ||
-                          "";
-
-                        const isInferred =
-                          String(sourceType).toLowerCase() === "inferred";
-
-                        const availabilityLabel =
-                          isInferred ? "Inferred" : "Confirmed";
-
-                        const serviceLabel =
-                          formatAppointmentService(appointment);
-
-                        return `
-                          <a
-                            class="appointment-button ${
-                              isInferred ? "inferred" : "confirmed"
-                            }"
-                            href="${escapeAttribute(
-                              appointment.bookingUrl || "#"
-                            )}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <span class="appointment-date-time">
-                              ${escapeHtml(
-                                formatAppointmentButton(appointment)
-                              )}
-                            </span>
-                            <small class="appointment-details">
-                              <span class="appointment-status">
-                                ${escapeHtml(availabilityLabel)}
-                              </span>
-                              <span
-                                class="appointment-service"
-                                title="${escapeAttribute(serviceLabel)}"
-                              >
-                                ${escapeHtml(serviceLabel)}
-                              </span>
-                            </small>
-                          </a>
-                        `;
-                      })
-                      .join("")}
-                  </div>
+                  ${renderBusinessAvailabilityTimeGroups(
+                    items,
+                    `inventory-${categoryGroup.slug}-${dateIndex}`,
+                    page.isVerified ? 24 : 6
+                  )}
                 </div>
               `)
               .join("")}
@@ -1308,6 +1440,8 @@ async function loadBusinessInventory(page) {
         `;
       })
       .join("");
+
+    bindBusinessAvailabilityToggles(inventory);
   } catch (error) {
     console.error("Could not load business inventory:", error);
     inventory.innerHTML = `
