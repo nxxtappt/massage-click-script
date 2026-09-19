@@ -1,10 +1,10 @@
 const { loadAdminSettings } = require("./adminSettingsManager");
 const { normalizeServiceType } = require("./normalizationUtils");
 const {
-  resolveEnabledIntegration,
-  validateIntegration,
-  applyIntegrationToJob
-} = require("./platformIntegrationRegistry");
+  applyWidgetToJob,
+  getBookingWidgets,
+  resolveWidgetForService
+} = require("./bookingWidgetManager");
 
 function normalize(value) {
   return String(value || "")
@@ -284,33 +284,14 @@ function getEnabledServicesForBusiness(business) {
         const serviceType = getCanonicalServiceTypeForService(service, business);
 
         return {
-          id:
-            service.id ||
-            service.businessServiceId ||
-            service.business_service_id ||
-            null,
-          businessServiceId:
-            service.businessServiceId ||
-            service.id ||
-            service.business_service_id ||
-            null,
-          integrationId:
-            service.integrationId ||
-            service.integration_id ||
-            service.raw_json?.integrationId ||
-            null,
-          canonicalKey:
-            service.canonicalKey ||
-            service.canonical_key ||
-            "",
           serviceName: service.serviceName || business.serviceName || "",
           serviceType,
           durationMinutes: service.durationMinutes || business.durationMinutes || null,
-          price: service.price ?? business.price ?? null,
-          sessionTypeId:
-            service.sessionTypeId ||
-            service.session_type_id ||
-            null,
+          bookingWidgetId:
+            service.bookingWidgetId ||
+            service.widgetId ||
+            service.integrationId ||
+            "",
 
           platformServiceId:
             service.platformServiceId ||
@@ -344,18 +325,14 @@ function getEnabledServicesForBusiness(business) {
             service.categoryName ||
             business.categoryText ||
             business.categoryName ||
-            (normalize(business.platform) === "boulevard"
-              ? service.categorySlug || service.marketplaceCategory || ""
-              : "Massage"),
+            "Massage",
 
           categoryName:
             service.categoryName ||
             service.categoryText ||
             business.categoryName ||
             business.categoryText ||
-            (normalize(business.platform) === "boulevard"
-              ? service.categorySlug || service.marketplaceCategory || ""
-              : "Massage"),
+            "Massage",
 
           parentServiceText:
             service.parentServiceText ||
@@ -373,10 +350,6 @@ function getEnabledServicesForBusiness(business) {
               : Boolean(business.skipProvider),
 
           enabled: service.enabled !== false,
-          scrapeDirectly:
-            service.scrapeDirectly !== false &&
-            service.inferenceRole !== "inferred" &&
-            service.searchInference?.canBeInferred !== true,
           priority: service.priority || business.priority || "",
           discoveryStatus:
             service.discoveryStatus ||
@@ -395,74 +368,34 @@ function getEnabledServicesForBusiness(business) {
 
           searchInference:
             service.searchInference ||
-            service.inference ||
             null,
-
-          inferenceEnabled:
-            service.inferenceEnabled === true ||
-            service.searchInference?.enabled === true ||
-            Boolean(service.inferenceRole),
 
           inferenceRole:
-            service.inferenceRole ||
-            service.searchInference?.inferenceRole ||
-            service.inference?.role ||
-            "",
+  service.inferenceRole ||
+  service.searchInference?.inferenceRole ||
+  service.inference?.role ||
+  "",
 
-          canInfer:
-            service.canInfer === true ||
-            service.searchInference?.isInferenceAnchor === true ||
-            service.searchInference?.inferenceRole === "anchor" ||
-            service.inferenceRole === "anchor",
+canInfer:
+  service.canInfer === true ||
+  service.searchInference?.isInferenceAnchor === true ||
+  service.searchInference?.inferenceRole === "anchor",
 
-          inferShorterDurations:
-            service.inferShorterDurations === true ||
-            service.searchInference?.inferShorterDurations === true ||
-            service.inference?.inferShorterDurations === true,
+inferShorterDurations:
+  service.inferShorterDurations === true ||
+  service.searchInference?.inferShorterDurations === true ||
+  service.inference?.inferShorterDurations === true,
 
-          inferServiceTypes: Array.isArray(service.inferServiceTypes)
-            ? service.inferServiceTypes
-            : Array.isArray(service.searchInference?.inferServiceTypes)
-              ? service.searchInference.inferServiceTypes
-              : [],
+inferredFromAnchor:
+  service.inferredFromAnchor === true ||
+  service.searchInference?.canBeInferred === true ||
+  service.searchInference?.inferenceRole === "inferred",
 
-          inferStartIntervalMinutes:
-            service.inferStartIntervalMinutes ||
-            service.searchInference?.inferStartIntervalMinutes ||
-            null,
-
-          inferenceConfidence:
-            service.inferenceConfidence ??
-            service.searchInference?.confidence ??
-            null,
-
-          bookingIntervalMinutes:
-            service.bookingIntervalMinutes ||
-            null,
-
-          anchorServiceId:
-            service.anchorServiceId ||
-            service.anchor_service_id ||
-            service.searchInference?.anchorServiceId ||
-            null,
-
-          anchorServiceKey:
-            service.anchorServiceKey ||
-            service.anchor_service_key ||
-            service.searchInference?.anchorServiceKey ||
-            null,
-
-          inferredFromAnchor:
-            service.inferredFromAnchor === true ||
-            service.searchInference?.canBeInferred === true ||
-            service.searchInference?.inferenceRole === "inferred" ||
-            service.inferenceRole === "inferred",
-
-          inference:
-            service.searchInference ||
-            service.inference ||
-            null
-        };
+inference:
+  service.searchInference ||
+  service.inference ||
+  null
+          };
           });
     }
 
@@ -470,29 +403,11 @@ function getEnabledServicesForBusiness(business) {
 
   return [
     {
-      id:
-        business.id ||
-        business.businessServiceId ||
-        business.business_service_id ||
-        null,
-      businessServiceId:
-        business.businessServiceId ||
-        business.id ||
-        business.business_service_id ||
-        null,
-      integrationId: business.integrationId || business.integration_id || null,
-      canonicalKey:
-        business.canonicalKey ||
-        business.canonical_key ||
-        "",
       serviceName: business.serviceName || "",
       serviceType,
       durationMinutes: business.durationMinutes || null,
-      price: business.price ?? null,
-      sessionTypeId:
-        business.sessionTypeId ||
-        business.session_type_id ||
-        null,
+      bookingWidgetId:
+        business.bookingWidgetId || business.widgetId || business.integrationId || "",
 
       platformServiceId:
         business.platformServiceId ||
@@ -512,23 +427,12 @@ function getEnabledServicesForBusiness(business) {
         business.serviceButtonId ||
         null,
 
-      categoryText:
-        business.categoryText ||
-        business.categoryName ||
-        (normalize(business.platform) === "boulevard"
-          ? business.categorySlug || business.marketplaceCategory || ""
-          : "Massage"),
-      categoryName:
-        business.categoryName ||
-        business.categoryText ||
-        (normalize(business.platform) === "boulevard"
-          ? business.categorySlug || business.marketplaceCategory || ""
-          : "Massage"),
+      categoryText: business.categoryText || business.categoryName || "Massage",
+      categoryName: business.categoryName || business.categoryText || "Massage",
       parentServiceText: business.parentServiceText || "",
       providerText: business.providerText || "First Available",
       skipProvider: Boolean(business.skipProvider),
       enabled: true,
-      scrapeDirectly: business.scrapeDirectly !== false,
       priority: business.priority || "medium",
       discoveryStatus: business.discoveryStatus || "manual",
       daysForward: business.daysForward || null,
@@ -664,21 +568,6 @@ function getResolvedScrapeWindow(service = {}, business = {}, filters = {}, admi
     };
   }
 
-  // Jane's standard public treatment view exposes a seven-day calendar.
-  // Keep that full window unless an explicit date/range or service/business
-  // window was supplied above.
-  if (normalize(business.platform) === "jane") {
-    const daysForward = 7;
-
-    return {
-      scrapeStartDate: today,
-      scrapeEndDate: addDaysToDateKey(today, daysForward - 1),
-      lookaheadHours: 168,
-      daysForward,
-      scrapeWindowMode: "jane_default_7_days"
-    };
-  }
-
   const defaultLookaheadHours = Number(settings.scraping?.defaultLookaheadHours || 48);
   const lookaheadHours = Math.max(1, defaultLookaheadHours);
   const daysForward = Math.max(1, Math.ceil(lookaheadHours / 24));
@@ -783,8 +672,12 @@ function servicePassesServiceRules(service, business, filters = {}, adminSetting
 }
 
 function serviceMatchesFilters(service, business, filters = {}) {
-  if (filters.platform && normalize(business.platform) !== normalize(filters.platform)) {
-    return false;
+  if (filters.platform) {
+    const platforms = [
+      business.platform,
+      ...getBookingWidgets(business).map((widget) => widget.platform)
+    ].map(normalize);
+    if (!platforms.includes(normalize(filters.platform))) return false;
   }
 
   const serviceType = normalizeServiceType(service.serviceType);
@@ -890,7 +783,12 @@ function limitServicesPerBusiness(jobs, filters = {}, adminSettings = null) {
   const limited = [];
 
   for (const job of jobs) {
-    const key = normalize(job.businessName || job.name || "unknown");
+    // A configured limit applies independently to each booking widget. This
+    // prevents the first widget from consuming a business's entire scheduled
+    // allowance and starving its other service catalogues.
+    const key = `${normalize(job.businessName || job.name || "unknown")}:${normalize(
+      job.bookingWidgetId || job.widgetId || "default"
+    )}`;
 
     if (!grouped.has(key)) {
       grouped.set(key, 0);
@@ -930,64 +828,6 @@ function serviceIsInferenceAnchor(service = {}) {
       searchInference.inferenceRole === "anchor" ||
       searchInference.isInferenceAnchor === true
   );
-}
-
-function serviceIsInferredTarget(service = {}) {
-  const searchInference = service.searchInference || service.inference || {};
-
-  return Boolean(
-    service.inferredFromAnchor === true ||
-      service.inferenceRole === "inferred" ||
-      searchInference.role === "inferred" ||
-      searchInference.inferenceRole === "inferred" ||
-      searchInference.canBeInferred === true
-  );
-}
-
-function shouldScrapeServiceDirectly(service = {}, filters = {}) {
-  const forceDirectScrape =
-    filters.forceDirectScrape === true ||
-    filters.forceDirectScrape === "true";
-
-  if (forceDirectScrape) {
-    return true;
-  }
-
-  if (serviceIsInferredTarget(service)) {
-    return false;
-  }
-
-  return service.scrapeDirectly !== false;
-}
-
-function sortServicesForScraping(services = []) {
-  return [...services].sort((a, b) => {
-    const anchorDifference =
-      Number(serviceIsInferenceAnchor(b)) -
-      Number(serviceIsInferenceAnchor(a));
-
-    if (anchorDifference) {
-      return anchorDifference;
-    }
-
-    const priorityRank = {
-      high: 0,
-      medium: 1,
-      normal: 2,
-      low: 3
-    };
-
-    const aPriority = priorityRank[normalize(a.priority)] ?? 4;
-    const bPriority = priorityRank[normalize(b.priority)] ?? 4;
-
-    if (aPriority !== bPriority) {
-      return aPriority - bPriority;
-    }
-
-    return String(a.serviceName || "").localeCompare(
-      String(b.serviceName || "")
-    );
-  });
 }
 
 function businessHasInferenceAnchors(services = []) {
@@ -1061,33 +901,8 @@ function businessPassesBusinessFilter(business = {}, filters = {}, businessFilte
   return businessMatchesSearch(business, filters.business);
 }
 
-function validateScrapeJob(job = {}) {
-  const errors = [];
-  const warnings = [];
-  if (!job.businessName) errors.push("businessName is required.");
-  if (!job.serviceName) errors.push("serviceName is required.");
-  if (!job.durationMinutes || Number(job.durationMinutes) <= 0) warnings.push("durationMinutes is missing or invalid.");
-  if (!job.integration) errors.push("No enabled integration resolved for the business/service.");
-  if (job.integrationValidation) {
-    errors.push(...(job.integrationValidation.errors || []));
-    warnings.push(...(job.integrationValidation.warnings || []));
-  }
-  return { valid: errors.length === 0, errors, warnings, job };
-}
-
-function resolveJobIntegration(business = {}, service = {}, filters = {}) {
-  return resolveEnabledIntegration(business, {
-    integrationId: filters.integrationId || service.integrationId,
-    platform: filters.platform || business.platform,
-    integrationType: filters.integrationType
-  });
-}
-
 function buildScrapeJobs(businesses, filters = {}) {
   const adminSettings = loadAdminSettings();
-  if (filters.integrationType && !["api", "scrape"].includes(filters.integrationType)) {
-    throw new Error("Unknown refresh method. Use api or scrape.");
-  }
   const jobs = [];
   const businessFilterMode = getBusinessFilterMode(businesses, filters);
 
@@ -1098,15 +913,10 @@ function buildScrapeJobs(businesses, filters = {}) {
       continue;
     }
 
-    const enabledServices = getEnabledServicesForBusiness(business);
-    const scrapeServices = new Set(filterServicesForInferenceAnchors(enabledServices, filters)
-      .filter((service) => shouldScrapeServiceDirectly(service, filters)));
-    // APIs query each enabled service's actual session type, including services
-    // that were previously inferred from a longer scraped appointment.
-    const services = sortServicesForScraping(enabledServices.filter((service) =>
-      resolveJobIntegration(business, service, filters)?.integrationType === "api" ||
-      scrapeServices.has(service)
-    ));
+    const services = filterServicesForInferenceAnchors(
+      getEnabledServicesForBusiness(business),
+      filters
+    );
 
     for (const service of services) {
       if (!servicePassesServiceRules(service, business, filters, adminSettings)) {
@@ -1117,14 +927,38 @@ function buildScrapeJobs(businesses, filters = {}) {
         continue;
       }
 
-      const integration = resolveJobIntegration(business, service, filters);
-      if (!integration) {
+      const requestedWidget =
+        filters.widget || filters.widgetId || filters.bookingWidgetId || "";
+      const serviceWidget =
+        service.bookingWidgetId || service.widgetId || service.integrationId || "";
+
+      if (requestedWidget && serviceWidget && normalize(requestedWidget) !== normalize(serviceWidget)) {
         continue;
       }
-      const integrationValidation = validateIntegration(integration, business);
-      if (!integrationValidation.valid && filters.allowInvalidJobs !== true && filters.allowInvalidJobs !== "true") {
+
+      const selectedWidget = resolveWidgetForService(
+        business,
+        service,
+        requestedWidget
+      );
+
+      if (requestedWidget && !selectedWidget) {
         continue;
       }
+
+      if (
+        filters.platform &&
+        selectedWidget?.platform &&
+        normalize(selectedWidget.platform) !== normalize(filters.platform)
+      ) {
+        continue;
+      }
+
+      const widgetRouting = applyWidgetToJob(
+        business,
+        service,
+        requestedWidget
+      );
 
       const distanceMiles =
         filters.latitude &&
@@ -1146,19 +980,20 @@ function buildScrapeJobs(businesses, filters = {}) {
         adminSettings
       );
 
-      const baseJob = {
+      jobs.push({
         ...business,
+        ...widgetRouting,
 
-        integrationType: business.integrationType || "scrape",
-        apiProvider: business.apiProvider || "",
-        credentialId: business.credentialId || "",
+        integrationType:
+          widgetRouting.integrationType || business.integrationType || "scrape",
+        apiProvider: widgetRouting.apiProvider || business.apiProvider || "",
+        credentialId: widgetRouting.credentialId || business.credentialId || "",
 
         serviceName: service.serviceName,
         serviceType: normalizeServiceType(service.serviceType),
         durationMinutes: service.durationMinutes,
 
         platformServiceId: service.platformServiceId,
-        sessionTypeId: service.sessionTypeId || service.session_type_id || "",
         serviceButtonId: service.serviceButtonId,
         serviceId: service.serviceId,
 
@@ -1172,37 +1007,9 @@ function buildScrapeJobs(businesses, filters = {}) {
         priority: service.priority,
         discoveryStatus: service.discoveryStatus,
         searchInference: service.searchInference || service.inference || null,
-        inferenceEnabled: service.inferenceEnabled === true,
         inferenceRole: service.inferenceRole || service.searchInference?.inferenceRole || "",
         canInfer: service.canInfer === true,
         inferredFromAnchor: service.inferredFromAnchor === true,
-        inferShorterDurations: service.inferShorterDurations === true,
-        inferServiceTypes: Array.isArray(service.inferServiceTypes)
-          ? service.inferServiceTypes
-          : [],
-        inferStartIntervalMinutes: service.inferStartIntervalMinutes || null,
-        inferenceConfidence: service.inferenceConfidence ?? null,
-        bookingIntervalMinutes: service.bookingIntervalMinutes || null,
-        businessServiceId:
-          service.businessServiceId ||
-          service.business_service_id ||
-          service.id ||
-          null,
-        serviceDatabaseId:
-          service.businessServiceId ||
-          service.business_service_id ||
-          service.id ||
-          null,
-        anchorServiceId:
-          service.anchorServiceId ||
-          service.anchor_service_id ||
-          service.searchInference?.anchorServiceId ||
-          null,
-        anchorServiceKey:
-          service.anchorServiceKey ||
-          service.anchor_service_key ||
-          service.searchInference?.anchorServiceKey ||
-          null,
 
         scrapeStartDate: scrapeWindow.scrapeStartDate,
         scrapeEndDate: scrapeWindow.scrapeEndDate,
@@ -1213,15 +1020,8 @@ function buildScrapeJobs(businesses, filters = {}) {
         distanceMiles:
           typeof distanceMiles === "number"
             ? Number(distanceMiles.toFixed(2))
-            : null,
-        integrationValidation
-      };
-
-      const resolvedJob = applyIntegrationToJob(baseJob, integration);
-      const jobValidation = validateScrapeJob(resolvedJob);
-      if (jobValidation.valid || filters.allowInvalidJobs === true || filters.allowInvalidJobs === "true") {
-        jobs.push({ ...resolvedJob, jobValidation });
-      }
+            : null
+      });
     }
   }
 
@@ -1238,13 +1038,8 @@ module.exports = {
   businessMatchesExactNameOrAlias,
   businessPassesBusinessFilter,
   serviceIsInferenceAnchor,
-  serviceIsInferredTarget,
-  shouldScrapeServiceDirectly,
-  sortServicesForScraping,
   filterServicesForInferenceAnchors,
   getScrapeMode,
   getResolvedDaysForward,
-  getResolvedScrapeWindow,
-  resolveJobIntegration,
-  validateScrapeJob
+  getResolvedScrapeWindow
 };

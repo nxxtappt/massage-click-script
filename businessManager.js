@@ -1,14 +1,9 @@
-const {
-  normalizeBusinessIntegrations,
-  resolveEnabledIntegration,
-  validateIntegration
-} = require("./platformIntegrationRegistry");
-const { syncBusinessIntegrations } = require("./database/integrationRepository");
-const serviceCategoryRepository = require(
-  "./database/serviceCategoryRepository"
-);
-
 let BusinessRepository = null;
+const {
+  getBookingWidgets,
+  getPublicBookingWidgets,
+  resolveWidgetForService
+} = require("./bookingWidgetManager");
 
 try {
   BusinessRepository = require("./database/BusinessRepository");
@@ -21,18 +16,6 @@ try {
 
 let businessCache = null;
 let businessCacheLoadedAt = null;
-
-function clearInventoryBusinessMetadataCache() {
-  try {
-    const inventoryManager = require("./inventoryManager");
-
-    if (typeof inventoryManager.clearBusinessMetadataCache === "function") {
-      inventoryManager.clearBusinessMetadataCache();
-    }
-  } catch (_) {
-    // inventoryManager may not be initialized yet during application startup.
-  }
-}
 
 function requireRepository() {
   if (!BusinessRepository) {
@@ -130,108 +113,6 @@ function normalizeSubscriptionShape(row = null) {
   };
 }
 
-function normalizeServiceRow(service = {}) {
-  const raw = cleanObject(service.raw_json);
-  const inferServiceTypes = Array.isArray(service.infer_service_types)
-    ? service.infer_service_types
-    : Array.isArray(raw.inferServiceTypes)
-      ? raw.inferServiceTypes
-      : [];
-
-  const inferenceRole =
-    service.inference_role ||
-    raw.inferenceRole ||
-    null;
-
-  const inferenceEnabled =
-    service.inference_enabled === true ||
-    raw.inferenceEnabled === true ||
-    Boolean(inferenceRole);
-
-  const searchInference = {
-    enabled: inferenceEnabled,
-    isInferenceAnchor: inferenceRole === "anchor",
-    canBeInferred: inferenceRole === "inferred",
-    inferShorterDurations:
-      service.infer_shorter_durations === true ||
-      raw.inferShorterDurations === true,
-    inferServiceTypes,
-    inferStartIntervalMinutes:
-      service.infer_start_interval_minutes ||
-      raw.inferStartIntervalMinutes ||
-      null,
-    confidence:
-      service.inference_confidence === null || service.inference_confidence === undefined
-        ? raw.inferenceConfidence ?? null
-        : Number(service.inference_confidence),
-    anchorServiceId:
-      service.anchor_service_id ||
-      raw.anchorServiceId ||
-      null,
-    anchorServiceKey:
-      service.anchor_service_key ||
-      raw.anchorServiceKey ||
-      null
-  };
-
-  return {
-    id: service.id || raw.id || null,
-    businessServiceId: service.id || raw.id || null,
-    canonicalKey: service.canonical_key || raw.canonicalKey || "",
-    serviceName: service.service_name || raw.serviceName || "",
-    serviceType: service.service_type || raw.serviceType || "",
-    categorySlug:
-      service.category_slug ||
-      raw.categorySlug ||
-      "",
-    marketplaceCategory:
-      service.category_slug ||
-      raw.categorySlug ||
-      "",
-    serviceCategory: service.service_type || raw.serviceType || "",
-    durationMinutes:
-      service.duration_minutes === null || service.duration_minutes === undefined
-        ? raw.durationMinutes ?? null
-        : Number(service.duration_minutes),
-    price: service.price ?? raw.price ?? null,
-    platformServiceId:
-      service.platform_service_id || raw.platformServiceId || "",
-    serviceButtonId:
-      service.service_button_id || raw.serviceButtonId || "",
-    serviceId: service.service_id || raw.serviceId || "",
-    categoryText: service.category_text || raw.categoryText || "",
-    categoryName: service.category_text || raw.categoryText || "",
-    parentServiceText: service.parent_service_text || raw.parentServiceText || "",
-    sessionTypeId: service.session_type_id || raw.sessionTypeId || null,
-    providerText: service.provider_text || raw.providerText || "",
-    enabled: service.enabled !== false,
-    priority: service.priority || raw.priority || "",
-    discoveryStatus:
-      service.discovery_status || raw.discoveryStatus || "",
-    daysForward:
-      service.days_forward === null || service.days_forward === undefined
-        ? raw.daysForward ?? null
-        : Number(service.days_forward),
-    lookaheadHours:
-      service.lookahead_hours === null || service.lookahead_hours === undefined
-        ? raw.lookaheadHours ?? null
-        : Number(service.lookahead_hours),
-    scrapeDirectly:
-      service.scrape_directly !== false && raw.scrapeDirectly !== false,
-    inferenceEnabled,
-    inferenceRole,
-    anchorServiceId: searchInference.anchorServiceId,
-    anchorServiceKey: searchInference.anchorServiceKey,
-    inferShorterDurations: searchInference.inferShorterDurations,
-    inferServiceTypes,
-    inferStartIntervalMinutes: searchInference.inferStartIntervalMinutes,
-    inferenceConfidence: searchInference.confidence,
-    bookingIntervalMinutes:
-      service.booking_interval_minutes || raw.bookingIntervalMinutes || null,
-    searchInference
-  };
-}
-
 function normalizeBusinessShape(business = {}) {
   const businessName =
     business.businessName ||
@@ -272,8 +153,11 @@ function normalizeBusinessShape(business = {}) {
   );
 
   const subscription = normalizeSubscriptionShape(business.subscription);
-  const integrations = normalizeBusinessIntegrations(business);
-  const primaryIntegration = resolveEnabledIntegration({ ...business, integrations });
+
+  const normalizedIntegrations = getBookingWidgets({
+    ...business,
+    integrations: Array.isArray(business.integrations) ? business.integrations : []
+  });
 
   return {
     ...business,
@@ -292,27 +176,13 @@ function normalizeBusinessShape(business = {}) {
       `/business/${businessSlug}`,
     businessCategory:
       business.businessCategory || business.business_category || "wellness",
-    platform: primaryIntegration?.platform || business.platform || "",
-    integrationType: primaryIntegration?.integrationType || business.integrationType || business.integration_type || "scrape",
-    apiProvider: primaryIntegration?.apiProvider || business.apiProvider || business.api_provider || "",
-    credentialId: primaryIntegration?.credentialId || business.credentialId || business.credential_id || "",
-    integrationStatus: primaryIntegration?.status || business.integrationStatus || business.integration_status || "active",
-    integrationConfig: primaryIntegration?.config || business.integrationConfig || {},
-    bookingUrl: primaryIntegration?.bookingUrl || business.bookingUrl || business.booking_url || "",
+    platform: business.platform || "",
+    bookingUrl: business.bookingUrl || business.booking_url || "",
     website: business.website || business.businessWebsite || "",
     phone: business.phone || business.businessPhone || "",
     email: business.email || "",
     ownerEmail: business.ownerEmail || business.owner_email || "",
     address: business.address || location.address || "",
-    metro:
-      business.metro ||
-      business.market ||
-      business.region ||
-      business.raw_json?.metro ||
-      location.raw_json?.metro ||
-      business.city ||
-      location.city ||
-      "",
     city: business.city || location.city || "",
     state: business.state || location.state || "",
     postalCode:
@@ -344,66 +214,12 @@ function normalizeBusinessShape(business = {}) {
       business.claimedByEmail || business.claimed_by_email || "",
     claimId: business.claimId || business.claim_id || "",
     enabled: business.enabled !== false,
-
-    // NEXTAPPT VERIFIED CONTROLS HOTFIX V2: businessManager
-    verifiedRank: Math.max(
-      0,
-      Math.min(
-        100,
-        Math.trunc(
-          toNumberOrNull(
-            pick(
-              business.verifiedRank,
-              business.verified_rank
-            )
-          ) ?? 0
-        )
-      )
-    ),
-    publicInventoryVisible: ![
-      false,
-      0,
-      "false",
-      "0",
-      "off",
-      "no"
-    ].includes(
-      typeof pick(
-        business.publicInventoryVisible,
-        business.public_inventory_visible
-      ) === "string"
-        ? String(
-            pick(
-              business.publicInventoryVisible,
-              business.public_inventory_visible
-            )
-          ).trim().toLowerCase()
-        : pick(
-            business.publicInventoryVisible,
-            business.public_inventory_visible
-          )
-    ),
-    publicInventoryLimit: Math.max(
-      1,
-      Math.min(
-        20,
-        Math.trunc(
-          toNumberOrNull(
-            pick(
-              business.publicInventoryLimit,
-              business.public_inventory_limit
-            )
-          ) ?? 4
-        )
-      )
-    ),
-
     priority: business.priority || "",
     discoveryStatus:
       business.discoveryStatus || business.discovery_status || "",
     services: Array.isArray(business.services) ? business.services : [],
-    integrations,
-    primaryIntegration,
+    integrations: normalizedIntegrations,
+    bookingWidgets: normalizedIntegrations,
     locations: Array.isArray(business.locations) ? business.locations : [],
     searchAliases: Array.isArray(business.searchAliases)
       ? business.searchAliases
@@ -458,7 +274,7 @@ function toLegacyBusiness(row = {}) {
     longitude: pick(location.longitude, raw.longitude),
     timezone: location.timezone || raw.timezone || "America/Chicago",
     locations: Array.isArray(row.locations) ? row.locations : [],
-    services: Array.isArray(row.services) ? row.services.map(normalizeServiceRow) : (raw.services || []).map(normalizeServiceRow),
+    services: Array.isArray(row.services) ? row.services : raw.services || [],
     integrations: Array.isArray(row.integrations)
       ? row.integrations
       : raw.integrations || [],
@@ -469,7 +285,6 @@ function toLegacyBusiness(row = {}) {
 function setBusinessCache(businesses = []) {
   businessCache = Array.isArray(businesses) ? businesses : [];
   businessCacheLoadedAt = new Date().toISOString();
-  clearInventoryBusinessMetadataCache();
   return businessCache;
 }
 
@@ -533,42 +348,6 @@ function getAllBusinessesSync(options = {}) {
     : cached.filter((business) => business.enabled !== false);
 }
 
-
-async function searchBusinesses(options = {}) {
-  const result = await requireRepository().searchBusinesses(options);
-
-  return {
-    ...result,
-    businesses: result.businesses.map((row) => normalizeBusinessShape({
-      ...row,
-      businessId: row.business_id,
-      businessName: row.business_name,
-      displayName: row.display_name,
-      businessCategory: row.business_category,
-      verificationStatus: row.verification_status,
-      address: row.address || '',
-      city: row.city || '',
-      state: row.state || '',
-      postalCode: row.postal_code || '',
-      metro: row.metro || row.city || '',
-      serviceCount: Number(row.service_count || 0),
-      services: [],
-      locations: [],
-      integrations: []
-    }))
-  };
-}
-
-async function getBusinessSearchFacets() {
-  return requireRepository().getBusinessSearchFacets();
-}
-
-async function getBusinessDetails(idOrBusinessName) {
-  const repository = requireRepository();
-  const row = await repository.resolveBusiness(idOrBusinessName);
-  return hydrateBusinessRow(row);
-}
-
 async function getBusinessByName(businessName) {
   if (!businessName) return null;
 
@@ -592,10 +371,6 @@ async function createBusiness(business = {}) {
     normalizeBusinessShape(business)
   );
 
-  await syncBusinessIntegrations(
-    row.business_id || row.id || business.businessId || business.businessName,
-    normalizeBusinessIntegrations(business)
-  );
   await getAllBusinesses({ includeDisabled: true });
   return hydrateBusinessRow(row);
 }
@@ -623,11 +398,6 @@ async function updateBusiness(idOrBusinessName, updates = {}) {
         merged
       );
 
-  await syncBusinessIntegrations(
-    existing.businessId || existing.id,
-    normalizeBusinessIntegrations(merged)
-  );
-
   await getAllBusinesses({ includeDisabled: true });
   return hydrateBusinessRow(row);
 }
@@ -649,26 +419,6 @@ async function getBusinessSubscription(idOrBusinessName) {
   );
 
   return row ? normalizeSubscriptionShape(row) : null;
-}
-
-async function searchBusinessSubscriptions(options = {}) {
-  const result = await requireRepository().searchBusinessSubscriptions(options);
-  return {
-    ...result,
-    subscriptions: (result.subscriptions || []).map((row) => ({
-      businessId: row.public_business_id || row.business_id,
-      businessName: row.business_name,
-      businessCategory: row.business_category || "wellness",
-      platform: row.platform || "",
-      metro:
-        row.metro ||
-        row.city ||
-        "",
-      address: row.address || "",
-      enabled: row.enabled !== false,
-      ...normalizeSubscriptionShape(row)
-    }))
-  };
 }
 
 async function saveBusinessSubscription(idOrBusinessName, payload = {}) {
@@ -694,358 +444,84 @@ async function getBusinessSubscriptionMap() {
   return subscriptions;
 }
 
-function normalizeBusinessPageCategory(
-  category = {}
-) {
-  return {
-    slug:
-      category.slug ||
-      category.categorySlug ||
-      "",
-    displayName:
-      category.displayName ||
-      category.display_name ||
-      "",
-    description:
-      category.description || "",
-    sortOrder:
-      Number(
-        category.sortOrder ??
-        category.sort_order ??
-        100
-      )
-  };
-}
-
-function groupBusinessPageServices(
-  services = [],
-  categoryRows = []
-) {
-  const categoryMap = new Map(
-    (Array.isArray(categoryRows)
-      ? categoryRows
-      : []
-    ).map((category) => {
-      const normalized =
-        normalizeBusinessPageCategory(
-          category
-        );
-
-      return [
-        normalized.slug,
-        normalized
-      ];
-    })
-  );
-
-  const groups = new Map();
-
-  for (
-    const service
-    of Array.isArray(services)
-      ? services
-      : []
-  ) {
-    if (!service) continue;
-
-    const categorySlug =
-      serviceCategoryRepository
-        .normalizeCategorySlug(
-          service.categorySlug ||
-          service.category_slug ||
-          service.marketplaceCategory ||
-          service.marketplace_category ||
-          ""
-        ) ||
-      "massage";
-
-    const category =
-      categoryMap.get(categorySlug) ||
-      {
-        slug: categorySlug,
-        displayName:
-          categorySlug
-            .split("-")
-            .filter(Boolean)
-            .map(
-              (word) =>
-                word.charAt(0)
-                  .toUpperCase() +
-                word.slice(1)
-            )
-            .join(" "),
-        description: "",
-        sortOrder: 100
-      };
-
-    if (!groups.has(categorySlug)) {
-      groups.set(categorySlug, {
-        ...category,
-        services: []
-      });
-    }
-
-    groups.get(categorySlug)
-      .services.push({
-        ...service,
-        categorySlug,
-        marketplaceCategory:
-          categorySlug,
-        category: {
-          slug:
-            category.slug,
-          displayName:
-            category.displayName
-        }
-      });
-  }
-
-  const categories =
-    [...groups.values()]
-      .sort((left, right) => {
-        if (
-          left.sortOrder !==
-          right.sortOrder
-        ) {
-          return (
-            left.sortOrder -
-            right.sortOrder
-          );
-        }
-
-        return String(
-          left.displayName
-        ).localeCompare(
-          String(
-            right.displayName
-          )
-        );
-      });
-
-  for (const category of categories) {
-    category.services.sort(
-      (left, right) => {
-        const nameComparison =
-          String(
-            left.serviceName || ""
-          ).localeCompare(
-            String(
-              right.serviceName || ""
-            )
-          );
-
-        if (nameComparison !== 0) {
-          return nameComparison;
-        }
-
-        return (
-          Number(
-            left.durationMinutes ||
-            0
-          ) -
-          Number(
-            right.durationMinutes ||
-            0
-          )
-        );
-      }
-    );
-  }
-
-  return {
-    categories: categories.map(
-      (category) => ({
-        slug: category.slug,
-        displayName:
-          category.displayName,
-        description:
-          category.description,
-        sortOrder:
-          category.sortOrder,
-        serviceCount:
-          category.services.length
-      })
-    ),
-    servicesByCategory:
-      categories.map(
-        (category) => ({
-          slug: category.slug,
-          displayName:
-            category.displayName,
-          description:
-            category.description,
-          sortOrder:
-            category.sortOrder,
-          services:
-            category.services
-        })
-      )
-  };
-}
-
-function buildBusinessPageData(
-  business = {},
-  options = {}
-) {
+function buildBusinessPageData(business = {}) {
   if (!business) return null;
 
-  const item =
-    normalizeBusinessShape(business);
-
-  const businessName =
-    item.businessName ||
-    item.name ||
-    "Business";
-
+  const item = normalizeBusinessShape(business);
+  const businessName = item.businessName || item.name || "Business";
   const isVerified =
     item.claimed === true ||
-    [
-      "verified",
-      "claimed_verified"
-    ].includes(
-      item.verificationStatus
-    );
+    ["verified", "claimed_verified"].includes(item.verificationStatus);
 
   const publicProfile = {
     ...item.publicProfile,
-    specialties:
-      Array.isArray(
-        item.publicProfile.specialties
-      )
-        ? item.publicProfile.specialties
-        : item.specialties,
-    amenities:
-      Array.isArray(
-        item.publicProfile.amenities
-      )
-        ? item.publicProfile.amenities
-        : item.amenities
+    specialties: Array.isArray(item.publicProfile.specialties)
+      ? item.publicProfile.specialties
+      : item.specialties,
+    amenities: Array.isArray(item.publicProfile.amenities)
+      ? item.publicProfile.amenities
+      : item.amenities
   };
 
-  const serviceGrouping =
-    groupBusinessPageServices(
-      item.services,
-      options.categories
-    );
+  const bookingWidgets = getPublicBookingWidgets(item);
+  const publicServices = item.services.map((service) => {
+    const widget = resolveWidgetForService(item, service);
+
+    return {
+      ...service,
+      bookingWidgetId: widget?.widgetId || "",
+      bookingWidgetName: widget?.label || "",
+      bookingUrl: widget?.bookingUrl || item.bookingUrl || "",
+      platform: widget?.platform || item.platform || ""
+    };
+  });
 
   return {
-    businessId:
-      item.businessId,
+    businessId: item.businessId,
     businessName,
     name: businessName,
-    displayName:
-      item.displayName ||
-      businessName,
-    businessSlug:
-      item.businessSlug,
-    slug:
-      item.businessSlug,
-    businessUrl:
-      item.businessUrl ||
-      `/business/${item.businessSlug}`,
-    businessCategory:
-      item.businessCategory ||
-      "wellness",
-    platform:
-      item.platform || "",
-    bookingUrl:
-      item.bookingUrl || "",
-    website:
-      item.website || "",
-    phone:
-      item.phone || "",
-    email:
-      item.email || "",
-    address:
-      item.address || "",
-    latitude:
-      item.latitude,
-    longitude:
-      item.longitude,
-    logoUrl:
-      item.logoUrl || "",
-    logoAlt:
-      item.logoAlt ||
-      `${businessName} logo`,
-    claimed:
-      isVerified,
+    displayName: item.displayName || businessName,
+    businessSlug: item.businessSlug,
+    slug: item.businessSlug,
+    businessUrl: item.businessUrl || `/business/${item.businessSlug}`,
+    businessCategory: item.businessCategory || "wellness",
+    platform: item.platform || "",
+    bookingUrl: item.bookingUrl || "",
+    bookingWidgets,
+    website: item.website || "",
+    phone: item.phone || "",
+    email: item.email || "",
+    address: item.address || "",
+    latitude: item.latitude,
+    longitude: item.longitude,
+    logoUrl: item.logoUrl || "",
+    logoAlt: item.logoAlt || `${businessName} logo`,
+    claimed: isVerified,
     isVerified,
-    verificationStatus:
-      isVerified
-        ? "verified"
-        : item.verificationStatus ||
-          "unclaimed",
-    claimedByEmail:
-      item.claimedByEmail || "",
-    claimId:
-      item.claimId || "",
-    plan:
-      item.plan,
-    subscriptionStatus:
-      item.subscriptionStatus,
-    isPremium:
-      item.isPremium,
-    subscription:
-      item.subscription,
+    verificationStatus: isVerified
+      ? "verified"
+      : item.verificationStatus || "unclaimed",
+    claimedByEmail: item.claimedByEmail || "",
+    claimId: item.claimId || "",
+    plan: item.plan,
+    subscriptionStatus: item.subscriptionStatus,
+    isPremium: item.isPremium,
+    subscription: item.subscription,
     publicProfile,
-    activeDeal:
-      item.isPremium
-        ? item.activeDeal
-        : {},
-    bookingIntegration:
-      item.isPremium
-        ? item.bookingIntegration
-        : {},
-    services:
-      item.services,
-    categories:
-      serviceGrouping.categories,
-    servicesByCategory:
-      serviceGrouping.servicesByCategory,
-    amenities:
-      publicProfile.amenities || [],
-    specialties:
-      publicProfile.specialties || []
+    activeDeal: item.isPremium ? item.activeDeal : {},
+    bookingIntegration: item.isPremium ? item.bookingIntegration : {},
+    services: publicServices,
+    amenities: publicProfile.amenities || [],
+    specialties: publicProfile.specialties || []
   };
 }
 
-async function getBusinessPageData(
-  slugOrName
-) {
-  const [
-    business,
-    categories
-  ] = await Promise.all([
-    getBusinessBySlug(slugOrName),
-    serviceCategoryRepository
-      .listCategories()
-  ]);
-
-  return buildBusinessPageData(
-    business,
-    {
-      categories
-    }
-  );
+async function getBusinessPageData(slugOrName) {
+  return buildBusinessPageData(await getBusinessBySlug(slugOrName));
 }
-
-
 
 async function getBusinessPageDataAsync(slugOrName) {
   return getBusinessPageData(slugOrName);
-}
-
-function getBusinessIntegration(business = {}, options = {}) {
-  const normalized = normalizeBusinessShape(business);
-  return resolveEnabledIntegration(normalized, options);
-}
-
-function validateBusinessIntegrations(business = {}) {
-  const normalized = normalizeBusinessShape(business);
-  return normalized.integrations.map((integration) => ({
-    integration,
-    validation: validateIntegration(integration, normalized)
-  }));
 }
 
 function getCacheInfo() {
@@ -1067,9 +543,6 @@ function writeJsonBusinesses() {
 module.exports = {
   getAllBusinesses,
   getAllBusinessesSync,
-  searchBusinesses,
-  getBusinessSearchFacets,
-  getBusinessDetails,
   readJsonBusinesses,
   writeJsonBusinesses,
   toLegacyBusiness,
@@ -1082,14 +555,11 @@ module.exports = {
   getBusinessSubscription,
   saveBusinessSubscription,
   getBusinessSubscriptionMap,
-  searchBusinessSubscriptions,
   getBusinessPageData,
   getBusinessPageDataAsync,
   buildBusinessPageData,
   normalizeBusinessShape,
   normalizeSubscriptionShape,
-  getBusinessIntegration,
-  validateBusinessIntegrations,
   slugify,
   getCacheInfo
 };

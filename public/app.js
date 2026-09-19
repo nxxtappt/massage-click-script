@@ -7,524 +7,11 @@ let resultPollingTimer = null;
 let resultPollingAttempts = 0;
 let lastGoodAppointments = [];
 let currentSearchResults = [];
-let inferredSearchCategory = null;
 let userLatitude = null;
 let userLongitude = null;
 let maxDistanceMiles = 5;
 const MAX_POLLING_ATTEMPTS = 30;
 const POLLING_INTERVAL_MS = 2000;
-
-function titleCaseRouteSlug(value = "") {
-  return String(value || "")
-    .split("-")
-    .filter(Boolean)
-    .map((word) =>
-      word.charAt(0).toUpperCase() +
-      word.slice(1)
-    )
-    .join(" ");
-}
-
-function getMarketplacePageContext() {
-  const pathnameParts =
-    window.location.pathname
-      .split("/")
-      .filter(Boolean);
-
-  const body = document.body;
-
-  const metroSlug =
-    body?.dataset.metroSlug ||
-    pathnameParts[0] ||
-    "";
-
-  const metroName =
-    body?.dataset.metroName ||
-    titleCaseRouteSlug(
-      metroSlug
-    );
-
-  const metroTimezone =
-    body?.dataset.metroTimezone ||
-    "America/Chicago";
-
-  const metroLatitude =
-    Number(
-      body?.dataset.metroLatitude
-    );
-
-  const metroLongitude =
-    Number(
-      body?.dataset.metroLongitude
-    );
-
-  const metroZoom =
-    Number(
-      body?.dataset.metroZoom
-    );
-
-  const categorySlug =
-    body?.dataset.categorySlug ||
-    pathnameParts[1] ||
-    "";
-
-  const categoryName =
-    body?.dataset.categoryName ||
-    titleCaseRouteSlug(
-      categorySlug
-    );
-
-  const categoryDescription =
-    body
-      ?.dataset
-      .categoryDescription ||
-    "";
-
-  return {
-    metroSlug,
-    metroName,
-    metroTimezone,
-    metroLatitude:
-      Number.isFinite(
-        metroLatitude
-      )
-        ? metroLatitude
-        : 30.2672,
-    metroLongitude:
-      Number.isFinite(
-        metroLongitude
-      )
-        ? metroLongitude
-        : -97.7431,
-    metroZoom:
-      Number.isFinite(
-        metroZoom
-      )
-        ? metroZoom
-        : 11,
-    categorySlug,
-    categoryName,
-    categoryDescription
-  };
-}
-
-const currentPageContext =
-  getMarketplacePageContext();
-
-function getResolvedCategoryName() {
-  return (
-    currentPageContext.categoryName ||
-    inferredSearchCategory?.displayName ||
-    ""
-  );
-}
-
-function getCurrentAppointmentPhrase() {
-  const categoryName =
-    getResolvedCategoryName();
-
-  if (categoryName) {
-    return (
-      categoryName.toLowerCase() +
-      " appointments"
-    );
-  }
-
-  return "appointments";
-}
-
-function buildCategoryPageUrl(
-  categorySlug = ""
-) {
-  const metroSlug =
-    currentPageContext.metroSlug || "austin";
-
-  return categorySlug
-    ? `/${metroSlug}/${categorySlug}`
-    : `/${metroSlug}`;
-}
-
-function getCategoryEmptyStateCopy() {
-  const categoryName =
-    getResolvedCategoryName();
-
-  if (categoryName) {
-    return {
-      title:
-        `No ${categoryName} appointments available right now`,
-      message:
-        `This category is active, but no fresh ${categoryName.toLowerCase()} appointment times are currently stored. Try another category or check back after the next inventory update.`
-    };
-  }
-
-  return {
-    title: "No appointments found",
-    message:
-      "Try a broader prompt, choose an appointment category, or search again."
-  };
-}
-
-function renderMetroNavigation(
-  metros = []
-) {
-  if (!metroNavigation) {
-    return;
-  }
-
-  const enabledMetros =
-    Array.isArray(metros)
-      ? metros.filter(
-          (metro) =>
-            metro &&
-            metro.slug &&
-            metro.name
-        )
-      : [];
-
-  metroNavigation.innerHTML =
-    enabledMetros
-      .map((metro) => {
-        const isActive =
-          metro.slug ===
-          currentPageContext
-            .metroSlug;
-
-        const destination =
-          currentPageContext
-            .categorySlug
-            ? `/${metro.slug}/${currentPageContext.categorySlug}`
-            : `/${metro.slug}`;
-
-        return `
-          <a
-            class="metro-nav-link${isActive ? " is-active" : ""}"
-            href="${escapeAttribute(
-              destination
-            )}"
-            ${isActive ? 'aria-current="page"' : ""}
-          >
-            ${escapeHtml(
-              metro.name
-            )}
-          </a>
-        `;
-      })
-      .join("");
-
-  if (
-    metroNavigationStatus
-  ) {
-    metroNavigationStatus
-      .textContent =
-        enabledMetros.length
-          ? `${enabledMetros.length} cities available`
-          : "";
-  }
-}
-
-async function loadMetroNavigation() {
-  if (!metroNavigation) {
-    return [];
-  }
-
-  try {
-    const response =
-      await fetch(
-        "/api/marketplace-metros"
-      );
-
-    const data =
-      await response.json();
-
-    if (
-      !response.ok ||
-      !data.success
-    ) {
-      throw new Error(
-        data.error ||
-        "Metro list request failed."
-      );
-    }
-
-    const metros =
-      Array.isArray(data.metros)
-        ? data.metros
-        : [];
-
-    renderMetroNavigation(
-      metros
-    );
-
-    return metros;
-  } catch (error) {
-    console.error(
-      "Failed to load marketplace metros:",
-      error
-    );
-
-    metroNavigation.innerHTML = `
-      <a
-        class="metro-nav-link is-active"
-        href="/${escapeAttribute(
-          currentPageContext
-            .metroSlug ||
-          "austin"
-        )}"
-        aria-current="page"
-      >
-        ${escapeHtml(
-          currentPageContext
-            .metroName ||
-          "Austin"
-        )}
-      </a>
-    `;
-
-    if (
-      metroNavigationStatus
-    ) {
-      metroNavigationStatus
-        .textContent =
-          "City list temporarily unavailable";
-    }
-
-    return [];
-  }
-}
-
-function renderCategoryNavigation(
-  categories = []
-) {
-  if (!categoryNavigation) {
-    return;
-  }
-
-  const enabledCategories =
-    Array.isArray(categories)
-      ? categories.filter(
-          (category) =>
-            category &&
-            category.enabled !== false &&
-            category.slug
-        )
-      : [];
-
-  const allLink = {
-    slug: "",
-    displayName: "All",
-    businessCount: null
-  };
-
-  const navigationItems = [
-    allLink,
-    ...enabledCategories
-  ];
-
-  categoryNavigation.innerHTML =
-    navigationItems
-      .map((category) => {
-        const slug =
-          String(category.slug || "");
-        const displayName =
-          category.displayName ||
-          titleCaseRouteSlug(slug) ||
-          "All";
-
-        const businessCount =
-          category.businessCount === null ||
-          category.businessCount === undefined
-            ? null
-            : Number(
-                category.businessCount || 0
-              );
-
-        const isActive =
-          slug ===
-          String(
-            currentPageContext.categorySlug ||
-            inferredSearchCategory?.slug ||
-            ""
-          );
-
-        const isEmpty =
-          businessCount !== null &&
-          businessCount === 0;
-
-        let countLabel =
-          "All appointment types";
-
-        if (businessCount !== null) {
-          countLabel =
-            businessCount > 0
-              ? `${businessCount} business${businessCount === 1 ? "" : "es"}`
-              : "Coming soon";
-        }
-
-        return `
-          <a
-            class="category-nav-link${isActive ? " is-active" : ""}${isEmpty ? " is-empty" : ""}"
-            href="${escapeAttribute(
-              buildCategoryPageUrl(slug)
-            )}"
-            ${isActive ? 'aria-current="page"' : ""}
-          >
-            <span class="category-nav-name">
-              ${escapeHtml(displayName)}
-            </span>
-
-            <span class="category-nav-count">
-              ${escapeHtml(countLabel)}
-            </span>
-          </a>
-        `;
-      })
-      .join("");
-
-  if (categoryNavigationStatus) {
-    categoryNavigationStatus.textContent =
-      inferredSearchCategory?.displayName
-        ? `Recognized ${inferredSearchCategory.displayName} from your search`
-        : enabledCategories.length
-          ? `${enabledCategories.length} categories available`
-          : "";
-  }
-}
-
-function applyResolvedSearchCategory(
-  data = {}
-) {
-  if (
-    currentPageContext.categorySlug
-  ) {
-    inferredSearchCategory = null;
-    return;
-  }
-
-  inferredSearchCategory =
-    data.categorySource === "inferred" &&
-    data.category
-      ? data.category
-      : null;
-
-  if (!categoryNavigation) {
-    return;
-  }
-
-  const resolvedSlug =
-    inferredSearchCategory?.slug || "";
-
-  categoryNavigation
-    .querySelectorAll(
-      ".category-nav-link"
-    )
-    .forEach((link) => {
-      const linkPath = new URL(
-        link.href,
-        window.location.origin
-      ).pathname;
-
-      const isActive =
-        linkPath ===
-        buildCategoryPageUrl(
-          resolvedSlug
-        );
-
-      link.classList.toggle(
-        "is-active",
-        isActive
-      );
-
-      if (isActive) {
-        link.setAttribute(
-          "aria-current",
-          "page"
-        );
-      } else {
-        link.removeAttribute(
-          "aria-current"
-        );
-      }
-    });
-
-  if (
-    categoryNavigationStatus &&
-    inferredSearchCategory
-  ) {
-    categoryNavigationStatus.textContent =
-      `Recognized ${inferredSearchCategory.displayName} from your search`;
-  }
-}
-
-async function loadCategoryNavigation() {
-  if (!categoryNavigation) {
-    return [];
-  }
-
-  try {
-    const metroSlug =
-      currentPageContext.metroSlug ||
-      "austin";
-
-    const response = await fetch(
-      `/api/service-categories?metro=${encodeURIComponent(
-        metroSlug
-      )}`
-    );
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(
-        data.error ||
-        "Category list request failed."
-      );
-    }
-
-    const categories =
-      Array.isArray(data.categories)
-        ? data.categories
-        : [];
-
-    renderCategoryNavigation(categories);
-
-    return categories;
-  } catch (error) {
-    console.error(
-      "Failed to load service categories:",
-      error
-    );
-
-    categoryNavigation.innerHTML = `
-      <a
-        class="category-nav-link is-active"
-        href="${escapeAttribute(
-          buildCategoryPageUrl(
-            currentPageContext.categorySlug
-          )
-        )}"
-        aria-current="page"
-      >
-        <span class="category-nav-name">
-          ${escapeHtml(
-            currentPageContext.categoryName ||
-            "All"
-          )}
-        </span>
-
-        <span class="category-nav-count">
-          Current category
-        </span>
-      </a>
-    `;
-
-    if (categoryNavigationStatus) {
-      categoryNavigationStatus.textContent =
-        "Category list temporarily unavailable";
-    }
-
-    return [];
-  }
-}
 
 const appointmentsGrid = document.getElementById("appointmentsGrid");
 const resultsSummary = document.getElementById("resultsSummary");
@@ -535,30 +22,12 @@ const assistantResponse = document.getElementById("assistantResponse");
 const liveSearchResults = document.getElementById("liveSearchResults");
 const chatSearchForm = document.getElementById("chatSearchForm");
 const searchLiveBtn = document.getElementById("searchLiveBtn");
-const metroNavigation = document.getElementById("metroNavigation");
-const metroNavigationStatus = document.getElementById("metroNavigationStatus");
-const categoryNavigation = document.getElementById("categoryNavigation");
-const categoryNavigationStatus = document.getElementById("categoryNavigationStatus");
 
-function buildSearchUrl() {
+function buildSearchUrl(onDemand = false) {
   const params = new URLSearchParams();
 
   params.set("limitPerBusiness", "999");
   params.set("fresh", String(Date.now()));
-
-  if (currentPageContext.metroSlug) {
-    params.set(
-      "metro",
-      currentPageContext.metroSlug
-    );
-  }
-
-  if (currentPageContext.categorySlug) {
-    params.set(
-      "category",
-      currentPageContext.categorySlug
-    );
-  }
 
   if (searchInput.value.trim()) {
     params.set("search", searchInput.value.trim());
@@ -568,6 +37,9 @@ function buildSearchUrl() {
     params.set("business", businessFilter.value);
   }
 
+  if (onDemand) {
+    params.set("onDemand", "true");
+  }
 if (userLatitude !== null && userLongitude !== null) {
   params.set("latitude", String(userLatitude));
   params.set("longitude", String(userLongitude));
@@ -649,6 +121,7 @@ function startResultPolling() {
     resultPollingAttempts += 1;
 
     const data = await loadAppointments({
+      onDemand: false,
       preserveExistingOnEmpty: true,
       isPollingRefresh: true
     });
@@ -677,391 +150,6 @@ function startResultPolling() {
   }, POLLING_INTERVAL_MS);
 }
 
-// NEXTAPPT VERIFIED CONTROLS HOTFIX V2: public/app.js
-function isVerifiedSearchBusiness(appointment = {}) {
-  const status = String(
-    appointment.verificationStatus ||
-      appointment.verification_status ||
-      ""
-  )
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, " ");
-
-  return (
-    appointment.claimed === true ||
-    status === "verified" ||
-    status === "claimed verified"
-  );
-}
-
-function getVerifiedSearchRank(appointment = {}) {
-  if (!isVerifiedSearchBusiness(appointment)) return 0;
-
-  const parsed = Number.parseInt(
-    appointment.verifiedRank ??
-      appointment.verified_rank ??
-      0,
-    10
-  );
-
-  return Number.isFinite(parsed)
-    ? Math.max(0, Math.min(100, parsed))
-    : 0;
-}
-
-function getPublicInventoryLimit(appointment = {}) {
-  const parsed = Number.parseInt(
-    appointment.publicInventoryLimit ??
-      appointment.public_inventory_limit ??
-      4,
-    10
-  );
-
-  return Number.isFinite(parsed)
-    ? Math.max(1, Math.min(20, parsed))
-    : 4;
-}
-
-function isPremiumSearchBusiness(appointment = {}) {
-  const plan = String(
-    appointment.subscriptionPlan ||
-      appointment.subscription_plan ||
-      ""
-  )
-    .trim()
-    .toLowerCase();
-
-  const status = String(
-    appointment.subscriptionStatus ||
-      appointment.subscription_status ||
-      "active"
-  )
-    .trim()
-    .toLowerCase();
-
-  return (
-    plan === "premium" &&
-    ["active", "trialing"].includes(status)
-  );
-}
-
-function getAppointmentDateGroupKey(appointment = {}) {
-  if (appointment.localDateKey) {
-    return String(appointment.localDateKey);
-  }
-
-  if (appointment.date || appointment.rawDate) {
-    return String(appointment.date || appointment.rawDate);
-  }
-
-  if (appointment.startTime) {
-    const parsed = new Date(appointment.startTime);
-
-    if (!Number.isNaN(parsed.getTime())) {
-      const parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: currentPageContext.metroTimezone || "America/Chicago",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      }).formatToParts(parsed);
-      const values = Object.fromEntries(
-        parts.map((part) => [part.type, part.value])
-      );
-
-      return `${values.year}-${values.month}-${values.day}`;
-    }
-  }
-
-  return "upcoming";
-}
-
-function getAppointmentTimeGroupKey(appointment = {}) {
-  if (appointment.localTimeKey) {
-    return String(appointment.localTimeKey);
-  }
-
-  if (appointment.time || appointment.rawTime) {
-    return String(appointment.time || appointment.rawTime)
-      .trim()
-      .toLowerCase();
-  }
-
-  if (appointment.startTime) {
-    const parsed = new Date(appointment.startTime);
-
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toLocaleTimeString("en-US", {
-        timeZone: currentPageContext.metroTimezone || "America/Chicago",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-      });
-    }
-  }
-
-  return "time-available";
-}
-
-function formatPremiumDateLabel(appointment = {}) {
-  const dateKey = getAppointmentDateGroupKey(appointment);
-  const isoDateMatch = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-  if (isoDateMatch) {
-    const parsed = new Date(`${dateKey}T12:00:00`);
-
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toLocaleDateString("en-US", {
-        timeZone: currentPageContext.metroTimezone || "America/Chicago",
-        weekday: "short",
-        month: "short",
-        day: "numeric"
-      });
-    }
-  }
-
-  return dateKey === "upcoming" ? "Upcoming" : dateKey;
-}
-
-function formatPremiumTimeLabel(appointment = {}) {
-  const rawTime = appointment.time || appointment.rawTime || "";
-
-  if (rawTime && !String(rawTime).includes("T")) {
-    return String(rawTime);
-  }
-
-  if (appointment.startTime) {
-    const parsed = new Date(appointment.startTime);
-
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toLocaleTimeString("en-US", {
-        timeZone: currentPageContext.metroTimezone || "America/Chicago",
-        hour: "numeric",
-        minute: "2-digit"
-      });
-    }
-  }
-
-  return "Time available";
-}
-
-function groupPremiumAppointmentsByDateAndTime(appointments = [], limitTimes = 4) {
-  const dateMap = new Map();
-  let distinctTimeCount = 0;
-
-  const sortedAppointments = [...appointments].sort((a, b) => {
-    const aSort = Number(a.localSortable || Number.MAX_SAFE_INTEGER);
-    const bSort = Number(b.localSortable || Number.MAX_SAFE_INTEGER);
-
-    if (aSort !== bSort) return aSort - bSort;
-    return compareSearchAppointments(a, b);
-  });
-
-  sortedAppointments.forEach((appointment) => {
-    const dateKey = getAppointmentDateGroupKey(appointment);
-    const timeKey = getAppointmentTimeGroupKey(appointment);
-    const combinedKey = `${dateKey}|${timeKey}`;
-
-    let dateGroup = dateMap.get(dateKey);
-
-    if (!dateGroup) {
-      dateGroup = {
-        dateKey,
-        dateLabel: formatPremiumDateLabel(appointment),
-        times: [],
-        timeMap: new Map()
-      };
-      dateMap.set(dateKey, dateGroup);
-    }
-
-    let timeGroup = dateGroup.timeMap.get(combinedKey);
-
-    if (!timeGroup) {
-      if (distinctTimeCount >= limitTimes) return;
-
-      timeGroup = {
-        timeKey,
-        timeLabel: formatPremiumTimeLabel(appointment),
-        appointment,
-        services: [],
-        serviceKeys: new Set()
-      };
-      dateGroup.timeMap.set(combinedKey, timeGroup);
-      dateGroup.times.push(timeGroup);
-      distinctTimeCount += 1;
-    }
-
-    const serviceName =
-      appointment.serviceName ||
-      appointment.service ||
-      "Available appointment";
-    const serviceKey = String(serviceName).trim().toLowerCase();
-
-    if (!timeGroup.serviceKeys.has(serviceKey)) {
-      timeGroup.serviceKeys.add(serviceKey);
-      timeGroup.services.push({
-        name: serviceName,
-        appointment
-      });
-    }
-  });
-
-  return [...dateMap.values()]
-    .filter((dateGroup) => dateGroup.times.length)
-    .map(({ timeMap, ...dateGroup }) => ({
-      ...dateGroup,
-      times: dateGroup.times.map(({ serviceKeys, ...timeGroup }) => timeGroup)
-    }));
-}
-
-function buildAppointmentTrackingPayload(appointment = {}, businessName = "", bookingUrl = "#") {
-  return {
-    businessName: appointment.businessName || businessName,
-    platform: appointment.platform || "",
-    serviceName: appointment.serviceName || "",
-    serviceCategory: appointment.serviceCategory || "",
-    durationMinutes: appointment.durationMinutes || null,
-    therapistName: appointment.therapistName || "",
-    appointmentDate: appointment.date || "",
-    appointmentTime: appointment.time || "",
-    startTime: appointment.startTime || "",
-    localDateKey: appointment.localDateKey || "",
-    localTimeKey: appointment.localTimeKey || "",
-    bookingUrl: appointment.bookingUrl || bookingUrl,
-    sourcePage: "search"
-  };
-}
-
-function renderPremiumAvailabilityGroups(appointments, businessName, bookingUrl, cardId) {
-  const dateGroups = groupPremiumAppointmentsByDateAndTime(
-    appointments,
-    getPublicInventoryLimit(appointments[0] || {})
-  );
-  const timeGroups = dateGroups.flatMap((dateGroup) => dateGroup.times);
-  let slotIndex = 0;
-
-  return `
-    <div class="premium-time-groups">
-      ${timeGroups
-        .map((slot) => {
-          const currentIndex = slotIndex++;
-          const panelId = `${cardId}-premium-services-${currentIndex}`;
-          const serviceCount = slot.services.length;
-          const serviceLabel = `${serviceCount} service${serviceCount === 1 ? "" : "s"}`;
-          const serviceNames = slot.services.map((service) => service.name).join(", ");
-          const appointment = slot.appointment;
-          const dateTimeLabel = formatTimeButtonText(appointment);
-
-          return `
-            <article class="premium-time-slot">
-              <div class="premium-time-row">
-                <a
-                  class="premium-time-link"
-                  href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="${escapeAttribute(`Book ${dateTimeLabel}. Available services: ${serviceNames}`)}"
-                  data-track-appointment-click="true"
-                  data-appointment-payload="${escapeAttribute(JSON.stringify(
-                    buildAppointmentTrackingPayload(
-                      appointment,
-                      businessName,
-                      bookingUrl
-                    )
-                  ))}"
-                >
-                  ${escapeHtml(dateTimeLabel)}
-                </a>
-                <button
-                  class="premium-services-toggle"
-                  type="button"
-                  aria-expanded="false"
-                  aria-controls="${escapeAttribute(panelId)}"
-                >
-                  <span>${escapeHtml(serviceLabel)}</span>
-                  <span class="premium-services-chevron" aria-hidden="true">⌄</span>
-                </button>
-              </div>
-              <div class="premium-service-panel" id="${escapeAttribute(panelId)}" hidden>
-                <ul class="premium-service-list">
-                  ${slot.services
-                    .map((service) => `<li>${escapeHtml(service.name)}</li>`)
-                    .join("")}
-                </ul>
-              </div>
-            </article>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
-}
-
-function bindPremiumTimeToggles(card) {
-  const toggles = card.querySelectorAll(".premium-services-toggle");
-
-  toggles.forEach((toggle) => {
-    toggle.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const targetId = toggle.getAttribute("aria-controls");
-      const panel = targetId ? document.getElementById(targetId) : null;
-
-      if (!panel) return;
-
-      const willOpen = toggle.getAttribute("aria-expanded") !== "true";
-
-      toggles.forEach((otherToggle) => {
-        const otherId = otherToggle.getAttribute("aria-controls");
-        const otherPanel = otherId ? document.getElementById(otherId) : null;
-        const otherSlot = otherToggle.closest(".premium-time-slot");
-
-        otherToggle.setAttribute("aria-expanded", "false");
-        if (otherPanel) otherPanel.hidden = true;
-        if (otherSlot) otherSlot.classList.remove("is-open");
-      });
-
-      toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
-      panel.hidden = !willOpen;
-      toggle.closest(".premium-time-slot")?.classList.toggle("is-open", willOpen);
-    });
-  });
-}
-
-function compareSearchAppointments(a = {}, b = {}) {
-  const verifiedDiff =
-    Number(isVerifiedSearchBusiness(b)) -
-    Number(isVerifiedSearchBusiness(a));
-
-  if (verifiedDiff !== 0) return verifiedDiff;
-
-  if (
-    isVerifiedSearchBusiness(a) &&
-    isVerifiedSearchBusiness(b)
-  ) {
-    const rankDiff =
-      getVerifiedSearchRank(b) -
-      getVerifiedSearchRank(a);
-
-    if (rankDiff !== 0) return rankDiff;
-  }
-
-  const aScore = Number(a.ranking?.score || 0);
-  const bScore = Number(b.ranking?.score || 0);
-
-  if (aScore !== bScore) return bScore - aScore;
-
-  const aSort = Number(a.localSortable || 999999999999);
-  const bSort = Number(b.localSortable || 999999999999);
-
-  if (aSort !== bSort) return aSort - bSort;
-
-  return String(a.businessName || "").localeCompare(
-    String(b.businessName || "")
-  );
-}
-
 function mergeAppointments(existingAppointments, incomingAppointments) {
   const existing = Array.isArray(existingAppointments) ? existingAppointments : [];
   const incoming = Array.isArray(incomingAppointments) ? incomingAppointments : [];
@@ -1087,7 +175,21 @@ function mergeAppointments(existingAppointments, incomingAppointments) {
     }
   });
 
-  return [...mapByKey.values()].sort(compareSearchAppointments);
+  return [...mapByKey.values()].sort((a, b) => {
+    const aScore = Number(a.ranking?.score || 0);
+    const bScore = Number(b.ranking?.score || 0);
+
+    if (aScore !== bScore) return bScore - aScore;
+
+    const aSort = Number(a.localSortable || 999999999999);
+    const bSort = Number(b.localSortable || 999999999999);
+
+    if (aSort !== bSort) return aSort - bSort;
+
+    return String(a.businessName || "").localeCompare(
+      String(b.businessName || "")
+    );
+  });
 }
 
 function updateAssistantMessage(data, appointments, promptText = "", isPollingRefresh = false) {
@@ -1101,14 +203,9 @@ function updateAssistantMessage(data, appointments, promptText = "", isPollingRe
       return;
     }
 
-    const emptyState =
-      getCategoryEmptyStateCopy();
-
     setAssistantMessage(
-      emptyState.message,
-      currentPageContext.categorySlug
-        ? ""
-        : "error"
+      "I couldn't find matching appointments yet. Try a broader search.",
+      "error"
     );
     return;
   }
@@ -1121,15 +218,8 @@ function updateAssistantMessage(data, appointments, promptText = "", isPollingRe
   }
 
   if (promptText) {
-    const inferredCategoryText =
-      data?.categorySource ===
-        "inferred" &&
-      data?.category?.displayName
-        ? ` I recognized this as ${data.category.displayName}.`
-        : "";
-
     setAssistantMessage(
-      `I searched for "${promptText}".${inferredCategoryText} I found ${appointments.length} appointment${appointments.length === 1 ? "" : "s"} across ${businessCount} business${businessCount === 1 ? "" : "es"}.`
+      `I searched for "${promptText}" and found ${appointments.length} appointment${appointments.length === 1 ? "" : "s"} across ${businessCount} business${businessCount === 1 ? "" : "es"}.`
     );
     return;
   }
@@ -1148,7 +238,7 @@ function triggerLiveSearchInBackground() {
   searchLiveBtn.disabled = true;
   searchLiveBtn.textContent = "Searching...";
 
-  fetch(buildSearchUrl())
+  fetch(buildSearchUrl(true))
     .then((response) => response.json())
     .then((data) => {
       if (!data.success) {
@@ -1156,7 +246,8 @@ function triggerLiveSearchInBackground() {
       }
 
       return loadAppointments({
-          preserveExistingOnEmpty: true,
+        onDemand: false,
+        preserveExistingOnEmpty: true,
         isPollingRefresh: true
       });
     })
@@ -1222,6 +313,7 @@ if (
 }
   if (!promptText) {
     await loadAppointments({
+      onDemand: false,
       preserveExistingOnEmpty: true
     });
 
@@ -1240,17 +332,27 @@ if (
   resultsSummary.textContent = "Checking cache and live availability...";
 
   await loadAppointments({
+    onDemand: false,
     preserveExistingOnEmpty: true,
-    isPollingRefresh: false
+    isPollingRefresh: true
   });
+
+  triggerLiveSearchInBackground();
+  startResultPolling();
 }
 
 async function loadAppointments(options = {}) {
+  const onDemand = options.onDemand === true;
   const preserveExistingOnEmpty = options.preserveExistingOnEmpty === true;
   const isPollingRefresh = options.isPollingRefresh === true;
   const promptText = searchInput.value.trim();
 
   try {
+    if (onDemand) {
+      triggerLiveSearchInBackground();
+      return null;
+    }
+
     if (!isPollingRefresh) {
       resultsSummary.textContent = "Loading fresh appointments...";
     }
@@ -1261,8 +363,6 @@ async function loadAppointments(options = {}) {
     if (!data.success) {
       throw new Error(data.error || "Failed to load appointments");
     }
-
-    applyResolvedSearchCategory(data);
 
     const incomingAppointments = Array.isArray(data.appointments)
       ? data.appointments
@@ -1391,10 +491,7 @@ function renderLiveSearchResults(appointments) {
           const bookingUrl = firstAppointment.bookingUrl || "#";
           const address = firstAppointment.address || "Address not listed";
           const serviceSummary = getServiceSummary(group.appointments);
-          const topAppointments = group.appointments.slice(
-            0,
-            getPublicInventoryLimit(firstAppointment)
-          );
+          const topAppointments = group.appointments.slice(0, 4);
 
           return `
             <article class="live-result-card">
@@ -1468,7 +565,8 @@ function applyFilters() {
   searchDebounceTimer = setTimeout(() => {
     if (!searchInput.value.trim()) {
       loadAppointments({
-          preserveExistingOnEmpty: true
+        onDemand: false,
+        preserveExistingOnEmpty: true
       });
     }
   }, 350);
@@ -1481,17 +579,10 @@ function renderBusinessCards(appointments) {
   const businessGroups = Object.values(groupedBusinesses);
 
   if (!businessGroups.length) {
-    const emptyState =
-      getCategoryEmptyStateCopy();
-
     appointmentsGrid.innerHTML = `
       <div class="empty-state">
-        <h2>${escapeHtml(
-          emptyState.title
-        )}</h2>
-        <p>${escapeHtml(
-          emptyState.message
-        )}</p>
+        <h2>No appointments found</h2>
+        <p>Try a broader prompt or search again.</p>
       </div>
     `;
     return;
@@ -1509,10 +600,7 @@ function renderBusinessCards(appointments) {
     const verificationStatus =
       firstAppointment.verificationStatus || "unclaimed";
 
-    const isVerifiedBusiness =
-      isVerifiedSearchBusiness(firstAppointment);
-    const isPremiumBusiness =
-      group.appointments.some(isPremiumSearchBusiness);
+    const isVerifiedBusiness = verificationStatus === "verified";
 
 const businessUrl =
   firstAppointment.businessUrl ||
@@ -1532,10 +620,7 @@ const businessUrl =
     const reviewSummary = firstAppointment.reviewSummary || null;
     const activeDeal = firstAppointment.activeDeal || null;
     const profile = firstAppointment.publicProfile || {};
-    const nextAppointments = group.appointments.slice(
-      0,
-      getPublicInventoryLimit(firstAppointment)
-    );
+    const nextAppointments = group.appointments.slice(0, 4);
 
     const shouldShowDeal =
       isVerifiedBusiness &&
@@ -1550,14 +635,9 @@ const businessUrl =
       reviewSummary.count;
 
     const card = document.createElement("article");
-    card.className = [
-      "business-card",
-      businessUrl ? "clickable-business-card" : "",
-      isVerifiedBusiness ? "verified-business-card" : "",
-      isPremiumBusiness ? "premium-business-card" : ""
-    ]
-      .filter(Boolean)
-      .join(" ");
+    card.className = businessUrl
+      ? "business-card clickable-business-card"
+      : "business-card";
 
     card.id = makeBusinessCardId(businessName);
 
@@ -1645,47 +725,42 @@ const businessUrl =
 
         <p class="next-label">Fresh appointment times:</p>
 
-        ${
-          isPremiumBusiness
-            ? renderPremiumAvailabilityGroups(
-                group.appointments,
-                businessName,
-                bookingUrl,
-                card.id
-              )
-            : `
-                <div class="time-buttons">
-                  ${nextAppointments
-                    .map((appointment) => {
-                      return `
-                        <a
-                          class="time-button"
-                          href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          data-track-appointment-click="true"
-                          data-appointment-payload="${escapeAttribute(JSON.stringify(
-                            buildAppointmentTrackingPayload(
-                              appointment,
-                              businessName,
-                              bookingUrl
-                            )
-                          ))}"
-                        >
-                          ${escapeHtml(formatTimeButtonText(appointment))}
-                        </a>
-                      `;
-                    })
-                    .join("")}
-                </div>
-              `
-        }
+        <div class="time-buttons">
+          ${nextAppointments
+            .map((appointment) => {
+              return `
+                <a
+                  class="time-button"
+                  href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-track-appointment-click="true"
+                  data-appointment-payload="${escapeAttribute(JSON.stringify({
+                    businessName: appointment.businessName || businessName,
+                    platform: appointment.platform || "",
+                    serviceName: appointment.serviceName || "",
+                    serviceCategory: appointment.serviceCategory || "",
+                    durationMinutes: appointment.durationMinutes || null,
+                    therapistName: appointment.therapistName || "",
+                    appointmentDate: appointment.date || "",
+                    appointmentTime: appointment.time || "",
+                    startTime: appointment.startTime || "",
+                    localDateKey: appointment.localDateKey || "",
+                    localTimeKey: appointment.localTimeKey || "",
+                    bookingUrl: appointment.bookingUrl || bookingUrl,
+                    widgetId: appointment.widgetId || appointment.bookingWidgetId || "",
+                    widgetName: appointment.widgetName || appointment.bookingWidgetName || "",
+                    sourcePage: "search"
+                  }))}"
+                >
+                  ${escapeHtml(formatTimeButtonText(appointment))}
+                </a>
+              `;
+            })
+            .join("")}
+        </div>
       </div>
     `;
-
-    if (isPremiumBusiness) {
-      bindPremiumTimeToggles(card);
-    }
 
     if (businessUrl) {
       card.addEventListener("click", (event) => {
@@ -1710,8 +785,21 @@ const businessUrl =
 function groupAppointmentsByBusiness(appointments) {
   const groups = {};
 
-  const sortedAppointments =
-    [...appointments].sort(compareSearchAppointments);
+  const sortedAppointments = [...appointments].sort((a, b) => {
+    const aScore = Number(a.ranking?.score || 0);
+    const bScore = Number(b.ranking?.score || 0);
+
+    if (aScore !== bScore) return bScore - aScore;
+
+    const aSort = Number(a.localSortable || 999999999999);
+    const bSort = Number(b.localSortable || 999999999999);
+
+    if (aSort !== bSort) return aSort - bSort;
+
+    return String(a.businessName || "").localeCompare(
+      String(b.businessName || "")
+    );
+  });
 
   sortedAppointments.forEach((appointment) => {
     const key = appointment.businessName || "Unknown Business";
@@ -1741,32 +829,12 @@ function getServiceSummary(appointments) {
   return `${services[0]} + ${services.length - 1} more service${services.length - 1 === 1 ? "" : "s"}`;
 }
 
-function getCurrentMetroMapView() {
-  return {
-    center: [
-      currentPageContext
-        .metroLatitude,
-      currentPageContext
-        .metroLongitude
-    ],
-    zoom:
-      currentPageContext
-        .metroZoom
-  };
-}
-
 function initMap() {
   if (map || !document.getElementById("map") || typeof L === "undefined") return;
 
-  const metroMapView =
-    getCurrentMetroMapView();
-
   map = L.map("map", {
     scrollWheelZoom: false
-  }).setView(
-    metroMapView.center,
-    metroMapView.zoom
-  );
+  }).setView([30.2672, -97.7431], 11);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -1774,35 +842,6 @@ function initMap() {
   }).addTo(map);
 
   markerLayer = L.layerGroup().addTo(map);
-}
-
-function parseMapCoordinate(value, minimum, maximum) {
-  if (value === undefined || value === null || String(value).trim() === "") {
-    return null;
-  }
-
-  const number = Number(value);
-
-  if (!Number.isFinite(number) || number < minimum || number > maximum) {
-    return null;
-  }
-
-  return number;
-}
-
-function getAppointmentMapCoordinates(appointment = {}) {
-  const latitude = parseMapCoordinate(appointment.latitude, -90, 90);
-  const longitude = parseMapCoordinate(appointment.longitude, -180, 180);
-
-  if (latitude === null || longitude === null) {
-    return null;
-  }
-
-  if (latitude === 0 && longitude === 0) {
-    return null;
-  }
-
-  return { latitude, longitude };
 }
 
 function renderMapMarkers(appointments) {
@@ -1814,14 +853,7 @@ function renderMapMarkers(appointments) {
 
   const businessesWithCoordinates = groupedBusinesses
     .map((group) => {
-      const firstAppointment = Array.isArray(group.appointments)
-        ? group.appointments[0]
-        : null;
-      const coordinates = getAppointmentMapCoordinates(firstAppointment || {});
-
-      if (!firstAppointment || !coordinates) {
-        return null;
-      }
+      const firstAppointment = group.appointments[0];
 
       return {
         businessName: firstAppointment.businessName || "Unknown Business",
@@ -1830,21 +862,17 @@ function renderMapMarkers(appointments) {
         logoUrl: firstAppointment.logoUrl || "",
         verificationStatus:
           firstAppointment.verificationStatus || "unclaimed",
-        ...coordinates,
+        latitude: Number(firstAppointment.latitude),
+        longitude: Number(firstAppointment.longitude),
         appointments: group.appointments
       };
     })
-    .filter(Boolean);
+    .filter((business) => {
+      return Number.isFinite(business.latitude) && Number.isFinite(business.longitude);
+    });
 
   if (!businessesWithCoordinates.length) {
-    const metroMapView =
-      getCurrentMetroMapView();
-
-    map.setView(
-      metroMapView.center,
-      metroMapView.zoom
-    );
-
+    map.setView([30.2672, -97.7431], 11);
     return;
   }
 
@@ -1943,7 +971,7 @@ function formatTimeButtonText(appointment = {}) {
 
     if (!Number.isNaN(parsed.getTime())) {
       const displayDate = parsed.toLocaleDateString("en-US", {
-        timeZone: currentPageContext.metroTimezone || "America/Chicago",
+        timeZone: "America/Chicago",
         weekday: "short",
         month: "short",
         day: "numeric"
@@ -1958,7 +986,7 @@ function formatTimeButtonText(appointment = {}) {
 
     if (!Number.isNaN(parsed.getTime())) {
       return parsed.toLocaleString("en-US", {
-        timeZone: currentPageContext.metroTimezone || "America/Chicago",
+        timeZone: "America/Chicago",
         weekday: "short",
         month: "short",
         day: "numeric",
@@ -2022,6 +1050,7 @@ chatSearchForm.addEventListener("submit", async (event) => {
 if (businessFilter) {
   businessFilter.addEventListener("change", () => {
     loadAppointments({
+      onDemand: false,
       preserveExistingOnEmpty: true
     });
   });
@@ -2037,6 +1066,7 @@ if (clearFiltersBtn) {
     renderLiveSearchResults(currentSearchResults);
 
     loadAppointments({
+      onDemand: false,
       preserveExistingOnEmpty: false
     });
   });
@@ -2073,9 +1103,6 @@ document.addEventListener("click", async (event) => {
 });
 
 async function initializeApp() {
-  loadMetroNavigation();
-  loadCategoryNavigation();
-
   try {
     const response = await fetch(
       "/api/settings/public"
@@ -2095,19 +1122,12 @@ const heroSubtitle =
 
 if (heroTitle) {
   heroTitle.textContent =
-    currentPageContext.categoryName
-      ? `Available ${currentPageContext.categoryName} Appointments in Austin`
-      : "Available Appointments in Austin";
+    "Available Massage Appointments in Austin";
 }
 
 if (heroSubtitle) {
   heroSubtitle.textContent =
-    currentPageContext.categoryDescription ||
-    (
-      currentPageContext.categoryName
-        ? `Freshly updated ${currentPageContext.categoryName.toLowerCase()} appointment availability across the Austin area.`
-        : "Freshly updated appointment availability from businesses across the Austin area."
-    );
+    "Freshly updated appointment availability from massage businesses across the Austin area.";
 }
       if (chatSearchForm) {
         chatSearchForm.style.display =
@@ -2117,13 +1137,14 @@ if (heroSubtitle) {
       if (assistantResponse) {
         assistantResponse.innerHTML = `
           <div class="assistant-bubble">
-            Find ${getCurrentAppointmentPhrase()} available right now across Austin
+            Find massage appointments available right now across Austin
           </div>
         `;
       }
     }
 
     loadAppointments({
+      onDemand: false,
       preserveExistingOnEmpty: false
     });
   } catch (error) {
@@ -2133,6 +1154,7 @@ if (heroSubtitle) {
     );
 
     loadAppointments({
+      onDemand: false,
       preserveExistingOnEmpty: false
     });
   }
@@ -2196,12 +1218,7 @@ function showSearchEmailPopup() {
     <p class="email-capture-title">Want appointment alerts?</p>
 
     <p class="email-capture-copy">
-      Get updates as NextAppt adds more live ${escapeHtml(
-        getCurrentAppointmentPhrase()
-      )} in ${escapeHtml(
-        currentPageContext.metroName ||
-        "your city"
-      )}.
+      Get updates as NextAppt adds more live appointment inventory in Austin.
     </p>
 
     <form data-email-capture-form data-email-source="search_popup">
@@ -2222,11 +1239,8 @@ function showSearchEmailPopup() {
   });
 }
 
-if (currentPageContext.metroSlug) {
-  setTimeout(
-    showSearchEmailPopup,
-    10000
-  );
+if (window.location.pathname === "/austin/massage") {
+  setTimeout(showSearchEmailPopup, 10000);
 }
 document.addEventListener("click", async (event) => {
   const ratingButton = event.target.closest("[data-chat-rating]");

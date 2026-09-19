@@ -1,12 +1,23 @@
 require("dotenv").config();
 
 const { chromium } = require("playwright");
-const { parseCliFilters, buildScrapeJobs } = require("./jobBuilder");
+const fs = require("fs");
 
 const {
-  initializeAdminSettings,
+  storagePath,
+  writeJsonAtomic,
+  readJson
+} = require("./storagePaths");
+
+const { parseCliFilters, buildScrapeJobs } = require("./jobBuilder");
+const { upsertAppointmentResult, getCacheStats } = require("./cacheManager");
+const { shouldSkipScrapeForFreshCache } = require("./staleChecker");
+
+const {
   loadAdminSettings,
   isPlatformEnabled,
+  getTtlMinutesForStatus,
+  shouldSkipVagaroDiscovery
 } = require("./adminSettingsManager");
 
 const { scrapeMindbodyBusiness } = require("./scrapers/mindbody");
@@ -14,7 +25,6 @@ const { scrapeSchedulistaBusiness } = require("./scrapers/schedulista");
 const { scrapeMeevoAvailability } = require("./scrapers/meevo");
 const vagaroModule = require("./scrapers/vagaroMarketplace");
 const { scrapeAxl3Business } = require("./scrapers/axl3");
-const { scrapeAustinDeepBusiness } = require("./scrapers/austindeep");
 const { scrapeBookerBusiness } = require("./scrapers/booker");
 const { scrapeOakHavenBusiness } = require("./scrapers/oakhaven");
 const { scrapeMindbodyOldBusiness } = require("./scrapers/mindbody-old");
@@ -22,63 +32,33 @@ const { scrapeZenoti } = require("./scrapers/zenoti");
 const { scrapeMassageEnvyBusiness } = require("./scrapers/massage-envy");
 const { scrapeMangomintBusiness } = require("./scrapers/mangomint");
 const { scrapeHandStoneBusiness } = require("./scrapers/hand-stone");
-const { scrapeBoulevardBusiness } = require("./scrapers/boulevard");
-const { scrapeSquareBusiness } = require("./scrapers/square");
-const { scrapeJaneBusiness } = require("./scrapers/jane");
-const { scrapeAcuityBusiness } = require("./scrapers/acuity");
-const { scrapeScissorsScotchBusiness } = require("./scrapers/scissors-scotch");
 const { syncBusinessViaApi } = require("./apiSyncRouter");
-const { replaceApiInventory } = require("./apiInventoryRefresh");
 const businessManager = require("./businessManager");
-const inventoryManager = require("./inventoryManager");
-const { getPlatformDefinition, validateIntegration } = require("./platformIntegrationRegistry");
 
 const MAX_ATTEMPTS = 2;
-
-function toBigIntIdOrNull(value) {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  const text = String(value).trim();
-
-  if (!/^\d+$/.test(text)) {
-    return null;
-  }
-
-  try {
-    return BigInt(text) > 0n ? text : null;
-  } catch {
-    return null;
-  }
-}
-
-function resolveBusinessServiceId(...values) {
-  for (const value of values) {
-    const resolved = toBigIntIdOrNull(value);
-    if (resolved) return resolved;
-  }
-
-  return null;
-}
+const RESULTS_FILE = storagePath("results.json");
 const {
   mergeConfirmedAndInferredAppointments
 } = require("./availabilityInferenceEngine");
+const ERROR_LOGS_FILE = storagePath("errorLogs.json");
 const {
   createScrapeRun,
   finishScrapeRun,
   insertRawScrapeResult,
-  insertConfirmedAppointmentsFromResult,
-  reconcileAppointmentInventoryScope
+  insertConfirmedAppointmentsFromResult
 } = require("./database/inventoryRepository");
-
-const { logScrapeError } = require("./database/runtimeStateRepository");
+const VAGARO_DISCOVERY_FILE = storagePath("vagaro-marketplace-results.json");
 
 const scrapeVagaroMarketplace =
   vagaroModule.scrapeVagaroMarketplace ||
   vagaroModule.scrapeVagaroMarketplaceSearch ||
   vagaroModule;
 
+function saveResults(results) {
+  console.log(
+    `[RESULTS] Legacy results.json write disabled. ${results.length} result(s) kept in memory only.`
+  );
+}
 
 function normalizeResultKeyValue(value) {
   return String(value || "")
@@ -119,16 +99,49 @@ function upsertResult(results = [], incomingResult = {}) {
   return [...filtered, incomingResult];
 }
 
-async function appendErrorLog(entry) {
+function appendErrorLog(entry) {
+  const file = ERROR_LOGS_FILE;
+  let existing = [];
+
+  if (fs.existsSync(file)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(file, "utf8"));
+      if (!Array.isArray(existing)) existing = [];
+    } catch {
+      existing = [];
+    }
+  }
+
+  existing.unshift({
+    ...entry,
+    loggedAt: new Date().toISOString()
+  });
+
+  writeJsonAtomic(file, existing.slice(0, 500));
+}
+
+function cacheResult(result) {
   try {
-    await logScrapeError(entry);
+    const ttlMinutes = getTtlMinutesForStatus(result.status);
+
+    if (!ttlMinutes || ttlMinutes <= 0) {
+      console.log("[CACHE] Cache disabled or TTL is 0. Skipping cache save.");
+      return;
+    }
+
+    upsertAppointmentResult(result, { ttlMinutes });
   } catch (error) {
-    console.error("[SCRAPE ERROR LOG] Failed:", error.message);
+    console.error("[CACHE] Failed to save scrape result:", error.message);
   }
 }
 
-async function cacheResult() {
-  // PostgreSQL inventory is the only runtime appointment store.
+function normalizeCachedResult(cachedResult) {
+  return {
+    ...cachedResult,
+    fromCache: true,
+    cacheStatus: "fresh",
+    status: cachedResult.status || "cached"
+  };
 }
 
 async function createScrapePage(browser) {
@@ -155,19 +168,6 @@ async function createScrapePage(browser) {
 async function closeScrapePage(page, context) {
   await page?.close?.().catch(() => null);
   await context?.close?.().catch(() => null);
-}
-
-function usesDedicatedBrowser(job = {}) {
-  const platform = String(job.platform || "").toLowerCase();
-
-  return (
-    String(job.integrationType || "").toLowerCase() === "api" ||
-    platform === "meevo" ||
-    platform === "square" ||
-    platform === "austindeep" ||
-    platform === "acuity" ||
-    platform === "scissors-scotch"
-  );
 }
 
 function buildScrapeWindowPayload(job = {}) {
@@ -463,18 +463,9 @@ async function scrapeMeevoBusiness(business, attemptNumber) {
 async function scrapeWithRetries(browser, business) {
   let lastError = null;
   const scrapeTarget = withScrapeWindow(business);
-  const integrationValidation = scrapeTarget.integration
-    ? validateIntegration(scrapeTarget.integration, scrapeTarget)
-    : { valid: false, errors: ["No integration resolved for scrape job."], warnings: [] };
-  if (!integrationValidation.valid) {
-    throw new Error(`Invalid scrape integration: ${integrationValidation.errors.join(" ")}`);
-  }
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-    const { page, context } = usesDedicatedBrowser(scrapeTarget)
-      ? { page: null, context: null }
-      : await createScrapePage(browser);
-
+    const { page, context } = await createScrapePage(browser);
     const startedAt = Date.now();
 
     try {
@@ -601,62 +592,6 @@ async function scrapeWithRetries(browser, business) {
         return await scrapeMeevoBusiness(scrapeTarget, attempt);
       }
 
-      if (scrapeTarget.platform === "vagaro") {
-        await closeScrapePage(page, context);
-        const result = await scrapeVagaroMarketplace({
-          business: scrapeTarget,
-          bookingUrl: scrapeTarget.bookingUrl,
-          service: scrapeTarget.serviceName,
-          serviceName: scrapeTarget.serviceName,
-          city: scrapeTarget.city || "austin",
-          state: scrapeTarget.state || "tx",
-          limit: scrapeTarget.maxResults || 20,
-          inspectBusinessPages: true,
-          integrationConfig: scrapeTarget.integrationConfig || {},
-          ...buildScrapeWindowPayload(scrapeTarget)
-        });
-        const rows = Array.isArray(result) ? result : (result.results || result.appointments || []);
-        return {
-          businessName: scrapeTarget.businessName, bookingUrl: scrapeTarget.bookingUrl, platform: "vagaro",
-          serviceName: scrapeTarget.serviceName, service: scrapeTarget.serviceName, serviceType: scrapeTarget.serviceType || "massage",
-          durationMinutes: scrapeTarget.durationMinutes || null, platformServiceId: scrapeTarget.platformServiceId || null,
-          appointments: rows, times: rows.map((item) => item.time || item.startTime).filter(Boolean),
-          status: rows.length ? "success" : "no_times_found", attemptNumber: attempt, scrapeDurationMs: Date.now() - startedAt,
-          lastChecked: new Date().toISOString(), distanceMiles: scrapeTarget.distanceMiles || null,
-          ...buildScrapeWindowPayload(scrapeTarget)
-        };
-      }
-
-      if (scrapeTarget.platform === "austindeep") {
-        const result = await scrapeAustinDeepBusiness(scrapeTarget);
-        await closeScrapePage(page, context);
-
-        return {
-          ...result,
-          businessName: scrapeTarget.businessName,
-          bookingUrl: scrapeTarget.bookingUrl,
-          platform: "austindeep",
-          serviceName:
-            scrapeTarget.serviceName || result.serviceName || result.service || "",
-          service:
-            scrapeTarget.serviceName || result.serviceName || result.service || "",
-          serviceType:
-            scrapeTarget.serviceType || result.serviceType || "deep_tissue",
-          durationMinutes:
-            scrapeTarget.durationMinutes || result.durationMinutes || null,
-          platformServiceId:
-            scrapeTarget.platformServiceId ||
-            scrapeTarget.sessionTypeId ||
-            scrapeTarget.serviceId ||
-            result.platformServiceId ||
-            null,
-          provider: result.provider || "Any Available Therapist",
-          distanceMiles: scrapeTarget.distanceMiles || null,
-          attemptNumber: attempt,
-          ...buildScrapeWindowPayload(scrapeTarget)
-        };
-      }
-
       if (scrapeTarget.platform === "axl3") {
         await closeScrapePage(page, context);
         const result = await scrapeAxl3Business(browser, scrapeTarget);
@@ -730,132 +665,6 @@ async function scrapeWithRetries(browser, business) {
       }
 
 
-      if (scrapeTarget.platform === "square") {
-        const result = await scrapeSquareBusiness(scrapeTarget);
-        await closeScrapePage(page, context);
-
-        return {
-          ...result,
-          businessName: scrapeTarget.businessName,
-          bookingUrl: scrapeTarget.bookingUrl,
-          platform: "square",
-          serviceName: scrapeTarget.serviceName || result.serviceName || result.service || "",
-          service: scrapeTarget.serviceName || result.serviceName || result.service || "",
-          serviceType: scrapeTarget.serviceType || result.serviceType || "hair",
-          durationMinutes: scrapeTarget.durationMinutes || result.durationMinutes || null,
-          platformServiceId:
-            scrapeTarget.platformServiceId ||
-            scrapeTarget.serviceId ||
-            result.platformServiceId ||
-            null,
-          provider: result.provider || scrapeTarget.providerText || "Any staff",
-          distanceMiles: scrapeTarget.distanceMiles || null,
-          attemptNumber: attempt,
-          ...buildScrapeWindowPayload(scrapeTarget)
-        };
-      }
-
-
-      if (scrapeTarget.platform === "acuity") {
-        await closeScrapePage(page, context);
-
-        const result = await scrapeAcuityBusiness(scrapeTarget);
-
-        return {
-          ...result,
-          businessName: scrapeTarget.businessName,
-          bookingUrl: scrapeTarget.bookingUrl,
-          platform: "acuity",
-          serviceName:
-            scrapeTarget.serviceName || result.serviceName || result.service || "",
-          service:
-            scrapeTarget.serviceName || result.serviceName || result.service || "",
-          serviceType: scrapeTarget.serviceType || result.serviceType || "",
-          durationMinutes:
-            scrapeTarget.durationMinutes || result.durationMinutes || null,
-          platformServiceId:
-            scrapeTarget.platformServiceId ||
-            scrapeTarget.serviceId ||
-            result.platformServiceId ||
-            null,
-          distanceMiles: scrapeTarget.distanceMiles || null,
-          attemptNumber: attempt,
-          ...buildScrapeWindowPayload(scrapeTarget)
-        };
-      }
-
-
-      if (scrapeTarget.platform === "scissors-scotch") {
-        await closeScrapePage(page, context);
-
-        const result = await scrapeScissorsScotchBusiness(scrapeTarget);
-
-        return {
-          ...result,
-          businessName: scrapeTarget.businessName,
-          bookingUrl: scrapeTarget.bookingUrl,
-          platform: "scissors-scotch",
-          serviceName:
-            scrapeTarget.serviceName ||
-            result.serviceName ||
-            result.service ||
-            "",
-          service:
-            scrapeTarget.serviceName ||
-            result.serviceName ||
-            result.service ||
-            "",
-          serviceType:
-            scrapeTarget.serviceType ||
-            result.serviceType ||
-            "hair",
-          durationMinutes:
-            scrapeTarget.durationMinutes ||
-            result.durationMinutes ||
-            null,
-          platformServiceId:
-            scrapeTarget.platformServiceId ||
-            scrapeTarget.serviceId ||
-            result.platformServiceId ||
-            null,
-          provider:
-            result.provider ||
-            "Any Available Professional",
-          distanceMiles: scrapeTarget.distanceMiles || null,
-          attemptNumber: attempt,
-          ...buildScrapeWindowPayload(scrapeTarget)
-        };
-      }
-
-      if (scrapeTarget.platform === "jane") {
-        const result = await scrapeJaneBusiness(page, scrapeTarget, attempt);
-        await closeScrapePage(page, context);
-
-        return {
-          ...result,
-          businessName: scrapeTarget.businessName,
-          bookingUrl: scrapeTarget.bookingUrl,
-          platform: "jane",
-          serviceName:
-            scrapeTarget.serviceName || result.serviceName || result.service || "",
-          service:
-            scrapeTarget.serviceName || result.serviceName || result.service || "",
-          serviceType:
-            scrapeTarget.serviceType || result.serviceType || "",
-          durationMinutes:
-            result.durationMinutes || scrapeTarget.durationMinutes || null,
-          platformServiceId:
-            result.platformServiceId ||
-            scrapeTarget.platformServiceId ||
-            scrapeTarget.serviceId ||
-            null,
-          provider: result.provider || "Any Available Practitioner",
-          distanceMiles: scrapeTarget.distanceMiles || null,
-          attemptNumber: attempt,
-          ...buildScrapeWindowPayload(scrapeTarget)
-        };
-      }
-
       if (scrapeTarget.platform === "hand-stone") {
       await closeScrapePage(page, context);
 
@@ -926,35 +735,6 @@ async function scrapeWithRetries(browser, business) {
           ...buildScrapeWindowPayload(scrapeTarget)
         };
       }
-
-      // BOULEVARD SCRAPER START
-      if (scrapeTarget.platform === "boulevard") {
-        const result = await scrapeBoulevardBusiness(page, scrapeTarget);
-        await closeScrapePage(page, context);
-
-        return {
-          ...result,
-          businessName: scrapeTarget.businessName,
-          bookingUrl: scrapeTarget.bookingUrl || result.bookingUrl,
-          platform: "boulevard",
-          service: scrapeTarget.serviceName || result.serviceName || result.service || "",
-          serviceName: scrapeTarget.serviceName || result.serviceName || result.service || "",
-          serviceType: scrapeTarget.serviceType || result.serviceType || "",
-          durationMinutes:
-            scrapeTarget.durationMinutes || result.durationMinutes || null,
-          platformServiceId:
-            scrapeTarget.platformServiceId ||
-            scrapeTarget.serviceId ||
-            result.platformServiceId ||
-            null,
-          provider: "First Available",
-          attemptNumber: attempt,
-          scrapeDurationMs: Date.now() - startedAt,
-          distanceMiles: scrapeTarget.distanceMiles || null,
-          ...buildScrapeWindowPayload(scrapeTarget)
-        };
-      }
-      // BOULEVARD SCRAPER END
 
       if (scrapeTarget.platform === "zenoti") {
         await closeScrapePage(page, context);
@@ -1063,23 +843,92 @@ async function scrapeWithRetries(browser, business) {
   return null;
 }
 
-async function run() {
-  await initializeAdminSettings();
+async function runVagaroDiscoveryOnly(filters = {}) {
+  if (!isPlatformEnabled("vagaro")) {
+    console.log("[VAGARO] Platform disabled in admin settings. Skipping discovery.");
+    return;
+  }
 
+  if (shouldSkipVagaroDiscovery(filters)) {
+    console.log("[VAGARO] Discovery skipped by admin settings.");
+    return;
+  }
+
+  if (typeof scrapeVagaroMarketplace !== "function") {
+    console.log("[VAGARO] No callable Vagaro marketplace scraper export found.");
+    return;
+  }
+
+  try {
+    console.log("\n===== Running Vagaro discovery only =====");
+
+    const vagaroResults = await scrapeVagaroMarketplace({
+      service: filters.service || "Swedish Massage - 60 Minute",
+      city: filters.city || "austin",
+      state: filters.state || "tx",
+      limit: filters.maxResults ? Number(filters.maxResults) : 20,
+      inspectBusinessPages: filters.inspectBusinessPages !== "false"
+    });
+
+    fs.writeFileSync(VAGARO_DISCOVERY_FILE, JSON.stringify(vagaroResults, null, 2));
+
+    console.log(
+      `Saved ${vagaroResults.length} Vagaro discovery result(s) to ${VAGARO_DISCOVERY_FILE}`
+    );
+  } catch (error) {
+    console.error("Vagaro discovery failed:", error.message);
+    appendErrorLog({
+      platform: "vagaro",
+      status: "error",
+      error: error.message
+    });
+  }
+}
+
+function enforceOnDemandLimits(scrapeJobs, filters, adminSettings) {
+  const isOnDemand = filters.onDemand === true || filters.onDemand === "true";
+
+  if (!isOnDemand) {
+    return scrapeJobs;
+  }
+
+  if (adminSettings.onDemand.enabled === false) {
+    console.log("[ON-DEMAND] Disabled in admin settings.");
+    return [];
+  }
+
+  if (
+    adminSettings.onDemand.requireGeoFilter === true &&
+    (!filters.latitude || !filters.longitude)
+  ) {
+    console.log("[ON-DEMAND] Geo filter required but missing.");
+    return [];
+  }
+
+  const maxJobs = Number(adminSettings.onDemand.maxJobsPerSearch || 10);
+
+  return scrapeJobs.slice(0, maxJobs);
+}
+
+async function run() {
   const adminSettings = loadAdminSettings();
   const filters = parseCliFilters(process.argv);
 
   const forceRefresh =
     filters.forceRefresh === true ||
-    filters.forceRefresh === "true";
+    filters.forceRefresh === "true" ||
+    adminSettings.scraping.skipFreshCache === false;
+
+  const skipFreshCache =
+    adminSettings.scraping.skipFreshCache !== false && !forceRefresh;
 
   if (adminSettings.scraping.enabled === false) {
-    throw new Error("Availability refresh is disabled in admin settings.");
+    console.log("[ADMIN] Scraping is disabled in admin-settings.json.");
+    console.log("[ADMIN] Leaving existing results.json untouched.");
+    return;
   }
 
-  const businesses = await businessManager.getAllBusinesses({
-    includeDisabled: false
-  });
+  const businesses = businessManager.getAllBusinessesSync();
 
   const supportedPlatforms = [
     "mindbody",
@@ -1087,19 +936,13 @@ async function run() {
     "schedulista",
     "meevo",
     "axl3",
-    "austindeep",
     "booker",
     "zenoti",
     "oakhaven",
     "massage-envy",
     "mangomint",
-    "hand-stone",
-    "square",
-    "acuity",
-    "jane",
-    "vagaro"
-  ,
-    "boulevard"].filter((platform) => Boolean(getPlatformDefinition(platform)));
+    "hand-stone"
+  ];
 
   const scrapeableBusinesses = businesses.filter((business) => {
     return (
@@ -1108,24 +951,8 @@ async function run() {
     );
   });
 
-  let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, { ...filters, allowInvalidJobs: true });
-  const rejectedJobs = scrapeJobs.filter((job) => job.jobValidation && !job.jobValidation.valid);
-  const rejectedApiJobs = rejectedJobs.filter((job) => job.integrationType === "api");
-  if (rejectedApiJobs.length) {
-    throw new Error("Invalid API service configuration: " + rejectedApiJobs.map((job) =>
-      `${job.businessName} / ${job.serviceName}: ${job.jobValidation.errors.join("; ")}`).join(" | "));
-  }
-  scrapeJobs = scrapeJobs.filter((job) => !job.jobValidation || job.jobValidation.valid);
-  if (rejectedJobs.length) {
-    console.warn(`[JOB VALIDATION] Rejected ${rejectedJobs.length} invalid job(s).`);
-  }
-
-  const businessConfigByName = new Map(
-    scrapeableBusinesses.map((business) => [
-      normalizeResultKeyValue(business.businessName || business.name),
-      business
-    ])
-  );
+  let scrapeJobs = buildScrapeJobs(scrapeableBusinesses, filters);
+  scrapeJobs = enforceOnDemandLimits(scrapeJobs, filters, adminSettings);
 
   console.log(`Loaded ${businesses.length} businesses from businessManager`);
   console.log(`Built ${scrapeJobs.length} service-level scrape job(s)`);
@@ -1154,55 +981,61 @@ async function run() {
     );
   }
 
-  console.log("[INVENTORY] PostgreSQL is the only runtime appointment store.");
+  if (skipFreshCache) {
+    console.log("[CACHE] Fresh-cache skipping is enabled.");
+  } else {
+    console.log("[CACHE] Fresh-cache skipping is disabled / force refresh enabled.");
+  }
 
   if (scrapeJobs.length === 0) {
     console.log("No scrape jobs matched the filters or enabled platforms.");
-    console.log("[INVENTORY] No PostgreSQL inventory changes were made.");
-    if (filters.business || filters.integrationType || filters.scheduleId) {
-      throw new Error("No eligible refresh jobs. Check enabled integration, service mapping, platform settings and service rules.");
-    }
+    console.log("[RESULTS] Leaving existing results.json untouched.");
     return;
   }
 
-  let browser = null;
-  let results = [];
-  let failedRefreshes = 0;
+  const browser = await chromium.launch({
+    headless: true
+  });
 
-  console.log("[INVENTORY] Starting a new PostgreSQL-backed scrape run.");
+let results = [];
+
+  console.log(
+    "[RESULTS] Legacy results.json loading disabled. Starting with empty in-memory run results."
+  );
 
   try {
     for (const job of scrapeJobs) {
-      const dedicatedBrowser = usesDedicatedBrowser(job);
+      if (skipFreshCache) {
+        const staleCheck = shouldSkipScrapeForFreshCache(job, {
+          forceRefresh
+        });
 
-      // Meevo owns its own Chromium instance. Close the shared browser first so
-      // a mixed scrape run never holds two Chromium processes at the same time.
-      if (dedicatedBrowser && browser) {
-        await browser.close().catch(() => null);
-        browser = null;
+        if (staleCheck.skip) {
+          const cachedResult = normalizeCachedResult(staleCheck.cachedResult);
+
+          console.log(
+            `[CACHE] Skipping scrape for ${job.businessName} | ${job.serviceName}. Reason: ${staleCheck.reason}`
+          );
+
+          const filteredCachedResult = filterResultToScrapeWindow(cachedResult, job);
+
+          results = upsertResult(results, filteredCachedResult);
+          saveResults(results);
+          continue;
+        }
       }
-
-      if (!dedicatedBrowser && !browser) {
-        browser = await chromium.launch({ headless: true });
-      }
-
-      const businessServiceId = resolveBusinessServiceId(
-        job.businessServiceId,
-        job.business_service_id,
-        job.serviceDatabaseId,
-        job.serviceConfigId
-      );
 
       const scrapeRun = await createScrapeRun({
         triggerType:
-          filters.manual === true || filters.manual === "true"
-            ? "manual"
-            : "scheduled",
+          filters.onDemand === true || filters.onDemand === "true"
+            ? "on_demand"
+            : filters.manual === true || filters.manual === "true"
+              ? "manual"
+              : "scheduled",
         businessName: job.businessName,
         platform: job.platform,
         serviceName: job.serviceName || job.service || "",
         serviceType: job.serviceType || "",
-        businessServiceId,
         durationMinutes: job.durationMinutes || null,
         scrapeStartDate: job.scrapeStartDate || null,
         scrapeEndDate: job.scrapeEndDate || null,
@@ -1212,7 +1045,17 @@ async function run() {
       });
 
       const rawResult = await scrapeWithRetries(browser, job);
-      const result = filterResultToScrapeWindow(rawResult, job);
+      const result = {
+        ...filterResultToScrapeWindow(rawResult, job),
+        // Keep the exact widget route on every result. Scrapers may return a
+        // generic business URL, but the service-level widget is the correct
+        // booking destination for cards and dynamic pages.
+        bookingUrl: rawResult.bookingUrl || job.bookingUrl || "",
+        widgetId: job.widgetId || job.bookingWidgetId || "",
+        widgetName: job.widgetName || job.bookingWidgetName || "",
+        bookingWidgetId: job.bookingWidgetId || job.widgetId || "",
+        bookingWidgetName: job.bookingWidgetName || job.widgetName || ""
+      };
 
       const rawScrapeResult = await insertRawScrapeResult({
         scrapeRunId: scrapeRun.id,
@@ -1220,85 +1063,18 @@ async function run() {
         platform: result.platform || job.platform,
         serviceName: result.serviceName || job.serviceName || "",
         serviceType: result.serviceType || job.serviceType || "",
-        businessServiceId,
         durationMinutes: result.durationMinutes || job.durationMinutes || null,
         scrapeStartDate: result.scrapeStartDate || job.scrapeStartDate || null,
         scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null,
         rawResult: result
       });
 
-result.businessServiceId = resolveBusinessServiceId(
-  result.businessServiceId,
-  businessServiceId
-);
-
 const confirmedAppointments = resultTimesToAppointments(result);
 
 function toDateKey(displayDate) {
-  const directMatch = String(displayDate || "").match(/^(\d{4}-\d{2}-\d{2})/);
-  if (directMatch) return directMatch[1];
-
   const parsed = new Date(displayDate);
   if (Number.isNaN(parsed.getTime())) return "";
   return parsed.toISOString().slice(0, 10);
-}
-
-function getAppointmentLocalDateKey(appointment = {}, fallback = "") {
-  const candidates = [
-    appointment.localDateKey,
-    appointment.dateKey,
-    appointment.appointmentDate,
-    appointment.date,
-    appointment.startTime,
-    appointment.startDateTime,
-    appointment.appointmentStart,
-    appointment.rawDate,
-    fallback
-  ];
-
-  for (const candidate of candidates) {
-    const dateKey = toDateKey(candidate);
-    if (dateKey) return dateKey;
-  }
-
-  return "";
-}
-
-function getAppointmentLocalTimeKey(appointment = {}) {
-  const candidates = [
-    appointment.localTimeKey,
-    appointment.timeKey,
-    appointment.appointmentTime,
-    appointment.time,
-    appointment.startTime,
-    appointment.startDateTime,
-    appointment.appointmentStart,
-    appointment.rawTime
-  ];
-
-  for (const candidate of candidates) {
-    const raw = String(candidate || "").trim();
-    if (!raw) continue;
-
-    const isoMatch = raw.match(/T(\d{1,2}):(\d{2})/);
-    if (isoMatch) {
-      return `${String(isoMatch[1]).padStart(2, "0")}:${isoMatch[2]}`;
-    }
-
-    const displayMatch = raw.match(/(?:^|\s)(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
-    if (!displayMatch) continue;
-
-    let hour = Number(displayMatch[1]);
-    const minute = displayMatch[2];
-    const ampm = String(displayMatch[3] || "").toUpperCase();
-
-    if (ampm === "PM" && hour !== 12) hour += 12;
-    if (ampm === "AM" && hour === 12) hour = 0;
-
-    return `${String(hour).padStart(2, "0")}:${minute}`;
-  }
-
-  return "";
 }
 
 function resultTimesToAppointments(result = {}) {
@@ -1312,86 +1088,13 @@ function resultTimesToAppointments(result = {}) {
   if (Array.isArray(result.appointments) && result.appointments.length > 0) {
     return result.appointments.map((appointment) => ({
       ...appointment,
-      businessName:
-        appointment.businessName ||
-        result.businessName ||
-        job.businessName ||
-        "",
-      platform:
-        appointment.platform ||
-        result.platform ||
-        job.platform ||
-        "",
-      bookingUrl:
-        appointment.bookingUrl ||
-        result.bookingUrl ||
-        job.bookingUrl ||
-        "",
-      serviceName:
-        appointment.serviceName ||
-        appointment.service ||
-        result.serviceName ||
-        result.service ||
-        job.serviceName ||
-        "",
-      service:
-        appointment.service ||
-        appointment.serviceName ||
-        result.serviceName ||
-        result.service ||
-        job.serviceName ||
-        "",
-      serviceType:
-        appointment.serviceType ||
-        appointment.serviceCategory ||
-        result.serviceType ||
-        job.serviceType ||
-        "",
-      serviceCategory:
-        appointment.serviceCategory ||
-        appointment.serviceType ||
-        result.serviceType ||
-        job.serviceType ||
-        "",
-      durationMinutes:
-        appointment.durationMinutes ||
-        appointment.duration ||
-        result.durationMinutes ||
-        job.durationMinutes ||
-        null,
-      therapistName:
-        appointment.therapistName ||
-        appointment.providerName ||
-        appointment.provider ||
-        result.provider ||
-        result.providerText ||
-        "",
-      provider:
-        appointment.provider ||
-        appointment.providerName ||
-        appointment.therapistName ||
-        result.provider ||
-        result.providerText ||
-        "",
-      platformServiceId:
-        appointment.platformServiceId ||
-        result.platformServiceId ||
-        job.platformServiceId ||
-        null,
-      serviceId:
-        appointment.serviceId ||
-        result.serviceId ||
-        job.serviceId ||
-        null,
-      businessServiceId: resolveBusinessServiceId(
-        appointment.businessServiceId,
-        appointment.business_service_id,
-        result.businessServiceId,
-        businessServiceId
-      ),
+      bookingUrl: appointment.bookingUrl || result.bookingUrl || "",
+      widgetId: appointment.widgetId || result.widgetId || result.bookingWidgetId || "",
+      widgetName: appointment.widgetName || result.widgetName || result.bookingWidgetName || "",
+      bookingWidgetId:
+        appointment.bookingWidgetId || result.bookingWidgetId || result.widgetId || "",
       sourceType: appointment.sourceType || "confirmed",
-      localDateKey: getAppointmentLocalDateKey(appointment, localDateKey),
-      localTimeKey: getAppointmentLocalTimeKey(appointment)
+      localDateKey: appointment.localDateKey || localDateKey
     }));
   }
 
@@ -1403,6 +1106,9 @@ function resultTimesToAppointments(result = {}) {
     businessName: result.businessName,
     platform: result.platform,
     bookingUrl: result.bookingUrl,
+    widgetId: result.widgetId || result.bookingWidgetId || "",
+    widgetName: result.widgetName || result.bookingWidgetName || "",
+    bookingWidgetId: result.bookingWidgetId || result.widgetId || "",
 
     serviceName: result.serviceName || result.service,
     service: result.serviceName || result.service,
@@ -1414,39 +1120,20 @@ function resultTimesToAppointments(result = {}) {
     therapistName: result.provider || result.providerText || "",
     provider: result.provider || result.providerText || "",
 
-    localDateKey: getAppointmentLocalDateKey(
-      {
-        time,
-        startTime: time
-      },
-      localDateKey
-    ),
-    localTimeKey: getAppointmentLocalTimeKey({
-      time,
-      startTime: time
-    }),
+    localDateKey,
 
     time,
     rawTime: time,
 
     price: result.price || null,
 
-    sourceType: "confirmed",
-    businessServiceId: resolveBusinessServiceId(
-      result.businessServiceId,
-      businessServiceId
-    )
+    sourceType: "confirmed"
   }));
 }
 
-const hydratedBusinessConfig =
-  businessConfigByName.get(
-    normalizeResultKeyValue(result.businessName || job.businessName)
-  ) || job;
-
-const mergedAppointments = job.integrationType === "api" ? confirmedAppointments : mergeConfirmedAndInferredAppointments(
+const mergedAppointments = mergeConfirmedAndInferredAppointments(
   confirmedAppointments,
-  hydratedBusinessConfig,
+  job,
   {
     inferenceMode: "scrape_pipeline"
   }
@@ -1456,7 +1143,7 @@ const resultWithInference = {
   ...result,
   appointments: mergedAppointments,
   inferenceSummary: {
-    enabled: job.integrationType !== "api",
+    enabled: true,
     confirmedAppointmentCount: confirmedAppointments.length,
     totalAppointmentCount: mergedAppointments.length,
     inferredAppointmentCount:
@@ -1465,105 +1152,57 @@ const resultWithInference = {
   }
 };
 
-// Failed requests must not erase the last known inventory or look successful
-// to the queue worker. Successful empty responses still reconcile normally.
-if (resultWithInference.status === "error") {
-  await finishScrapeRun(scrapeRun.id, { runStatus: "error", appointmentsFound: 0,
-    errorMessage: resultWithInference.error || "Availability request failed." });
-  failedRefreshes += 1;
-  results = upsertResult(results, resultWithInference);
-  console.error(`[REFRESH FAILED] ${job.businessName} | ${job.serviceName}: ${resultWithInference.error}`);
-  continue;
-}
+await finishScrapeRun(scrapeRun.id, {
+  runStatus: resultWithInference.status === "error" ? "error" : "success",
+  appointmentsFound: mergedAppointments.length,
+  errorMessage: resultWithInference.error || null
+});
 
 const confirmedInventoryResult = {
   ...result,
-  businessServiceId,
   appointments: confirmedAppointments
 };
 
-const inventoryScope = {
-  businessServiceId,
-  anchorServiceId: businessServiceId,
-  scrapeStartDate: result.scrapeStartDate || job.scrapeStartDate || null,
-  scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null
-};
-const inventoryOptions = { scrapeRunId: scrapeRun.id, rawScrapeResultId: rawScrapeResult.id };
-let reconciledInventory, insertedInventoryAppointments;
-try {
-  if (job.integrationType === "api") {
-    const published = await replaceApiInventory(confirmedInventoryResult, inventoryScope, inventoryOptions);
-    reconciledInventory = published.reconciled;
-    insertedInventoryAppointments = published.inserted;
-  } else {
-    reconciledInventory = await reconcileAppointmentInventoryScope(inventoryScope);
-    insertedInventoryAppointments = await insertConfirmedAppointmentsFromResult(confirmedInventoryResult, inventoryOptions);
-  }
-} catch (error) {
-  await finishScrapeRun(scrapeRun.id, { runStatus: "error", appointmentsFound: 0,
-    errorMessage: "Inventory publication failed; inspect worker logs." });
-  throw error;
-}
-await finishScrapeRun(scrapeRun.id, { runStatus: "success", appointmentsFound: insertedInventoryAppointments.length });
-
-console.log(
-  `[INVENTORY] Removed ${reconciledInventory.deleted} previous inventory row(s) for this service and scrape window.`
-);
+const insertedInventoryAppointments =
+  await insertConfirmedAppointmentsFromResult(confirmedInventoryResult, {
+    scrapeRunId: scrapeRun.id,
+    rawScrapeResultId: rawScrapeResult.id
+  });
 
 console.log(
   `[INVENTORY] Saved ${insertedInventoryAppointments.length} confirmed appointment(s) to PostgreSQL inventory.`
 );
 
-const inferredAppointments = mergedAppointments.filter(
-  (appointment) =>
-    String(appointment.sourceType || "").toLowerCase() === "inferred"
-);
+const inferredCount = mergedAppointments.length - confirmedAppointments.length;
 
-if (inferredAppointments.length > 0) {
-  const savedInferred = await inventoryManager.insertInferredAppointments(
-    inferredAppointments,
-    {
-      businessName: result.businessName || job.businessName,
-      platform: result.platform || job.platform,
-      anchorServiceId: businessServiceId
-    }
-  );
-
+if (inferredCount > 0) {
   console.log(
-    `[INVENTORY] Saved ${savedInferred.length} inferred appointment(s) to PostgreSQL inventory.`
+    `[INVENTORY] ${inferredCount} inferred appointment(s) generated but not written to confirmed inventory yet.`
   );
-} else if (confirmedAppointments.length > 0) {
-  const anchor = confirmedAppointments[0] || {};
-  console.warn("[INFERENCE] No inferred appointments generated.", {
-    businessName: result.businessName || job.businessName || "",
-    businessServiceId,
-    serviceName: anchor.serviceName || anchor.service || job.serviceName || "",
-    serviceType: anchor.serviceType || anchor.serviceCategory || job.serviceType || "",
-    durationMinutes: anchor.durationMinutes || job.durationMinutes || null,
-    inferenceRole: job.inferenceRole || "",
-    inferShorterDurations: job.inferShorterDurations === true,
-    configuredServiceCount: Array.isArray(hydratedBusinessConfig.services)
-      ? hydratedBusinessConfig.services.length
-      : 0
-  });
 }
 
 results = upsertResult(results, resultWithInference);
+cacheResult(resultWithInference);
+saveResults(results);
 
       console.log("----- RESULT -----");
       console.log(JSON.stringify(result, null, 2));
     }
   } finally {
-    await browser?.close?.().catch(() => null);
+    await browser.close().catch(() => null);
   }
+
+  await runVagaroDiscoveryOnly(filters);
+
+  console.log("\n===== CACHE STATS =====");
+  console.log(JSON.stringify(getCacheStats(), null, 2));
 
   console.log("\n===== SCRAPE COMPLETE =====");
   console.log(`Total results: ${results.length}`);
-  if (failedRefreshes) throw new Error(`${failedRefreshes} service refresh(es) failed. Existing inventory for those services was preserved; inspect service errors.`);
 }
 
 if (require.main === module) {
-  run().catch(async (error) => {
+  run().catch((error) => {
     console.error("Fatal scrape error:", error);
     appendErrorLog({
       status: "fatal_error",
@@ -1576,6 +1215,5 @@ if (require.main === module) {
 
 module.exports = {
   run,
-  scrapeWithRetries,
-  usesDedicatedBrowser
+  scrapeWithRetries
 };

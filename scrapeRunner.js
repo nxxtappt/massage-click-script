@@ -21,6 +21,14 @@ function buildArgsForTarget(target = {}) {
     );
   }
 
+  if (target.serviceName) {
+    args.push(`--service=${target.serviceName}`);
+  }
+
+  if (target.bookingWidgetId || target.widgetId) {
+    args.push(`--widget=${target.bookingWidgetId || target.widgetId}`);
+  }
+
   if (
     target.durationMinutes
   ) {
@@ -29,7 +37,7 @@ function buildArgsForTarget(target = {}) {
     );
   }
 
-  args.push("--manual=true");
+  args.push("--onDemand=true");
 
   return args;
 }

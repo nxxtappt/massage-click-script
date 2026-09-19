@@ -1,21 +1,21 @@
 require("dotenv").config();
 const aiSearchRoutes = require("./api/aiSearchRoutes");
-const createSeoDiscoveryRoutes = require("./api/seoDiscoveryRoutes");
-const { initializeAdminSettings, loadAdminSettings } = require("./adminSettingsManager");
+const { loadAdminSettings } = require("./adminSettingsManager");
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
-const seoRoutes = require("./seoRoutes");
-const austinSearchRoutes = require("./austinSearchRoutes");
 const businessManager = require("./businessManager");
+const { resolveWidgetForService } = require("./bookingWidgetManager");
 const { spawn } = require("child_process");
-const { storagePath } = require("./storagePaths");
+const {
+  storagePath,
+  readJson,
+  writeJsonAtomic
+} = require("./storagePaths");
 const adminRoutes = require("./adminRoutes");
-const adminV2Routes = require("./api/adminV2Routes");
 const businessPortalRoutes = require("./businessPortalRoutes");
 const businessDashboardRoutes = require("./businessDashboardRoutes");
 const analyticsRoutes = require("./analyticsRoutes");
-const widgetRoutes = require("./api/widgetRoutes");
-const adminSiteAnalyticsRoutes = require("./adminSiteAnalyticsRoutes");
 const {
   dedupeBusinesses,
   dedupeAppointments,
@@ -29,30 +29,27 @@ const {
   buildSearchIntent
 } = require("./searchIntentEngine");
 
-const searchExecutionManager = null;
+// Optional orchestration modules created in the newer cache/search architecture.
+// These are loaded defensively so the older results.json flow keeps working
+// even if one of the new files is not present yet.
+const searchExecutionManager = safeRequire("./searchExecutionManager");
 const {
   syncBusinessViaApi
 } = safeRequire("./apiSyncRouter") || {};
+const {
+  upsertBusinessResult
+} = require("./resultStore");
 
 const inventoryManager = require("./inventoryManager");
-const serviceCategoryRepository = require("./database/serviceCategoryRepository");
-const {
-  getMarketplaceMetro,
-  listMarketplaceMetros,
-  getMarketplaceTimeZone,
-  matchesMarketplaceMetro
-} = require("./marketplaceMetros");
-const userRepository = require("./database/userRepository");
-const userRoutes = require("./userRoutes");
-const legalRoutes = require("./legalRoutes");
-const adminUserRoutes = require("./adminUserRoutes");
-const { startUserAlertMatcher } = require("./userAlertMatcher");
 const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
 const {
   getBusinessPageDataAsync
 } = require("./businessManager");
+const {
+  mergeConfirmedAndInferredAppointments
+} = require("./availabilityInferenceEngine");
 const app = express();
 const PORT = 3000;
 const APPOINTMENT_TIME_ZONE = "America/Chicago";
@@ -94,18 +91,6 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/api/ai", aiSearchRoutes);
 
 app.use(
-  createSeoDiscoveryRoutes({
-    businessManager,
-    inventoryManager,
-    publicDir: path.join(__dirname, "public"),
-    siteOrigin: process.env.SITE_ORIGIN || "https://nextappt.ai"
-  })
-);
-app.use(require("./publicAvailabilityRoutes"));
-app.use(seoRoutes);
-app.use(austinSearchRoutes);
-
-app.use(
   [
     "/admin",
     "/admin.html",
@@ -118,62 +103,120 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "landing.html"));
 });
 
+app.get("/austin/massage", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.get("/ai", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "ai.html"));
 });
 
-app.post("/api/email-capture", async (req, res) => {
+const EMAIL_CAPTURE_FILE = path.join(__dirname, "secure", "email-captures.json");
+
+function ensureEmailCaptureFile() {
+  const secureDir = path.join(__dirname, "secure");
+
+  if (!fs.existsSync(secureDir)) {
+    fs.mkdirSync(secureDir, { recursive: true });
+  }
+
+  if (!fs.existsSync(EMAIL_CAPTURE_FILE)) {
+    fs.writeFileSync(EMAIL_CAPTURE_FILE, JSON.stringify([], null, 2));
+  }
+}
+
+function loadEmailCaptures() {
+  ensureEmailCaptureFile();
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(EMAIL_CAPTURE_FILE, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+app.post("/api/email-capture", (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const source = String(req.body?.source || "unknown").trim();
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ success: false, error: "Please enter a valid email." });
+      return res.status(400).json({
+        success: false,
+        error: "Please enter a valid email."
+      });
     }
-    const consent =
-      req.body?.consent && typeof req.body.consent === "object"
-        ? req.body.consent
-        : {};
 
-    await userRepository.captureEmail({
-      email,
-      source,
-      productUpdatesEnabled: consent.productUpdates === true
+    const captures = loadEmailCaptures();
+
+    const existing = captures.find((item) => item.email === email);
+
+    if (!existing) {
+      captures.unshift({
+        email,
+        source,
+        createdAt: new Date().toISOString()
+      });
+
+      fs.writeFileSync(EMAIL_CAPTURE_FILE, JSON.stringify(captures, null, 2));
+    }
+
+    res.json({
+      success: true,
+      message: "Email saved."
     });
-
-    res.json({ success: true, message: "Email saved." });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
 app.use("/uploads", express.static(storagePath("public", "uploads")));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/api/admin/v2", adminV2Routes);
-app.use("/api/admin/analytics", adminSiteAnalyticsRoutes);
-app.use("/api/admin/users", adminUserRoutes);
+// Widget-aware manual scrape endpoint. Kept separate from the legacy targeted
+// route so older adminRoutes deployments remain backward compatible.
+app.post("/api/admin/scrape/widget-targeted", requireAdminAuth, (req, res) => {
+  const allowed = [
+    ["platform", "platform"],
+    ["business", "business"],
+    ["service", "service"],
+    ["widget", "widget"],
+    ["serviceType", "serviceType"],
+    ["durationMinutes", "duration"],
+    ["priority", "priority"],
+    ["discoveryStatus", "discoveryStatus"],
+    ["forceRefresh", "forceRefresh"],
+    ["manual", "manual"],
+    ["onDemand", "onDemand"],
+    ["ignoreServiceRules", "ignoreServiceRules"],
+    ["skipVagaroDiscovery", "skipVagaroDiscovery"]
+  ];
+  const args = allowed.flatMap(([bodyKey, cliKey]) => {
+    const value = req.body?.[bodyKey];
+    return value === undefined || value === null || value === ""
+      ? []
+      : [`--${cliKey}=${String(value)}`];
+  });
+
+  const child = spawn("node", ["scrape.js", ...args], {
+    cwd: __dirname,
+    stdio: "inherit"
+  });
+  child.on("error", (error) => {
+    console.error("[WIDGET TARGETED SCRAPE] Failed to start:", error.message);
+  });
+
+  res.status(202).json({ success: true, args });
+});
+
 app.use("/api/admin", adminRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/legal", legalRoutes);
-// Legacy claim review and approval are admin operations, not public portal operations.
-// Keep POST /api/business/claim public; this prefix only matches /claims.
-app.use("/api/business/claims", requireAdminAuth);
 app.use("/api/business", businessPortalRoutes);
 app.use("/api/business-dashboard", businessDashboardRoutes);
 app.use("/api/analytics", analyticsRoutes);
-app.use("/api/widget", widgetRoutes);
-
-app.get("/account", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "account.html"));
-});
-
-app.get("/terms", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "terms.html"));
-});
-
-app.get("/privacy", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "privacy.html"));
-});
 
 app.get("/business", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "business.html"));
@@ -224,6 +267,50 @@ function pad2(value) {
   return String(value).padStart(2, "0");
 }
 
+function readJsonFile(fileName, fallback) {
+  const persistentFiles = new Set([
+  "results.json",
+  "errorLogs.json",
+  "search-locks.json",
+  path.join("cache", "appointment-cache.json")
+]);
+
+const filePath = persistentFiles.has(fileName)
+  ? storagePath(fileName)
+  : path.join(__dirname, fileName);
+
+  if (!fs.existsSync(filePath)) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    console.error(`Failed to read ${fileName}:`, error.message);
+    return fallback;
+  }
+}
+
+function writeJsonFile(fileName, data) {
+  const persistentFiles = new Set([
+    "results.json",
+    "errorLogs.json",
+    "search-locks.json",
+    path.join("cache", "appointment-cache.json")
+  ]);
+
+  const filePath = persistentFiles.has(fileName)
+    ? storagePath(fileName)
+    : path.join(__dirname, fileName);
+
+  if (persistentFiles.has(fileName)) {
+    writeJsonAtomic(filePath, data);
+    return;
+  }
+
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
 function safeRequire(modulePath) {
   try {
     return require(modulePath);
@@ -260,6 +347,156 @@ function getExecuteSearchFunction() {
   return null;
 }
 
+function readJsonPath(filePath, fallback) {
+  if (!fs.existsSync(filePath)) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    console.error(`Failed to read ${filePath}:`, error.message);
+    return fallback;
+  }
+}
+
+function findExistingCacheFiles() {
+  const candidates = [
+    "appointment-cache.json",
+    "appointmentCache.json",
+    path.join("cache", "appointment-cache.json"),
+    path.join("cache", "appointmentCache.json"),
+    path.join("data", "appointment-cache.json"),
+    path.join("data", "appointmentCache.json")
+  ];
+
+  return candidates
+    .map((fileName) => path.join(__dirname, fileName))
+    .filter((filePath) => fs.existsSync(filePath));
+}
+
+function looksLikeAppointmentRecord(item) {
+  if (!item || typeof item !== "object") return false;
+
+  return Boolean(
+    item.businessName ||
+      item.name ||
+      item.time ||
+      item.startTime ||
+      item.appointmentTime ||
+      item.date ||
+      item.appointmentDate ||
+      item.serviceName ||
+      item.service
+  );
+}
+
+function extractBusinessesFromCachePayload(payload) {
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) {
+    if (
+      payload.some(
+        (item) =>
+          item &&
+          (item.openings ||
+            item.appointments ||
+            item.results ||
+            item.availability ||
+            item.times)
+      )
+    ) {
+      return payload;
+    }
+
+    if (payload.some(looksLikeAppointmentRecord)) {
+      return [
+        {
+          businessName: "Cached Appointments",
+          platform: "cache",
+          status: "success",
+          appointments: payload
+        }
+      ];
+    }
+
+    return [];
+  }
+
+  const directBusinessArrays = [
+    payload.businesses,
+    payload.results,
+    payload.data && payload.data.businesses,
+    payload.data && payload.data.results
+  ];
+
+  for (const value of directBusinessArrays) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  const directAppointmentArrays = [
+    payload.appointments,
+    payload.openings,
+    payload.availability,
+    payload.data && payload.data.appointments,
+    payload.data && payload.data.openings,
+    payload.data && payload.data.availability
+  ];
+
+  for (const value of directAppointmentArrays) {
+    if (Array.isArray(value)) {
+      return [
+        {
+          businessName: "Cached Appointments",
+          platform: "cache",
+          status: "success",
+          appointments: value
+        }
+      ];
+    }
+  }
+
+  if (typeof payload === "object") {
+    const values = Object.values(payload).filter(Boolean);
+    const businesses = [];
+
+    values.forEach((entry) => {
+      if (!entry || typeof entry !== "object") return;
+
+      if (Array.isArray(entry.businesses) || Array.isArray(entry.results)) {
+        businesses.push(...extractBusinessesFromCachePayload(entry));
+        return;
+      }
+
+      if (
+        Array.isArray(entry.appointments) ||
+        Array.isArray(entry.openings) ||
+        Array.isArray(entry.availability) ||
+        Array.isArray(entry.times)
+      ) {
+        businesses.push(entry);
+      }
+    });
+
+    return businesses;
+  }
+
+  return [];
+}
+
+function loadCacheBusinesses() {
+  const cacheFiles = findExistingCacheFiles();
+  let businesses = [];
+
+  cacheFiles.forEach((filePath) => {
+    const payload = readJsonPath(filePath, null);
+    businesses.push(...extractBusinessesFromCachePayload(payload));
+  });
+
+  return businesses;
+}
 function getBusinessConfigByName(businessName) {
   const businesses = businessManager.getAllBusinessesSync();
 
@@ -279,16 +516,49 @@ function getBusinessConfigByName(businessName) {
 }
 
 function applyInferenceToAppointments(appointments = [], options = {}) {
-  const inventory = Array.isArray(appointments) ? appointments : [];
-
-  if (options.includeInferred === false) {
-    return inventory.filter(
-      (appointment) =>
-        String(appointment.sourceType || "").toLowerCase() !== "inferred"
-    );
+  if (options.includeInferred !== true) {
+    return appointments;
   }
 
-  return inventory;
+  if (!Array.isArray(appointments) || appointments.length === 0) {
+    return appointments;
+  }
+
+  const grouped = new Map();
+
+  appointments.forEach((appointment) => {
+    const businessName = appointment.businessName || "";
+
+    if (!businessName) {
+      return;
+    }
+
+    if (!grouped.has(businessName)) {
+      grouped.set(businessName, []);
+    }
+
+    grouped.get(businessName).push(appointment);
+  });
+
+  const expanded = [];
+
+  grouped.forEach((businessAppointments, businessName) => {
+    const businessConfig = getBusinessConfigByName(businessName);
+
+    if (!businessConfig) {
+      expanded.push(...businessAppointments);
+      return;
+    }
+
+    expanded.push(
+      ...mergeConfirmedAndInferredAppointments(
+        businessAppointments,
+        businessConfig
+      )
+    );
+  });
+
+  return dedupeAppointments(expanded);
 }
 
 function mergeBusinessesForNormalization(primaryBusinesses, cacheBusinesses) {
@@ -303,6 +573,71 @@ function mergeBusinessesForNormalization(primaryBusinesses, cacheBusinesses) {
   (Array.isArray(cacheBusinesses) ? cacheBusinesses : []).forEach(pushBusiness);
 
   return combined;
+}
+
+async function runOrchestratedSearchIfAvailable(query) {
+  const settings = loadAdminSettings();
+
+  const onDemand = String(query.onDemand || "") === "true";
+  const searchEnabled = settings.searchEnabled !== false;
+  const onDemandEnabled =
+    settings.scraping?.onDemandEnabled !== false &&
+    settings.onDemand?.enabled !== false;
+  const useOrchestration =
+    onDemand ||
+    String(query.useOrchestration || "") === "true" ||
+    String(query.orchestrated || "") === "true";
+
+  const summary = {
+    onDemand,
+    useOrchestration,
+    orchestrationAvailable: false,
+    usedOrchestration: false,
+    fallbackUsed: false,
+    error: null,
+    result: null
+  };
+
+  if (!useOrchestration) {
+    return summary;
+  }
+  if (!searchEnabled || !onDemandEnabled) {
+    summary.skippedBecauseSearchDisabled = !searchEnabled;
+    summary.skippedBecauseOnDemandDisabled = !onDemandEnabled;
+    summary.error = "Live search skipped by admin settings.";
+    return summary;
+  }
+  const executeSearch = getExecuteSearchFunction();
+
+  if (!executeSearch) {
+    summary.fallbackUsed = true;
+    summary.error = "searchExecutionManager executeSearch function not available";
+    return summary;
+  }
+
+  summary.orchestrationAvailable = true;
+
+  try {
+    const intent = inferSearchIntent(query);
+
+    const result = await executeSearch({
+      ...query,
+      ...intent,
+      rawSearch: intent.rawSearch || query.search || "",
+      search: query.search || intent.search || "",
+      onDemand: true
+    });
+
+    summary.usedOrchestration = true;
+    summary.result = result || null;
+
+    return summary;
+  } catch (error) {
+    console.error("[ORCHESTRATED SEARCH] Failed:", error);
+    summary.error = error.message;
+    summary.fallbackUsed = true;
+    return summary;
+  }
 }
 
 function normalizeBusinessKey(name) {
@@ -417,21 +752,8 @@ function buildBusinessMetadataMap() {
     if (!key) return;
 
      map[key] = {
+  business,
   address: business.address || "",
-  metro:
-    business.metro ||
-    business.market ||
-    business.region ||
-    "",
-  city: business.city || "",
-  state: business.state || "",
-  postalCode:
-    business.postalCode ||
-    business.postal_code ||
-    "",
-  timezone:
-    business.timezone ||
-    "America/Chicago",
   platform: business.platform || "",
   bookingUrl: business.bookingUrl || "",
   latitude:
@@ -480,11 +802,9 @@ function buildBusinessMetadataMap() {
   return map;
 }
 
-function getNowPartsInAppointmentTimezone(
-  timeZone = APPOINTMENT_TIME_ZONE
-) {
+function getNowPartsInAppointmentTimezone() {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
+    timeZone: APPOINTMENT_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -510,13 +830,8 @@ function getNowPartsInAppointmentTimezone(
   };
 }
 
-function getCurrentLocalSortable(
-  timeZone = APPOINTMENT_TIME_ZONE
-) {
-  const now =
-    getNowPartsInAppointmentTimezone(
-      timeZone
-    );
+function getCurrentLocalSortable() {
+  const now = getNowPartsInAppointmentTimezone();
 
   return Number(
     `${now.year}${pad2(now.month)}${pad2(now.day)}${pad2(now.hour)}${pad2(now.minute)}`
@@ -1374,9 +1689,6 @@ const endTimeKey = intent.endTimeKey || "";
       appointment.date,
       appointment.time,
       appointment.serviceCategory,
-      appointment.categorySlug,
-      appointment.marketplaceCategory,
-      query.categoryMatchedAlias,
       appointment.durationMinutes,
       appointment.address
     ].join(" ")
@@ -1391,16 +1703,6 @@ const endTimeKey = intent.endTimeKey || "";
   }
 
   if (platform && normalizeSearchText(appointment.platform) !== platform) {
-    return false;
-  }
-
-  if (
-    query.metro &&
-    !matchesMarketplaceMetro(
-      appointment,
-      query.metro
-    )
-  ) {
     return false;
   }
 
@@ -1492,15 +1794,7 @@ if (
             "appointment",
             "appointments",
             "available",
-            "availability",
-            "this",
-            "morning",
-            "afternoon",
-            "evening",
-            "need",
-            "find",
-            "looking",
-            "please"
+            "availability"
           ].includes(word)
       );
 
@@ -1514,11 +1808,7 @@ if (
   return true;
 }
 
-function appointmentWithinHours(
-  appointment,
-  hours,
-  query = {}
-) {
+function appointmentWithinHours(appointment, hours) {
   if (!hours) return true;
 
   const parsedHours = Number(hours);
@@ -1526,13 +1816,7 @@ function appointmentWithinHours(
 
   if (!appointment.localSortable) return true;
 
-  const nowParts =
-    getNowPartsInAppointmentTimezone(
-      appointment.timezone ||
-      getMarketplaceTimeZone(
-        query.metro
-      )
-    );
+  const nowParts = getNowPartsInAppointmentTimezone();
   const nowDate = new Date(
     nowParts.year,
     nowParts.month - 1,
@@ -1594,9 +1878,6 @@ function dedupeAppointmentsByStrictTimeKey(appointments = []) {
     const key = [
       appointment.businessName || "",
       appointment.therapistName || "",
-      appointment.serviceName || appointment.service || "",
-      appointment.serviceCategory || appointment.serviceType || "",
-      appointment.durationMinutes || "",
       appointment.startTime || "",
       appointment.rawTime || "",
       appointment.time || ""
@@ -1753,14 +2034,32 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
       ? Number(metadata.longitude)
       : null;
 
-  const categorySlug =
-    serviceCategoryRepository.normalizeCategorySlug(
-      rawAppointment.categorySlug ||
-      rawAppointment.category_slug ||
-      rawAppointment.marketplaceCategory ||
-      rawAppointment.marketplace_category ||
+  const appointmentService = {
+    serviceName:
+      rawAppointment.serviceName ||
+      rawAppointment.service_name ||
+      rawAppointment.service ||
+      "",
+    serviceType:
+      rawAppointment.serviceType ||
+      rawAppointment.service_type ||
+      rawAppointment.serviceCategory ||
+      rawAppointment.service_category ||
+      "",
+    serviceId:
+      rawAppointment.serviceId || rawAppointment.service_id || "",
+    platformServiceId:
+      rawAppointment.platformServiceId || rawAppointment.platform_service_id || "",
+    bookingWidgetId:
+      rawAppointment.bookingWidgetId ||
+      rawAppointment.booking_widget_id ||
+      rawAppointment.widgetId ||
+      rawAppointment.widget_id ||
       ""
-    );
+  };
+  const routedWidget = metadata.business
+    ? resolveWidgetForService(metadata.business, appointmentService)
+    : null;
 
   return {
     ...rawAppointment,
@@ -1770,15 +2069,39 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
       rawAppointment.business_category ||
       metadata.businessCategory ||
       "wellness",
-    platform: rawAppointment.platform || metadata.platform || "unknown",
-    bookingUrl: rawAppointment.bookingUrl || rawAppointment.booking_url || metadata.bookingUrl || "",
+    platform:
+      rawAppointment.platform || routedWidget?.platform || metadata.platform || "unknown",
+    bookingUrl:
+      rawAppointment.bookingUrl ||
+      rawAppointment.booking_url ||
+      routedWidget?.bookingUrl ||
+      metadata.bookingUrl ||
+      "",
+    widgetId:
+      rawAppointment.widgetId ||
+      rawAppointment.widget_id ||
+      rawAppointment.bookingWidgetId ||
+      rawAppointment.booking_widget_id ||
+      routedWidget?.widgetId ||
+      "",
+    widgetName:
+      rawAppointment.widgetName ||
+      rawAppointment.widget_name ||
+      rawAppointment.bookingWidgetName ||
+      routedWidget?.label ||
+      "",
+    bookingWidgetId:
+      rawAppointment.bookingWidgetId ||
+      rawAppointment.booking_widget_id ||
+      rawAppointment.widgetId ||
+      rawAppointment.widget_id ||
+      routedWidget?.widgetId ||
+      "",
     serviceName:
       rawAppointment.serviceName ||
       rawAppointment.service_name ||
       rawAppointment.service ||
       "",
-    categorySlug,
-    marketplaceCategory: categorySlug,
     serviceCategory:
       rawAppointment.serviceCategory ||
       rawAppointment.service_category ||
@@ -1812,36 +2135,7 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
     price: rawAppointment.price || rawAppointment.servicePrice || rawAppointment.service_price || null,
     latitude,
     longitude,
-    address:
-      rawAppointment.address ||
-      metadata.address ||
-      "",
-    metro:
-      rawAppointment.metro ||
-      rawAppointment.metro_name ||
-      metadata.metro ||
-      "",
-    city:
-      rawAppointment.city ||
-      metadata.city ||
-      "",
-    state:
-      rawAppointment.state ||
-      metadata.state ||
-      "",
-    postalCode:
-      rawAppointment.postalCode ||
-      rawAppointment.postal_code ||
-      metadata.postalCode ||
-      "",
-    timezone:
-      rawAppointment.timezone ||
-      metadata.timezone ||
-      getMarketplaceTimeZone(
-        rawAppointment.metro ||
-        metadata.metro ||
-        ""
-      ),
+    address: rawAppointment.address || metadata.address || "",
     logoUrl: rawAppointment.logoUrl || rawAppointment.logo_url || metadata.logoUrl || "",
     logoAlt: rawAppointment.logoAlt || rawAppointment.logo_alt || metadata.logoAlt || `${businessName} logo`,
     claimed: rawAppointment.claimed === true || metadata.claimed === true,
@@ -1887,42 +2181,21 @@ function unpackInventoryPayload(payload) {
 
 function shouldDisplayAppointmentNow(appointment = {}, query = {}) {
   if (query.showPast === "true") return true;
-  if (!appointment.localSortable) {
-    return query.showInvalidDates === "true";
-  }
-
-  const timeZone =
-    appointment.timezone ||
-    getMarketplaceTimeZone(
-      query.metro
-    );
-
-  return (
-    appointment.localSortable >
-    getCurrentLocalSortable(
-      timeZone
-    )
-  );
+  if (!appointment.localSortable) return query.showInvalidDates === "true";
+  return appointment.localSortable > getCurrentLocalSortable();
 }
 
 function getInventoryFiltersForSearch(query = {}, intent = {}) {
   return {
     business: query.business || "",
     platform: query.platform || "",
-    categorySlug:
-      query.categorySlug ||
-      query.category ||
-      query.marketplaceCategory ||
-      "",
     serviceCategory: query.serviceCategory || query.serviceType || intent.serviceCategory || "",
     serviceType: query.serviceType || query.serviceCategory || intent.serviceCategory || "",
     durationMinutes: query.durationMinutes || query.duration || intent.duration || null,
     hours: query.hours || intent.hours || "",
     limit: query.limit || 5000,
     limitPerBusiness: query.limitPerBusiness || 999,
-    includeInactive: true,
-    includeInferred: query.includeInferred !== "false",
-    includeConfirmed: query.includeConfirmed !== "false"
+    includeInactive: true
   };
 }
 
@@ -1957,12 +2230,7 @@ async function loadNormalizedAppointments(query, options = {}) {
   );
 
   appointments = appointments.filter((appointment) =>
-    appointmentWithinHours(
-      appointment,
-      query.hours ||
-        intent.hours,
-      query
-    )
+    appointmentWithinHours(appointment, query.hours || intent.hours)
   );
 
   appointments = dedupeAppointments(appointments);
@@ -2038,9 +2306,6 @@ function serviceMatchesIntent(service, query) {
     [
       service.serviceName,
       service.serviceType,
-      service.categorySlug,
-      service.marketplaceCategory,
-      query.categoryMatchedAlias,
       service.durationMinutes,
       service.platformServiceId,
       service.serviceButtonId
@@ -2111,63 +2376,303 @@ function serviceMatchesIntent(service, query) {
   return true;
 }
 
-function getRequestedCategorySlug(query = {}) {
-  return serviceCategoryRepository.normalizeCategorySlug(
-    query.categorySlug ||
-    query.category ||
-    query.marketplaceCategory ||
-    ""
-  );
-}
+function buildLiveSearchTargets(query) {
+  const businesses = businessManager.getAllBusinessesSync();
 
-async function resolveRequestedCategory(query = {}) {
-  const explicitCategorySlug =
-    getRequestedCategorySlug(query);
-
-  if (explicitCategorySlug) {
-    const category =
-      await serviceCategoryRepository
-        .getCategoryBySlug(
-          explicitCategorySlug
-        );
-
-    return {
-      categorySlug:
-        explicitCategorySlug,
-      category,
-      source: "explicit",
-      matchedAlias: ""
-    };
+  if (!Array.isArray(businesses)) {
+    return [];
   }
 
-  const inferred =
-    await serviceCategoryRepository
-      .inferCategoryFromText(
-        query.search ||
-        query.query ||
-        ""
+  const businessFilter = normalizeSearchText(query.business || "");
+  const platformFilter = normalizeSearchText(query.platform || "");
+  const targets = [];
+
+  businesses
+    .filter((business) => business.enabled !== false)
+    .forEach((business) => {
+      const businessName = business.businessName || business.name || "";
+
+  if (businessFilter && !businessMatchesSearch(business, businessFilter)) {
+  return;
+}
+
+      const services =
+        Array.isArray(business.services) && business.services.length
+          ? business.services
+          : [
+              {
+                serviceName: business.serviceName || business.service || "",
+                serviceType: business.serviceType || "",
+                durationMinutes:
+                  business.durationMinutes ||
+                  extractDurationMinutes(
+                    business.serviceName || business.service || ""
+                  ),
+                platformServiceId:
+                  business.platformServiceId ||
+                  business.serviceId ||
+                  business.serviceButtonId ||
+                  "",
+                serviceButtonId: business.serviceButtonId || "",
+                enabled: true
+              }
+            ];
+
+      const matchingServices = services.filter((service) =>
+        serviceMatchesIntent(service, query)
       );
 
-  if (!inferred) {
-    return {
-      categorySlug: "",
-      category: null,
-      source: "",
-      matchedAlias: ""
-    };
-  }
+      matchingServices.forEach((service) => {
+        const widget = resolveWidgetForService(business, service);
+        const routedPlatform = widget?.platform || business.platform || "";
+        if (platformFilter && normalizeSearchText(routedPlatform) !== platformFilter) {
+          return;
+        }
+        targets.push({
+          business: {
+            ...business,
+            platform: routedPlatform,
+            bookingUrl: widget?.bookingUrl || business.bookingUrl || "",
+            integrationType: widget?.integrationType || business.integrationType || "scrape",
+            apiProvider: widget?.apiProvider || business.apiProvider || "",
+            credentialId: widget?.credentialId || business.credentialId || ""
+          },
+          service,
+          businessName,
+          platform: routedPlatform,
+          bookingUrl: widget?.bookingUrl || business.bookingUrl || "",
+          widgetId: widget?.widgetId || "",
+          bookingWidgetId: widget?.widgetId || "",
+          serviceName: service.serviceName || business.serviceName || "",
+          serviceType: service.serviceType || business.serviceType || "",
+          durationMinutes:
+            service.durationMinutes ||
+            business.durationMinutes ||
+            extractDurationMinutes(service.serviceName || business.serviceName || "")
+        });
+      });
+    });
 
-  return {
-    categorySlug:
-      inferred.categorySlug,
-    category:
-      inferred.category,
-    source: "inferred",
-    matchedAlias:
-      inferred.matchedAlias
-  };
+  return targets.slice(0, 8);
 }
 
+function getResultKey(result = {}) {
+  return [
+    result.businessName || "",
+    result.platform || "",
+    result.serviceName || result.service || "",
+    result.serviceType || "",
+    result.durationMinutes || "",
+    result.platformServiceId || result.serviceId || result.serviceButtonId || "",
+    result.provider || ""
+  ]
+    .map((value) => normalizeSearchText(value))
+    .join("||");
+}
+
+function mergeResultsByKey(existingResults, incomingResults) {
+  const existing = Array.isArray(existingResults) ? existingResults : [];
+  const incoming = Array.isArray(incomingResults) ? incomingResults : [];
+
+  const incomingKeys = new Set(incoming.map(getResultKey));
+
+  const preserved = existing.filter((item) => !incomingKeys.has(getResultKey(item)));
+
+  return [...preserved, ...incoming];
+}
+
+async function runLiveScrapeTarget(target) {
+  return new Promise(async (resolve) => {
+    const businessName = target.businessName;
+    const integrationType = target.business?.integrationType || "";
+    const platform = target.platform || "";
+    const serviceName = target.serviceName || "";
+    const serviceType = target.serviceType || "";
+    const durationMinutes = target.durationMinutes || "";
+    const widgetId = target.bookingWidgetId || target.widgetId || "";
+
+    if (!businessName) {
+      return resolve({
+        businessName: "",
+        platform,
+        serviceName,
+        success: false,
+        error: "Missing business name"
+      });
+    }
+
+    if (integrationType === "api") {
+  console.log("");
+  console.log("[LIVE SEARCH API]");
+  console.log(
+    `Using API integration for ${businessName}`
+  );
+
+  try {
+    const appointments =
+      await syncBusinessViaApi(target);
+
+    const normalizedBusinessResult = {
+      businessName,
+      platform:
+        target.platform || "api",
+      status: "success",
+      integrationType: "api",
+      appointments
+    };
+
+upsertBusinessResult(
+  normalizedBusinessResult
+);
+
+    return resolve({
+  businessName,
+  platform: target.platform,
+  integrationType: "api",
+  success: true,
+  appointmentsReturned: appointments.length
+});
+  } catch (error) {
+    console.error(
+      "[LIVE SEARCH API ERROR]",
+      error
+    );
+
+   return resolve({
+  businessName,
+  platform: target.platform,
+  integrationType: "api",
+  success: false,
+  error: error.message
+});
+  }
+}
+    const args = [
+      "scrape.js",
+      `--business=${businessName}`,
+      "--manual=true",
+      "--forceRefresh=true"
+    ];
+
+    if (platform) {
+      args.push(`--platform=${platform}`);
+    }
+
+    if (serviceName) {
+      args.push(`--service=${serviceName}`);
+    } else if (serviceType) {
+      args.push(`--service=${serviceType}`);
+    }
+
+    if (durationMinutes) {
+      args.push(`--duration=${durationMinutes}`);
+    }
+
+    if (widgetId) {
+      args.push(`--widget=${widgetId}`);
+    }
+
+    console.log("");
+    console.log("[LIVE SEARCH] Starting service-level on-demand scrape");
+    console.log("[LIVE SEARCH] Business:", businessName);
+    console.log("[LIVE SEARCH] Platform:", platform || "any");
+    console.log("[LIVE SEARCH] Service:", serviceName || serviceType || "any");
+    console.log("[LIVE SEARCH] Duration:", durationMinutes || "any");
+    console.log("[LIVE SEARCH] Command:", `node ${args.join(" ")}`);
+
+    const child = spawn("node", args, {
+      cwd: __dirname,
+      stdio: "inherit",
+      shell: false
+    });
+
+    child.on("error", (error) => {
+      console.error("[LIVE SEARCH] Failed to start scrape:", error.message);
+
+      resolve({
+        businessName,
+        platform,
+        serviceName,
+        durationMinutes,
+        success: false,
+        error: error.message
+      });
+    });
+
+    child.on("close", (code) => {
+      console.log(
+        `[LIVE SEARCH] Finished ${businessName} | ${serviceName} with exit code ${code}`
+      );
+
+      resolve({
+        businessName,
+        platform,
+        serviceName,
+        durationMinutes,
+        success: code === 0,
+        exitCode: code
+      });
+    });
+  });
+}
+
+async function runLiveSearchIfRequested(query) {
+  const settings = loadAdminSettings();
+
+  const onDemand = String(query.onDemand || "") === "true";
+  const searchEnabled = settings.searchEnabled !== false;
+  const onDemandEnabled =
+    settings.scraping?.onDemandEnabled !== false &&
+    settings.onDemand?.enabled !== false;
+
+  const summary = {
+    onDemand,
+    skippedBecauseAlreadyRunning: false,
+    startedInBackground: false,
+    targetsAttempted: 0,
+    targets: []
+  };
+
+  if (!onDemand) {
+    return summary;
+  }
+  if (!searchEnabled || !onDemandEnabled) {
+    summary.skippedBecauseSearchDisabled = !searchEnabled;
+    summary.skippedBecauseOnDemandDisabled = !onDemandEnabled;
+    return summary;
+  }
+  if (liveSearchRunning) {
+    summary.skippedBecauseAlreadyRunning = true;
+    return summary;
+  }
+
+  const targets = buildLiveSearchTargets(query);
+  summary.targetsAttempted = targets.length;
+  summary.startedInBackground = true;
+
+  liveSearchRunning = true;
+
+  (async () => {
+    try {
+      for (const target of targets) {
+        const result = await runLiveScrapeTarget(target);
+
+        console.log("[LIVE SEARCH] Progressive PostgreSQL inventory refresh finished:", {
+          businessName: result.businessName,
+          serviceName: result.serviceName,
+          integrationType: result.integrationType || "",
+          success: result.success
+        });
+      }
+    } catch (error) {
+      console.error("[LIVE SEARCH BACKGROUND ERROR]", error);
+    } finally {
+      liveSearchRunning = false;
+    }
+  })();
+
+  return summary;
+}
 app.get("/api/settings/public", (req, res) => {
   const settings = loadAdminSettings();
 
@@ -2176,208 +2681,21 @@ app.get("/api/settings/public", (req, res) => {
     searchEnabled: settings.searchEnabled !== false
   });
 });
-
-app.get("/api/marketplace-metros", (req, res) => {
-  res.json({
-    success: true,
-    metros:
-      listMarketplaceMetros()
-        .map((metro) => ({
-          slug: metro.slug,
-          name: metro.name,
-          seoLabel:
-            metro.seoLabel,
-          stateCode:
-            metro.stateCode,
-          timezone:
-            metro.timezone,
-          latitude:
-            metro.latitude,
-          longitude:
-            metro.longitude,
-          mapZoom:
-            metro.mapZoom,
-          path:
-            `/${metro.slug}`
-        }))
-  });
-});
-
-app.get("/api/service-categories", async (req, res) => {
-  try {
-    const requestedMetro =
-      String(
-        req.query.metro || ""
-      ).trim();
-
-    const metroSelection =
-      requestedMetro
-        ? getMarketplaceMetro(
-            requestedMetro
-          )
-        : null;
-
-    if (
-      requestedMetro &&
-      !metroSelection
-    ) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          error:
-            "Unknown marketplace metro.",
-          metro:
-            requestedMetro
-        });
-    }
-
-    const [
-      categories,
-      categoryCounts
-    ] = await Promise.all([
-      serviceCategoryRepository
-        .listCategories(),
-      serviceCategoryRepository
-        .getCategoryBusinessCounts({
-          metroTerms:
-            metroSelection
-              ?.searchTerms ||
-            []
-        })
-    ]);
-
-    const countsBySlug =
-      new Map(
-        categoryCounts.map(
-          (row) => [
-            row.slug,
-            Number(
-              row.business_count ||
-              0
-            )
-          ]
-        )
-      );
-
-    res.json({
-      success: true,
-      metro:
-        metroSelection?.slug ||
-        "",
-      metroName:
-        metroSelection?.name ||
-        "",
-      categories:
-        categories.map(
-          (category) => ({
-            slug:
-              category.slug,
-            displayName:
-              category.display_name,
-            description:
-              category.description ||
-              "",
-            searchAliases:
-              Array.isArray(
-                category.search_aliases
-              )
-                ? category.search_aliases
-                : [],
-            enabled:
-              category.enabled !==
-              false,
-            sortOrder:
-              Number(
-                category.sort_order ||
-                0
-              ),
-            businessCount:
-              countsBySlug.get(
-                category.slug
-              ) || 0
-          })
-        )
-    });
-  } catch (error) {
-    console.error(
-      "SERVICE CATEGORY API ERROR:",
-      error
-    );
-
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
 app.get("/api/search", async (req, res) => {
   try {
-    const categorySelection =
-      await resolveRequestedCategory(req.query);
+    const orchestrationSummary = await runOrchestratedSearchIfAvailable(req.query);
 
-    if (
-      categorySelection.categorySlug &&
-      !categorySelection.category
-    ) {
-      return res.status(404).json({
-        success: false,
-        error: "Unknown or disabled service category.",
-        categorySlug: categorySelection.categorySlug
-      });
-    }
-
-    const requestedMetro =
-      String(
-        req.query.metro || ""
-      ).trim();
-
-    const metroSelection =
-      requestedMetro
-        ? getMarketplaceMetro(
-            requestedMetro
-          )
-        : null;
-
-    if (
-      requestedMetro &&
-      !metroSelection
-    ) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          error:
-            "Unknown marketplace metro.",
-          metro:
-            requestedMetro
-        });
-    }
-
-    const searchQuery = {
-      ...req.query,
-      metro:
-        metroSelection?.slug ||
-        "",
-      categorySlug:
-        categorySelection.categorySlug,
-      categoryMatchedAlias:
-        categorySelection.matchedAlias
-    };
-
-    const orchestrationSummary = {
-      databaseOnly: true,
-      usedOrchestration: false,
-      reason: "Public searches read PostgreSQL inventory only."
-    };
-
-    const scrapeSummary = {
-      databaseOnly: true,
-      publicScrapingDisabled: true,
+    let scrapeSummary = {
+      onDemand: req.query.onDemand === "true",
+      skippedBecauseOrchestrationHandled: orchestrationSummary.usedOrchestration,
+      skippedBecauseAlreadyRunning: false,
       targetsAttempted: 0,
       targets: []
     };
+
+    if (!orchestrationSummary.usedOrchestration) {
+      scrapeSummary = await runLiveSearchIfRequested(req.query);
+    }
 
     const {
       missingResultsFile,
@@ -2386,8 +2704,8 @@ app.get("/api/search", async (req, res) => {
       totalAppointmentsBeforeTimingEvaluation,
       timingBreakdown,
       cacheBusinessesLoaded
-    } = await loadNormalizedAppointments(searchQuery, {
-  includeAppointmentCache: false
+    } = await loadNormalizedAppointments(req.query, {
+  includeAppointmentCache: true
 });
 
     if (missingResultsFile) {
@@ -2401,35 +2719,12 @@ app.get("/api/search", async (req, res) => {
       appointments.map((appointment) => appointment.businessName)
     ).size;
 
-    const intent = inferSearchIntent(searchQuery);
+    const intent = inferSearchIntent(req.query);
 
     res.json({
       success: true,
       endpoint: "/api/search",
-      metro: metroSelection
-        ? {
-            slug:
-              metroSelection.slug,
-            name:
-              metroSelection.name,
-            timezone:
-              metroSelection.timezone
-          }
-        : null,
-      category: categorySelection.category
-        ? {
-            slug: categorySelection.category.slug,
-            displayName:
-              categorySelection.category.display_name,
-            description:
-              categorySelection.category.description || ""
-          }
-        : null,
-      categorySource:
-        categorySelection.source || "",
-      categoryMatchedAlias:
-        categorySelection.matchedAlias || "",
-      appointmentTimeZone: getMarketplaceTimeZone(req.query.metro),
+      appointmentTimeZone: APPOINTMENT_TIME_ZONE,
       liveSearchRunning,
       inferredIntent: intent,
       orchestrationSummary,
@@ -2438,23 +2733,13 @@ app.get("/api/search", async (req, res) => {
       totalBusinessesInResults: businesses.length,
       totalBusinesses,
       totalAppointmentsBeforeTimingEvaluation,
-      currentLocalSortable: getCurrentLocalSortable(
-        getMarketplaceTimeZone(req.query.metro)
-      ),
+      currentLocalSortable: getCurrentLocalSortable(),
       timingBreakdown,
       totalAppointments: appointments.length,
       filtersApplied: {
-        metro:
-          metroSelection?.slug ||
-          "",
         search: req.query.search || "",
         business: req.query.business || "",
         platform: req.query.platform || "",
-        categorySlug: categorySelection.categorySlug,
-        categorySource:
-          categorySelection.source || "",
-        categoryMatchedAlias:
-          categorySelection.matchedAlias || "",
         service: req.query.service || intent.service || "",
         serviceCategory: req.query.serviceCategory || intent.serviceCategory || "",
         duration: req.query.duration || intent.duration || "",
@@ -2462,7 +2747,7 @@ app.get("/api/search", async (req, res) => {
         limitPerBusiness: req.query.limitPerBusiness || 999,
         showInvalidDates: req.query.showInvalidDates === "true",
         showPast: req.query.showPast === "true",
-        databaseOnly: true
+        onDemand: req.query.onDemand === "true"
       },
       businessesFound: businesses.map((business) => {
         const businessAppointments =
@@ -2514,7 +2799,7 @@ app.get("/api/search", async (req, res) => {
       });
     }
 
-const includeInferred = req.query.includeInferred !== "false";
+const includeInferred = req.query.includeInferred === "true";
 
 const responseAppointments = applyInferenceToAppointments(appointments, {
   includeInferred
@@ -2526,12 +2811,10 @@ const inferredAppointmentCount = responseAppointments.filter((appointment) => {
 
 res.json({
   success: true,
-  appointmentTimeZone: getMarketplaceTimeZone(req.query.metro),
+  appointmentTimeZone: APPOINTMENT_TIME_ZONE,
   totalBusinessesInResults: businesses.length,
   totalAppointmentsBeforeTimingEvaluation,
-  currentLocalSortable: getCurrentLocalSortable(
-        getMarketplaceTimeZone(req.query.metro)
-      ),
+  currentLocalSortable: getCurrentLocalSortable(),
   timingBreakdown,
   totalAppointments: responseAppointments.length,
   confirmedAppointments: appointments.length,
@@ -2632,13 +2915,9 @@ async function warmBusinessCache() {
   }
 }
 
-async function initializeRuntime() {
-  await initializeAdminSettings();
-  await warmBusinessCache();
-  startUserAlertMatcher();
-}
+warmBusinessCache();
 
-initializeRuntime().then(() => app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("");
   console.log("=================================");
   console.log(" Massage Aggregator Running");
@@ -2647,10 +2926,7 @@ initializeRuntime().then(() => app.listen(PORT, "0.0.0.0", () => {
   console.log(" Metadata: PostgreSQL business metadata merged into inventory");
   console.log(" Admin Portal: /admin");
   console.log(" Search API: /api/search");
-  console.log(" Search source: PostgreSQL inventory only");
+  console.log(" On-Demand Search: /api/search?search=swedish&onDemand=true");
   console.log("=================================");
   console.log("");
-})).catch((error) => {
-  console.error("[STARTUP] Failed:", error);
-  process.exit(1);
 });

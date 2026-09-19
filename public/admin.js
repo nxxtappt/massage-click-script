@@ -3,87 +3,16 @@ const pageSubtitle = document.getElementById("pageSubtitle");
 const content = document.getElementById("content");
 const statusBox = document.getElementById("statusBox");
 const refreshBtn = document.getElementById("refreshBtn");
-const adminMetroFilter = document.getElementById("adminMetroFilter");
-const adminMetroWorkspaceStatus = document.getElementById("adminMetroWorkspaceStatus");
 let navButtons = document.querySelectorAll(".nav-btn");
 
 let currentView = "businesses";
 let businessesCache = [];
 let settingsBusinessesCache = [];
-let serviceCategoriesCache = [];
-let adminMetrosCache = [];
-const ADMIN_METRO_STORAGE_KEY = "nextappt_admin_metro";
-let adminMetroSlug =
-  localStorage.getItem(
-    ADMIN_METRO_STORAGE_KEY
-  ) || "";
-let businessSearchState = {
-  name: "",
-  industry: "",
-  metro: "",
-  platform: "",
-  enabled: "",
-  page: 1,
-  limit: 20,
-  total: 0,
-  totalPages: 1
-};
-let businessSearchFacets = { industries: [], metros: [], platforms: [] };
-let businessEditorMode = false;
-let subscriptionSearchState = {
-  name: "",
-  industry: "",
-  metro: "",
-  plan: "",
-  status: "",
-  page: 1,
-  limit: 20,
-  total: 0,
-  totalPages: 1
-};
-let inventorySearchState = {
-  metro: "",
-  business: "",
-  service: "",
-  serviceType: "",
-  platform: "",
-  date: "",
-  sourceType: "",
-  status: "",
-  showPast: false,
-  includeInactive: false,
-  page: 1,
-  limit: 25,
-  total: 0,
-  totalPages: 1
-};
-let schedulerV2State = {
-  groups: [],
-  schedules: [],
-  exceptions: [],
-  history: [],
-  health: {},
-  queue: {},
-  workers: [],
-  jobs: [],
-  businesses: [],
-  platforms: []
-};
-let claimSearchState = {
-  business: "",
-  owner: "",
-  email: "",
-  status: "",
-  page: 1,
-  limit: 20,
-  total: 0,
-  totalPages: 1
-};
 
 const views = {
   businesses: {
     title: "Businesses",
-    subtitle: "Search businesses and edit one business at a time."
+    subtitle: "Manage businesses and service mappings."
   },
 
   claims: {
@@ -92,13 +21,8 @@ const views = {
   },
 
   results: {
-    title: "Appointment Inventory",
-    subtitle: "Search PostgreSQL appointment inventory without loading every record."
-  },
-
-  inventory: {
-    title: "Appointment Inventory",
-    subtitle: "Search PostgreSQL appointment inventory without loading every record."
+    title: "Latest Results",
+    subtitle: "View the most recent appointment results from results.json."
   },
 
   errors: {
@@ -109,11 +33,6 @@ const views = {
   subscriptions: {
     title: "Business Subscriptions",
     subtitle: "Manually manage verified basic and premium business access."
-  },
-
-  schedules: {
-    title: "Availability Scheduler",
-    subtitle: "Manage PostgreSQL schedules, groups, exceptions, queue jobs, and workers."
   },
 
   settings: {
@@ -159,798 +78,6 @@ async function fetchJson(url, options = {}) {
   return response.json();
 }
 
-
-async function loadAdminMetros(options = {}) {
-  const force = options.force === true;
-
-  if (
-    adminMetrosCache.length &&
-    !force
-  ) {
-    return adminMetrosCache;
-  }
-
-  try {
-    const data = await fetchJson(
-      "/api/admin/marketplace-metros"
-    );
-
-    adminMetrosCache =
-      Array.isArray(data.metros)
-        ? data.metros
-        : [];
-
-    if (
-      adminMetroSlug &&
-      !adminMetrosCache.some(
-        (metro) =>
-          metro.slug ===
-          adminMetroSlug
-      )
-    ) {
-      adminMetroSlug = "";
-      localStorage.removeItem(
-        ADMIN_METRO_STORAGE_KEY
-      );
-    }
-
-    syncAdminMetroSearchStates();
-    renderAdminMetroWorkspace();
-
-    return adminMetrosCache;
-  } catch (error) {
-    console.warn(
-      "Could not load marketplace metros:",
-      error
-    );
-
-    renderAdminMetroWorkspace();
-    return adminMetrosCache;
-  }
-}
-
-function getSelectedAdminMetroSlug() {
-  return adminMetroSlug || "";
-}
-
-function getSelectedAdminMetro() {
-  return (
-    adminMetrosCache.find(
-      (metro) =>
-        metro.slug ===
-        adminMetroSlug
-    ) || null
-  );
-}
-
-function getAdminMetroBySlug(
-  metroSlug = ""
-) {
-  return (
-    adminMetrosCache.find(
-      (metro) =>
-        metro.slug === metroSlug
-    ) || null
-  );
-}
-
-function syncAdminMetroSearchStates() {
-  businessSearchState.metro =
-    adminMetroSlug;
-
-  subscriptionSearchState.metro =
-    adminMetroSlug;
-
-  inventorySearchState.metro =
-    adminMetroSlug;
-}
-
-function renderAdminMetroOptions(
-  selectedValue = "",
-  options = {}
-) {
-  const includeAll =
-    options.includeAll !== false;
-
-  const placeholder =
-    options.placeholder ||
-    "All cities";
-
-  const rows = [];
-
-  if (includeAll) {
-    rows.push(
-      `<option value="" ${
-        selectedValue
-          ? ""
-          : "selected"
-      }>${escapeHtml(
-        placeholder
-      )}</option>`
-    );
-  }
-
-  rows.push(
-    ...adminMetrosCache.map(
-      (metro) => `
-        <option
-          value="${escapeHtml(
-            metro.slug
-          )}"
-          ${
-            metro.slug ===
-            selectedValue
-              ? "selected"
-              : ""
-          }
-        >
-          ${escapeHtml(
-            metro.name
-          )}
-        </option>
-      `
-    )
-  );
-
-  if (
-    selectedValue &&
-    !adminMetrosCache.some(
-      (metro) =>
-        metro.slug ===
-        selectedValue
-    )
-  ) {
-    rows.push(
-      `<option value="${escapeHtml(
-        selectedValue
-      )}" selected>${escapeHtml(
-        titleCaseAdminSlug(
-          selectedValue
-        )
-      )} (unavailable)</option>`
-    );
-  }
-
-  return rows.join("");
-}
-
-function renderAdminMetroFilterField(
-  label,
-  id,
-  selectedValue = ""
-) {
-  return `
-    <label class="admin-field admin-metro-field">
-      <span>${escapeHtml(label)}</span>
-      <select id="${escapeHtml(id)}">
-        ${renderAdminMetroOptions(
-          selectedValue
-        )}
-      </select>
-    </label>
-  `;
-}
-
-function renderAdminMetroWorkspace() {
-  if (!adminMetroFilter) {
-    return;
-  }
-
-  adminMetroFilter.innerHTML =
-    renderAdminMetroOptions(
-      adminMetroSlug,
-      {
-        placeholder:
-          "All marketplace cities"
-      }
-    );
-
-  adminMetroFilter.value =
-    adminMetroSlug;
-
-  if (adminMetroWorkspaceStatus) {
-    const metro =
-      getSelectedAdminMetro();
-
-    adminMetroWorkspaceStatus
-      .textContent =
-        metro
-          ? `${metro.name} workspace`
-          : "All-city workspace";
-  }
-}
-
-function setAdminMetroSlug(
-  metroSlug = "",
-  options = {}
-) {
-  const normalized =
-    String(metroSlug || "")
-      .trim()
-      .toLowerCase();
-
-  adminMetroSlug =
-    normalized &&
-    adminMetrosCache.some(
-      (metro) =>
-        metro.slug === normalized
-    )
-      ? normalized
-      : "";
-
-  if (adminMetroSlug) {
-    localStorage.setItem(
-      ADMIN_METRO_STORAGE_KEY,
-      adminMetroSlug
-    );
-  } else {
-    localStorage.removeItem(
-      ADMIN_METRO_STORAGE_KEY
-    );
-  }
-
-  syncAdminMetroSearchStates();
-  renderAdminMetroWorkspace();
-
-  if (
-    options.reload !== false &&
-    currentView
-  ) {
-    loadView(currentView);
-  }
-}
-
-function attachAdminMetroWorkspace() {
-  adminMetroFilter
-    ?.addEventListener(
-      "change",
-      () => {
-        setAdminMetroSlug(
-          adminMetroFilter.value
-        );
-      }
-    );
-}
-
-function getAdminMetroSearchTerms(
-  metroSlug =
-    adminMetroSlug
-) {
-  const metro =
-    getAdminMetroBySlug(
-      metroSlug
-    );
-
-  return Array.isArray(
-    metro?.searchTerms
-  )
-    ? metro.searchTerms
-    : [];
-}
-
-function normalizeAdminMetroText(
-  value = ""
-) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function recordMatchesAdminMetro(
-  record = {},
-  metroSlug =
-    adminMetroSlug
-) {
-  if (!metroSlug) {
-    return true;
-  }
-
-  const terms =
-    getAdminMetroSearchTerms(
-      metroSlug
-    );
-
-  if (!terms.length) {
-    return false;
-  }
-
-  const text =
-    normalizeAdminMetroText(
-      [
-        record.metro,
-        record.metroName,
-        record.market,
-        record.region,
-        record.city,
-        record.business_city,
-        record.businessCity,
-        record.business_metro,
-        record.businessMetro,
-        record.state,
-        record.address,
-        record.business_address,
-        record.businessAddress
-      ]
-        .filter(Boolean)
-        .join(" ")
-    );
-
-  if (!text) {
-    return false;
-  }
-
-  const padded =
-    ` ${text} `;
-
-  return terms.some(
-    (term) =>
-      padded.includes(
-        ` ${normalizeAdminMetroText(
-          term
-        )} `
-      )
-  );
-}
-
-function inferAdminMetroSlug(
-  record = {}
-) {
-  const explicit =
-    String(
-      record.metro ||
-      record.metroSlug ||
-      ""
-    )
-      .trim()
-      .toLowerCase();
-
-  if (
-    explicit &&
-    adminMetrosCache.some(
-      (metro) =>
-        metro.slug === explicit
-    )
-  ) {
-    return explicit;
-  }
-
-  const match =
-    adminMetrosCache.find(
-      (metro) =>
-        recordMatchesAdminMetro(
-          record,
-          metro.slug
-        )
-    );
-
-  return match?.slug || "";
-}
-
-function getAdminMetroContextLabel() {
-  return (
-    getSelectedAdminMetro()
-      ?.name ||
-    "All Cities"
-  );
-}
-
-function renderBusinessMetroSelect(
-  business = {},
-  index
-) {
-  const currentValue =
-    business.metro ||
-    inferAdminMetroSlug(
-      business
-    ) ||
-    "";
-
-  return `
-    <label class="admin-field">
-      <span>Marketplace Metro</span>
-      <select
-        data-index="${index}"
-        data-field="metro"
-      >
-        ${renderAdminMetroOptions(
-          currentValue,
-          {
-            placeholder:
-              "Auto-detect from location"
-          }
-        )}
-      </select>
-    </label>
-  `;
-}
-
-function filterSchedulerStateForAdminMetro(
-  rawState = {}
-) {
-  if (!adminMetroSlug) {
-    return rawState;
-  }
-
-  const businesses =
-    Array.isArray(
-      rawState.businesses
-    )
-      ? rawState.businesses.filter(
-          (business) =>
-            recordMatchesAdminMetro(
-              business
-            )
-        )
-      : [];
-
-  const businessIds =
-    new Set(
-      businesses.flatMap(
-        (business) => [
-          String(
-            getSchedulerBusinessPublicId(
-              business
-            )
-          ),
-          String(
-            business.id || ""
-          )
-        ]
-      )
-    );
-
-  const businessNames =
-    new Set(
-      businesses.map(
-        (business) =>
-          normalizeAdminMetroText(
-            getSchedulerBusinessName(
-              business
-            )
-          )
-      )
-    );
-
-  const groups =
-    (Array.isArray(
-      rawState.groups
-    )
-      ? rawState.groups
-      : []
-    ).filter((group) => {
-      const explicitBusinesses =
-        Array.isArray(
-          group.businesses
-        )
-          ? group.businesses
-          : [];
-
-      const explicitMatch =
-        explicitBusinesses.some(
-          (business) =>
-            recordMatchesAdminMetro(
-              business
-            ) ||
-            businessIds.has(
-              String(
-                getSchedulerBusinessPublicId(
-                  business
-                )
-              )
-            )
-        );
-
-      const selector =
-        group.selector || {};
-
-      const selectorMetros =
-        schedulerStringList(
-          selector.metros ||
-          selector.metro ||
-          selector.cities ||
-          selector.city
-        );
-
-      const selectorMatch =
-        selectorMetros.some(
-          (value) => {
-            const normalized =
-              normalizeAdminMetroText(
-                value
-              );
-
-            const selectedMetro =
-              getSelectedAdminMetro();
-
-            return (
-              normalized ===
-                normalizeAdminMetroText(
-                  adminMetroSlug
-                ) ||
-              normalized ===
-                normalizeAdminMetroText(
-                  selectedMetro?.name ||
-                  ""
-                ) ||
-              getAdminMetroSearchTerms()
-                .some(
-                  (term) =>
-                    normalized ===
-                    normalizeAdminMetroText(
-                      term
-                    )
-                )
-            );
-          }
-        );
-
-      return (
-        explicitMatch ||
-        selectorMatch
-      );
-    });
-
-  const groupIds =
-    new Set(
-      groups.map(
-        (group) =>
-          String(group.id)
-      )
-    );
-
-  const schedules =
-    (Array.isArray(
-      rawState.schedules
-    )
-      ? rawState.schedules
-      : []
-    ).filter((schedule) => {
-      if (
-        schedule.group_id &&
-        groupIds.has(
-          String(
-            schedule.group_id
-          )
-        )
-      ) {
-        return true;
-      }
-
-      if (
-        recordMatchesAdminMetro(
-          schedule
-        )
-      ) {
-        return true;
-      }
-
-      const publicId =
-        String(
-          schedule.public_business_id ||
-          schedule.business_id ||
-          ""
-        );
-
-      return (
-        businessIds.has(
-          publicId
-        ) ||
-        businessNames.has(
-          normalizeAdminMetroText(
-            schedule.business_name ||
-            ""
-          )
-        )
-      );
-    });
-
-  const scheduleIds =
-    new Set(
-      schedules.map(
-        (schedule) =>
-          String(schedule.id)
-      )
-    );
-
-  const exceptions =
-    (Array.isArray(
-      rawState.exceptions
-    )
-      ? rawState.exceptions
-      : []
-    ).filter(
-      (exception) =>
-        scheduleIds.has(
-          String(
-            exception.schedule_id
-          )
-        )
-    );
-
-  const history =
-    (Array.isArray(
-      rawState.history
-    )
-      ? rawState.history
-      : []
-    ).filter(
-      (row) =>
-        scheduleIds.has(
-          String(
-            row.schedule_id
-          )
-        )
-    );
-
-  const jobs =
-    (Array.isArray(
-      rawState.jobs
-    )
-      ? rawState.jobs
-      : []
-    ).filter((job) => {
-      if (
-        job.schedule_id &&
-        scheduleIds.has(
-          String(
-            job.schedule_id
-          )
-        )
-      ) {
-        return true;
-      }
-
-      const payload =
-        job.request_payload || {};
-
-      if (
-        recordMatchesAdminMetro(
-          payload
-        )
-      ) {
-        return true;
-      }
-
-      const businessName =
-        normalizeAdminMetroText(
-          payload.businessName ||
-          payload.business_name ||
-          ""
-        );
-
-      return (
-        businessName &&
-        businessNames.has(
-          businessName
-        )
-      );
-    });
-
-  return {
-    ...rawState,
-    groups,
-    schedules,
-    exceptions,
-    history,
-    jobs,
-    businesses
-  };
-}
-
-async function loadAdminServiceCategories(
-  options = {}
-) {
-  const force = options.force === true;
-
-  if (
-    serviceCategoriesCache.length &&
-    !force
-  ) {
-    return serviceCategoriesCache;
-  }
-
-  try {
-    const data = await fetchJson(
-      "/api/admin/service-categories"
-    );
-
-    serviceCategoriesCache =
-      Array.isArray(data.categories)
-        ? data.categories
-        : [];
-
-    return serviceCategoriesCache;
-  } catch (error) {
-    console.warn(
-      "Could not load service categories:",
-      error
-    );
-
-    return serviceCategoriesCache;
-  }
-}
-
-function getServiceCategoryOptions(
-  currentValue = ""
-) {
-  const normalizedCurrent =
-    String(currentValue || "")
-      .trim()
-      .toLowerCase();
-
-  const options = [
-    {
-      value: "",
-      label:
-        "Auto-detect from service"
-    },
-    ...serviceCategoriesCache.map(
-      (category) => ({
-        value: category.slug,
-        label: category.displayName
-      })
-    )
-  ];
-
-  if (
-    normalizedCurrent &&
-    !options.some(
-      (option) =>
-        option.value === normalizedCurrent
-    )
-  ) {
-    options.push({
-      value: normalizedCurrent,
-      label:
-        `${titleCaseAdminSlug(
-          normalizedCurrent
-        )} (unavailable)`
-    });
-  }
-
-  return options;
-}
-
-function titleCaseAdminSlug(value = "") {
-  return String(value || "")
-    .split(/[-_]+/)
-    .filter(Boolean)
-    .map(
-      (word) =>
-        word.charAt(0).toUpperCase() +
-        word.slice(1)
-    )
-    .join(" ");
-}
-
-function getServiceCategoryLabel(
-  service = {}
-) {
-  const categorySlug =
-    service.categorySlug ||
-    service.marketplaceCategory ||
-    "";
-
-  if (!categorySlug) {
-    return "Auto";
-  }
-
-  const category =
-    serviceCategoriesCache.find(
-      (item) =>
-        item.slug === categorySlug
-    );
-
-  return (
-    category?.displayName ||
-    titleCaseAdminSlug(categorySlug)
-  );
-}
-
 async function loadBusinessSubscriptions() {
   const response = await fetch("/api/admin/business-subscriptions");
   const data = await response.json();
@@ -987,126 +114,51 @@ function normalizeBusinessDefaults(business) {
     ...business
   };
 
-  // NEXTAPPT VERIFIED CONTROLS HOTFIX V2: public/admin.js
-  normalized.verifiedRank = Math.max(
-    0,
-    Math.min(
-      100,
-      Math.trunc(
-        Number(
-          normalized.verifiedRank ??
-          normalized.verified_rank ??
-          0
-        ) || 0
-      )
-    )
-  );
-
-  normalized.publicInventoryVisible =
-    normalized.publicInventoryVisible !== false &&
-    normalized.public_inventory_visible !== false;
-
-  normalized.publicInventoryLimit = Math.max(
-    1,
-    Math.min(
-      20,
-      Math.trunc(
-        Number(
-          normalized.publicInventoryLimit ??
-          normalized.public_inventory_limit ??
-          4
-        ) || 4
-      )
-    )
-  );
-
   if (!Array.isArray(normalized.services)) {
     normalized.services = [];
   }
 
+  normalized.bookingWidgets = Array.isArray(business.bookingWidgets)
+    ? business.bookingWidgets
+    : Array.isArray(business.integrations)
+      ? business.integrations
+      : [];
+
+  // The repository already persists integrations. Keep both names in sync so
+  // this remains compatible with existing adminRoutes/BusinessRepository code.
+  normalized.integrations = normalized.bookingWidgets;
+
   return normalized;
 }
 
-function normalizeInferServiceTypes(value) {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => String(item || "").trim())
-      .filter(Boolean);
-  }
-
-  return String(value || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+function createBlankWidget(index = 0) {
+  const widgetId = `widget-${Date.now()}-${index}`;
+  return {
+    id: widgetId,
+    widgetId,
+    label: "",
+    platform: "",
+    bookingUrl: "",
+    integrationType: "scrape",
+    apiProvider: "",
+    credentialId: "",
+    enabled: true,
+    isDefault: false
+  };
 }
 
 function createBlankService() {
   return {
-    __adminOpen: true,
     serviceType: "",
-    categorySlug: "",
     durationMinutes: null,
     serviceName: "",
     platformServiceId: "",
     serviceButtonId: "",
-    serviceId: "",
+    bookingWidgetId: "",
     enabled: true,
     priority: "normal",
-    discoveryStatus: "manual",
-    scrapeDirectly: true,
-    inferenceEnabled: false,
-    inferenceRole: "",
-    anchorServiceId: "",
-    inferShorterDurations: false,
-    inferServiceTypes: [],
-    inferStartIntervalMinutes: 15,
-    inferenceConfidence: 0.85,
-    bookingIntervalMinutes: 15
+    discoveryStatus: "manual"
   };
-}
-
-function createBlankBusiness() {
-  const selectedMetro =
-    getSelectedAdminMetro();
-
-  return normalizeBusinessDefaults({
-    businessId: "",
-    metro:
-      selectedMetro?.slug ||
-      "",
-    businessName: "",
-    displayName: "",
-    businessCategory: "wellness",
-    platform: "",
-    bookingUrl: "",
-    website: "",
-    phone: "",
-    email: "",
-    ownerEmail: "",
-    address: "",
-    city: "",
-    state:
-      selectedMetro?.stateCode ||
-      "TX",
-    postalCode: "",
-    latitude: null,
-    longitude: null,
-    timezone:
-      selectedMetro?.timezone ||
-      "America/Chicago",
-    integrationType: "scraper",
-    apiProvider: "",
-    credentialId: "",
-    integrationStatus: "active",
-    enabled: true,
-    verifiedRank: 0,
-    publicInventoryVisible: true,
-    publicInventoryLimit: 4,
-    priority: "normal",
-    discoveryStatus: "manual",
-    services: [createBlankService()],
-    isNew: true
-  });
 }
 
 function uniqueSorted(values) {
@@ -1125,10 +177,6 @@ function getAllServicesForBusiness(business) {
       {
         serviceName: business.serviceName,
         serviceType: business.serviceType || "",
-        categorySlug:
-          business.categorySlug ||
-          business.marketplaceCategory ||
-          "",
         durationMinutes: business.durationMinutes || "",
         priority: business.priority || "",
         discoveryStatus: business.discoveryStatus || ""
@@ -1140,20 +188,17 @@ function getAllServicesForBusiness(business) {
 }
 
 function getPlatformsFromBusinesses() {
-  const configuredPlatforms = Object.keys(
-    globalThis.NEXTAPPT_PLATFORM_DEFINITIONS || {}
-  );
-
-  return uniqueSorted([
-    ...configuredPlatforms,
-    ...settingsBusinessesCache.map((business) => business.platform)
-  ]);
+  return uniqueSorted(settingsBusinessesCache.flatMap((business) => [
+    business.platform,
+    ...(business.bookingWidgets || []).map((widget) => widget.platform)
+  ]));
 }
 
 function getBusinessesForPlatform(platform) {
   return settingsBusinessesCache.filter((business) => {
     if (!platform) return true;
-    return business.platform === platform;
+    return business.platform === platform ||
+      (business.bookingWidgets || []).some((widget) => widget.platform === platform);
   });
 }
 
@@ -1222,420 +267,105 @@ function renderServiceCheckbox(label, field, checked, businessIndex, serviceInde
   `;
 }
 
-function renderServiceSelect(label, field, value, businessIndex, serviceIndex, options = []) {
+function renderServiceWidgetSelect(service, businessIndex, serviceIndex) {
+  const widgets = businessesCache[businessIndex]?.bookingWidgets || [];
+  const selected = service.bookingWidgetId || service.widgetId || service.integrationId || "";
+
   return `
     <label class="admin-field">
-      <span>${escapeHtml(label)}</span>
-      <select data-business-index="${businessIndex}" data-service-index="${serviceIndex}" data-service-field="${escapeHtml(field)}">
-        ${options.map((option) => {
-          const optionValue = typeof option === "object" ? option.value : option;
-          const optionLabel = typeof option === "object" ? option.label : option;
-          return `<option value="${escapeHtml(optionValue ?? "")}" ${String(optionValue ?? "") === String(value ?? "") ? "selected" : ""}>${escapeHtml(optionLabel ?? "")}</option>`;
+      <span>Booking Widget</span>
+      <select data-business-index="${businessIndex}" data-service-index="${serviceIndex}" data-service-field="bookingWidgetId">
+        <option value="">Default / automatic</option>
+        ${widgets.map((widget, widgetIndex) => {
+          const id = widget.widgetId || widget.id || `widget-${widgetIndex + 1}`;
+          const label = widget.label || widget.widgetName || `Widget ${widgetIndex + 1}`;
+          return `<option value="${escapeHtml(id)}" ${String(selected) === String(id) ? "selected" : ""}>${escapeHtml(label)}</option>`;
         }).join("")}
       </select>
     </label>
   `;
 }
 
-function getAdminServiceKey(service = {}) {
-  return [
-    String(service.serviceName || "").trim().toLowerCase(),
-    String(service.serviceType || "").trim().toLowerCase().replace(/\s+/g, "_"),
-    Number(service.durationMinutes || 0) || ""
-  ].join("|");
-}
-
-function cloneServiceForAdmin(
-  service = {}
-) {
-  const clone =
-    typeof structuredClone ===
-    "function"
-      ? structuredClone(service)
-      : JSON.parse(
-          JSON.stringify(service)
-        );
-
-  [
-    "id",
-    "businessServiceId",
-    "business_service_id",
-    "canonicalKey",
-    "canonical_key",
-    "createdAt",
-    "created_at",
-    "updatedAt",
-    "updated_at",
-    "raw_json"
-  ].forEach(
-    (field) => {
-      delete clone[field];
-    }
-  );
-
-  const originalName =
-    String(
-      service.serviceName ||
-      "Service"
-    ).trim();
-
-  clone.serviceName =
-    `${originalName} Copy`;
-
-  clone.platformServiceId = "";
-  clone.serviceButtonId = "";
-  clone.serviceId = "";
-  clone.anchorServiceId = "";
-  clone.anchorServiceKey = "";
-  clone.__adminOpen = true;
-
-  if (
-    clone.inferenceRole ===
-    "inferred"
-  ) {
-    clone.inferenceRole = "";
-    clone.inferenceEnabled = false;
-    clone.scrapeDirectly = true;
-  }
-
-  return clone;
-}
-
-function renderServiceCard(
-  service,
-  businessIndex,
-  serviceIndex
-) {
-  const businessServices =
-    businessesCache[
-      businessIndex
-    ]?.services || [];
-
-  const anchorOptions = [
-    {
-      value: "",
-      label:
-        "No anchor selected"
-    },
-    ...businessServices
-      .filter(
-        (
-          candidate,
-          candidateIndex
-        ) =>
-          candidateIndex !==
-          serviceIndex
-      )
-      .filter(
-        (candidate) =>
-          candidate.inferenceRole ===
-          "anchor"
-      )
-      .map((candidate) => ({
-        value:
-          candidate.id ||
-          candidate
-            .businessServiceId ||
-          `key:${getAdminServiceKey(
-            candidate
-          )}`,
-        label:
-          `${candidate.serviceName || "Unnamed"} - ${candidate.durationMinutes || "?"} min`
-      }))
-  ];
-
-  const isOpen =
-    service.__adminOpen === true ||
-    !(
-      service.id ||
-      service.businessServiceId
-    );
-
+function renderServiceCard(service, businessIndex, serviceIndex) {
   return `
-    <details
-      class="service-card compact-service-card"
-      data-service-disclosure-business-index="${businessIndex}"
-      data-service-disclosure-service-index="${serviceIndex}"
-      ${isOpen ? "open" : ""}
-    >
-      <summary class="service-card-header">
-        <div class="service-card-summary-copy">
-          <h4>
-            ${escapeHtml(
-              service.serviceName ||
-              "Unnamed Service"
-            )}
-          </h4>
-
-          <p>
-            ${escapeHtml(
-              getServiceCategoryLabel(
-                service
-              )
-            )}
-            ·
-            ${escapeHtml(
-              service.serviceType ||
-              "unknown"
-            )}
-            ·
-            ${escapeHtml(
-              service.durationMinutes ||
-              "?"
-            )}
-            min
-            ·
-            ${escapeHtml(
-              service.priority ||
-              "no priority"
-            )}
-          </p>
+    <div class="service-card">
+      <div class="service-card-header">
+        <div>
+          <h4>${escapeHtml(service.serviceName || "Unnamed Service")}</h4>
+          <p>${escapeHtml(service.serviceType || "unknown")} · ${escapeHtml(service.durationMinutes || "unknown")} min · ${escapeHtml(service.priority || "no priority")} · ${escapeHtml(service.discoveryStatus || "no status")}</p>
         </div>
 
         <div class="service-card-actions">
-          <span class="enabled-pill ${
-            service.enabled === false
-              ? "disabled"
-              : "enabled"
-          }">
-            ${
-              service.enabled === false
-                ? "Disabled"
-                : "Enabled"
-            }
+          <span class="enabled-pill ${service.enabled === false ? "disabled" : "enabled"}">
+            ${service.enabled === false ? "Disabled" : "Enabled"}
           </span>
 
-          <button
-            class="secondary-btn compact-service-action clone-service-btn"
-            type="button"
-            data-clone-business-index="${businessIndex}"
-            data-clone-service-index="${serviceIndex}"
-          >
-            Clone
-          </button>
-
-          <button
-            class="danger-btn compact-service-action delete-service-btn"
-            type="button"
-            data-delete-business-index="${businessIndex}"
-            data-delete-service-index="${serviceIndex}"
-          >
+          <button class="danger-btn delete-service-btn" data-delete-business-index="${businessIndex}" data-delete-service-index="${serviceIndex}">
             Delete
           </button>
         </div>
-      </summary>
+      </div>
 
-      <div class="service-card-body">
-        <div class="service-edit-grid service-core-grid">
-          ${renderServiceInput(
-            "Service Name",
-            "serviceName",
-            service.serviceName,
-            businessIndex,
-            serviceIndex
-          )}
-
-          ${renderServiceSelect(
-            "Marketplace Category",
-            "categorySlug",
-            service.categorySlug ||
-              service.marketplaceCategory ||
-              "",
-            businessIndex,
-            serviceIndex,
-            getServiceCategoryOptions(
-              service.categorySlug ||
-              service.marketplaceCategory ||
-              ""
-            )
-          )}
-
-          ${renderServiceInput(
-            "Service Type",
-            "serviceType",
-            service.serviceType,
-            businessIndex,
-            serviceIndex
-          )}
-
-          ${renderServiceInput(
-            "Duration",
-            "durationMinutes",
-            service.durationMinutes,
-            businessIndex,
-            serviceIndex,
-            "number"
-          )}
-
-          ${renderServiceInput(
-            getPlatformServiceIdLabel(businessIndex),
-            "platformServiceId",
-            service.platformServiceId,
-            businessIndex,
-            serviceIndex
-          )}
-
-          ${renderServiceInput(
-            "Service ID",
-            "serviceId",
-            service.serviceId,
-            businessIndex,
-            serviceIndex
-          )}
-
-          ${renderServiceInput(
-            "Priority",
-            "priority",
-            service.priority,
-            businessIndex,
-            serviceIndex
-          )}
-
-          ${renderServiceInput(
-            "Discovery Status",
-            "discoveryStatus",
-            service.discoveryStatus,
-            businessIndex,
-            serviceIndex
-          )}
-
-          <div class="admin-field checkbox-wrap compact-checkbox-field">
-            <span>Status</span>
-            ${renderServiceCheckbox(
-              "Enabled",
-              "enabled",
-              service.enabled !== false,
-              businessIndex,
-              serviceIndex
-            )}
-          </div>
-
-          <div class="admin-field checkbox-wrap compact-checkbox-field">
-            <span>Scrape</span>
-            ${renderServiceCheckbox(
-              "Scrape directly",
-              "scrapeDirectly",
-              service.scrapeDirectly !== false,
-              businessIndex,
-              serviceIndex
-            )}
-          </div>
+      <div class="service-edit-grid">
+        ${renderServiceInput("Service Type", "serviceType", service.serviceType, businessIndex, serviceIndex)}
+        ${renderServiceInput("Duration", "durationMinutes", service.durationMinutes, businessIndex, serviceIndex, "number")}
+        ${renderServiceInput("Service Name", "serviceName", service.serviceName, businessIndex, serviceIndex)}
+        ${renderServiceInput("Platform Service ID", "platformServiceId", service.platformServiceId, businessIndex, serviceIndex)}
+        ${renderServiceInput("Service Button ID", "serviceButtonId", service.serviceButtonId, businessIndex, serviceIndex)}
+        ${renderServiceWidgetSelect(service, businessIndex, serviceIndex)}
+        ${renderServiceInput("Priority", "priority", service.priority, businessIndex, serviceIndex)}
+        ${renderServiceInput("Discovery Status", "discoveryStatus", service.discoveryStatus, businessIndex, serviceIndex)}
+        <div class="admin-field checkbox-wrap">
+          <span>Status</span>
+          ${renderServiceCheckbox("Enabled", "enabled", service.enabled !== false, businessIndex, serviceIndex)}
         </div>
+      </div>
+    </div>
+  `;
+}
 
-        <details class="service-advanced">
-          <summary>
-            Advanced platform and inference fields
-          </summary>
+function renderWidgetInput(label, field, value, businessIndex, widgetIndex, type = "text") {
+  return `
+    <label class="admin-field">
+      <span>${escapeHtml(label)}</span>
+      <input type="${type}" data-widget-business-index="${businessIndex}" data-widget-index="${widgetIndex}" data-widget-field="${escapeHtml(field)}" value="${escapeHtml(value ?? "")}" />
+    </label>
+  `;
+}
 
-          <div class="service-edit-grid service-advanced-grid">
-            ${renderServiceInput(
-              "Service Button ID",
-              "serviceButtonId",
-              service.serviceButtonId,
-              businessIndex,
-              serviceIndex
-            )}
-
-            ${renderServiceInput(
-              "Booking Interval",
-              "bookingIntervalMinutes",
-              service.bookingIntervalMinutes,
-              businessIndex,
-              serviceIndex,
-              "number"
-            )}
-
-            <div class="admin-field checkbox-wrap compact-checkbox-field">
-              <span>Inference</span>
-              ${renderServiceCheckbox(
-                "Enable inference",
-                "inferenceEnabled",
-                service.inferenceEnabled === true,
-                businessIndex,
-                serviceIndex
-              )}
+function renderBookingWidgetsSection(business, businessIndex) {
+  const widgets = business.bookingWidgets || [];
+  return `
+    <details class="services-section booking-widgets-section" open>
+      <summary class="services-summary">
+        <span>Booking Widgets</span>
+        <small>${widgets.length} configured</small>
+      </summary>
+      <div class="services-inner">
+        <div class="services-actions">
+          <button class="secondary-btn add-widget-btn" data-add-widget-index="${businessIndex}">+ Add Booking Widget</button>
+        </div>
+        ${widgets.length ? widgets.map((widget, widgetIndex) => `
+          <div class="service-card widget-card">
+            <div class="service-card-header">
+              <div>
+                <h4>${escapeHtml(widget.label || widget.widgetName || `Widget ${widgetIndex + 1}`)}</h4>
+                <p>${escapeHtml(widget.platform || "platform not set")} · ${widget.isDefault ? "default" : "service mapped"}</p>
+              </div>
+              <button class="danger-btn delete-widget-btn" data-delete-widget-business-index="${businessIndex}" data-delete-widget-index="${widgetIndex}">Delete</button>
             </div>
-
-            ${renderServiceSelect(
-              "Inference Role",
-              "inferenceRole",
-              service.inferenceRole ||
-                "",
-              businessIndex,
-              serviceIndex,
-              [
-                {
-                  value: "",
-                  label:
-                    "No inference role"
-                },
-                {
-                  value:
-                    "anchor",
-                  label:
-                    "Anchor"
-                },
-                {
-                  value:
-                    "inferred",
-                  label:
-                    "Inferred"
-                }
-              ]
-            )}
-
-            ${renderServiceSelect(
-              "Anchor Service",
-              "anchorServiceId",
-              service.anchorServiceId ||
-                "",
-              businessIndex,
-              serviceIndex,
-              anchorOptions
-            )}
-
-            <div class="admin-field checkbox-wrap compact-checkbox-field">
-              <span>Anchor Rules</span>
-              ${renderServiceCheckbox(
-                "Infer shorter durations",
-                "inferShorterDurations",
-                service.inferShorterDurations === true,
-                businessIndex,
-                serviceIndex
-              )}
+            <div class="service-edit-grid">
+              ${renderWidgetInput("Widget Name", "label", widget.label || widget.widgetName, businessIndex, widgetIndex)}
+              ${renderWidgetInput("Platform", "platform", widget.platform, businessIndex, widgetIndex)}
+              ${renderWidgetInput("Booking URL", "bookingUrl", widget.bookingUrl || widget.url, businessIndex, widgetIndex, "url")}
+              ${renderWidgetInput("Integration Type", "integrationType", widget.integrationType || "scrape", businessIndex, widgetIndex)}
+              ${renderWidgetInput("API Provider", "apiProvider", widget.apiProvider, businessIndex, widgetIndex)}
+              ${renderWidgetInput("Credential ID", "credentialId", widget.credentialId, businessIndex, widgetIndex)}
+              <label class="admin-checkbox service-checkbox"><input type="checkbox" data-widget-business-index="${businessIndex}" data-widget-index="${widgetIndex}" data-widget-field="enabled" ${widget.enabled !== false ? "checked" : ""}><span>Enabled</span></label>
+              <label class="admin-checkbox service-checkbox"><input type="checkbox" data-widget-business-index="${businessIndex}" data-widget-index="${widgetIndex}" data-widget-field="isDefault" ${widget.isDefault ? "checked" : ""}><span>Default widget</span></label>
             </div>
-
-            ${renderServiceInput(
-              "Infer Service Types",
-              "inferServiceTypes",
-              normalizeInferServiceTypes(
-                service.inferServiceTypes
-              ).join(", "),
-              businessIndex,
-              serviceIndex
-            )}
-
-            ${renderServiceInput(
-              "Inference Slot Interval",
-              "inferStartIntervalMinutes",
-              service.inferStartIntervalMinutes ||
-                15,
-              businessIndex,
-              serviceIndex,
-              "number"
-            )}
-
-            ${renderServiceInput(
-              "Inference Confidence",
-              "inferenceConfidence",
-              service.inferenceConfidence ??
-                0.85,
-              businessIndex,
-              serviceIndex,
-              "number"
-            )}
           </div>
-        </details>
+        `).join("") : `<p class="empty-note">No widgets configured. The top-level Booking URL remains the fallback.</p>`}
       </div>
     </details>
   `;
@@ -1668,221 +398,6 @@ function renderServicesSection(business, businessIndex) {
   `;
 }
 
-function getSquareIntegrationConfigValue(business = {}, key = "") {
-  const integrations = Array.isArray(business.integrations)
-    ? business.integrations
-    : [];
-
-  const primaryIntegration =
-    integrations.find((item) => item?.isDefault === true) ||
-    integrations.find((item) => String(item?.platform || "").toLowerCase() === "square") ||
-    business.primaryIntegration ||
-    null;
-
-  return (
-    business.integrationConfig?.[key] ??
-    primaryIntegration?.config?.[key] ??
-    business[key] ??
-    ""
-  );
-}
-
-function setSquareIntegrationConfigValue(business = {}, key = "", value = "") {
-  if (!business || !key) return;
-
-  business.integrationConfig = {
-    ...(business.integrationConfig || {}),
-    [key]: value
-  };
-
-  // Keep a top-level copy for legacy integration normalization and easy admin inspection.
-  business[key] = value;
-
-  const integrations = Array.isArray(business.integrations)
-    ? business.integrations
-    : [];
-
-  const primaryIntegration =
-    integrations.find((item) => item?.isDefault === true) ||
-    integrations.find((item) => String(item?.platform || "").toLowerCase() === "square") ||
-    integrations[0] ||
-    null;
-
-  if (primaryIntegration) {
-    primaryIntegration.platform = business.platform || primaryIntegration.platform || "square";
-    primaryIntegration.config = {
-      ...(primaryIntegration.config || {}),
-      [key]: value
-    };
-  }
-}
-
-function syncSquarePrimaryIntegrationCoreField(business = {}, field = "", value = "") {
-  if (!business || !field) return;
-
-  const platform = String(
-    field === "platform" ? value : business.platform || ""
-  ).trim().toLowerCase();
-
-  if (platform !== "square") return;
-
-  const integrations = Array.isArray(business.integrations)
-    ? business.integrations
-    : [];
-
-  const primaryIntegration =
-    integrations.find((item) => item?.isDefault === true) ||
-    integrations.find((item) => String(item?.platform || "").toLowerCase() === "square") ||
-    integrations[0] ||
-    null;
-
-  if (!primaryIntegration) return;
-
-  if (field === "platform") primaryIntegration.platform = value;
-  if (field === "bookingUrl") primaryIntegration.bookingUrl = value;
-  if (field === "integrationType") primaryIntegration.integrationType = value;
-}
-
-function renderSquareIntegrationFields(business = {}, index) {
-  const platform = String(business.platform || "").trim().toLowerCase();
-  const keys = [
-    "squareSiteUrl",
-    "squarePublishedUserId",
-    "squareSiteId",
-    "squareBookingBusinessId",
-    "squareLocationId"
-  ];
-
-  const hasSquareConfig = keys.some((key) =>
-    Boolean(getSquareIntegrationConfigValue(business, key))
-  );
-
-  return `
-    <details class="services-section square-integration-section" ${platform === "square" || hasSquareConfig ? "open" : ""}>
-      <summary class="services-summary">
-        <span>Square Integration</span>
-        <small>Only used when Platform is square</small>
-      </summary>
-
-      <div class="services-inner">
-        <p class="admin-muted">
-          Enter the Square Online identifiers used by the universal Square scraper.
-          The service-level Square item or variation ID is entered under Services below.
-        </p>
-
-        <div class="business-edit-grid">
-          <label class="admin-field">
-            <span>Square Site URL (Optional — Square Online only)</span>
-            <input
-              type="url"
-              data-square-business-index="${index}"
-              data-square-config-key="squareSiteUrl"
-              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareSiteUrl"))}"
-              placeholder="https://business.square.site/"
-            />
-          </label>
-
-          <label class="admin-field">
-            <span>Square Published User ID (Optional — Square Online only)</span>
-            <input
-              type="text"
-              data-square-business-index="${index}"
-              data-square-config-key="squarePublishedUserId"
-              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squarePublishedUserId"))}"
-            />
-          </label>
-
-          <label class="admin-field">
-            <span>Square Site ID (Optional — Square Online only)</span>
-            <input
-              type="text"
-              data-square-business-index="${index}"
-              data-square-config-key="squareSiteId"
-              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareSiteId"))}"
-            />
-          </label>
-
-          <label class="admin-field">
-            <span>Square Booking Business ID (Optional)</span>
-            <input
-              type="text"
-              data-square-business-index="${index}"
-              data-square-config-key="squareBookingBusinessId"
-              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareBookingBusinessId"))}"
-              placeholder="s4hhr5q8oh2ok8"
-            />
-          </label>
-
-          <label class="admin-field">
-            <span>Square Location ID (Optional / auto-parsed)</span>
-            <input
-              type="text"
-              data-square-business-index="${index}"
-              data-square-config-key="squareLocationId"
-              value="${escapeHtml(getSquareIntegrationConfigValue(business, "squareLocationId"))}"
-              placeholder="89AQ7C8CEM2SM"
-            />
-          </label>
-        </div>
-      </div>
-    </details>
-  `;
-}
-
-function getPlatformServiceIdLabel(businessIndex) {
-  const platform = String(
-    businessesCache?.[businessIndex]?.platform || ""
-  ).trim().toLowerCase();
-
-  return platform === "square"
-    ? "Square Service Item / Variation ID"
-    : "Platform Service ID";
-}
-
-function attachSquareIntegrationInputListeners() {
-  content
-    .querySelectorAll("[data-square-business-index][data-square-config-key]")
-    .forEach((fieldElement) => {
-      const update = () => {
-        const businessIndex = Number(fieldElement.dataset.squareBusinessIndex);
-        const key = fieldElement.dataset.squareConfigKey;
-        const business = businessesCache[businessIndex];
-
-        if (!business || !key) return;
-
-        setSquareIntegrationConfigValue(business, key, fieldElement.value);
-        setStatus("Unsaved Square integration changes.", "info");
-      };
-
-      fieldElement.addEventListener("input", update);
-      fieldElement.addEventListener("change", update);
-    });
-
-  content
-    .querySelectorAll(
-      '[data-index][data-field="platform"], ' +
-      '[data-index][data-field="bookingUrl"], ' +
-      '[data-index][data-field="integrationType"]'
-    )
-    .forEach((fieldElement) => {
-      const update = () => {
-        const businessIndex = Number(fieldElement.dataset.index);
-        const field = fieldElement.dataset.field;
-        const business = businessesCache[businessIndex];
-        if (!business) return;
-
-        syncSquarePrimaryIntegrationCoreField(
-          business,
-          field,
-          fieldElement.value
-        );
-      };
-
-      fieldElement.addEventListener("input", update);
-      fieldElement.addEventListener("change", update);
-    });
-}
-
 function renderBusinessCard(business, index) {
   return `
     <div class="admin-business-card ${business.enabled === false ? "business-disabled" : ""}">
@@ -1897,81 +412,20 @@ function renderBusinessCard(business, index) {
           <span class="enabled-pill ${business.enabled === false ? "disabled" : "enabled"}">
             ${business.enabled === false ? "Disabled" : "Enabled"}
           </span>
-          <button class="primary-btn save-one-business-btn" data-save-business-index="${index}">
-            Save Business
-          </button>
         </div>
       </div>
-
-      <section class="admin-search-inventory-controls">
-        <div class="admin-search-inventory-controls-heading">
-          <div>
-            <strong>Search &amp; Inventory Controls</strong>
-            <small>
-              Verified rank only affects verified businesses. Inventory visibility does not delete stored appointments.
-            </small>
-          </div>
-        </div>
-
-        <div class="business-edit-grid admin-search-inventory-controls-grid">
-          ${renderInput(
-            "Verified Search Rank (0-100)",
-            "verifiedRank",
-            business.verifiedRank ?? 0,
-            index,
-            "number"
-          )}
-
-          <div class="admin-field checkbox-wrap">
-            <span>Public Inventory</span>
-            ${renderCheckbox(
-              "Show appointments publicly",
-              "publicInventoryVisible",
-              business.publicInventoryVisible !== false,
-              index
-            )}
-          </div>
-
-          ${renderInput(
-            "Visible Appointment Times (1-20)",
-            "publicInventoryLimit",
-            business.publicInventoryLimit ?? 4,
-            index,
-            "number"
-          )}
-        </div>
-      </section>
 
       <details class="business-details">
         <summary>Business Details</summary>
 
         <div class="business-edit-grid">
-          ${renderInput("Business ID / Slug", "businessId", business.businessId, index)}
           ${renderInput("Business Name", "businessName", business.businessName, index)}
-          ${renderInput("Display Name", "displayName", business.displayName, index)}
           ${renderInput("Platform", "platform", business.platform, index)}
+          ${renderInput("Top-Level Service", "serviceName", business.serviceName, index)}
           ${renderInput("Booking URL", "bookingUrl", business.bookingUrl, index)}
-          ${renderInput("Website", "website", business.website, index)}
-          ${renderBusinessMetroSelect(
-            business,
-            index
-          )}
           ${renderInput("Address", "address", business.address, index)}
-          ${renderInput("City", "city", business.city, index)}
-          ${renderInput("State", "state", business.state, index)}
-          ${renderInput("Postal Code", "postalCode", business.postalCode, index)}
           ${renderInput("Latitude", "latitude", business.latitude, index, "number")}
           ${renderInput("Longitude", "longitude", business.longitude, index, "number")}
-          ${renderInput("Timezone", "timezone", business.timezone || "America/Chicago", index)}
-          ${renderInput("Integration Type", "integrationType", business.integrationType || "scraper", index)}
-          ${renderInput("API Provider", "apiProvider", business.apiProvider, index)}
-          ${renderInput("Credential ID", "credentialId", business.credentialId, index)}
-          ${renderInput("Verification Status", "verificationStatus", business.verificationStatus || "unclaimed", index)}
-          <div class="admin-field checkbox-wrap">
-            <span>Business Verification</span>
-            ${renderCheckbox("Claimed / verified business", "claimed", business.claimed === true, index)}
-          </div>
-          ${renderSquareIntegrationFields(business, index)}
           <div class="admin-field checkbox-wrap">
             <span>Status</span>
             ${renderCheckbox("Business enabled", "enabled", business.enabled !== false, index)}
@@ -1980,6 +434,7 @@ function renderBusinessCard(business, index) {
         </div>
       </details>
 
+      ${renderBookingWidgetsSection(business, index)}
       ${renderServicesSection(business, index)}
 
       <details class="raw-json-box">
@@ -1991,7 +446,7 @@ function renderBusinessCard(business, index) {
 }
 
 function attachBusinessInputListeners() {
-  content.querySelectorAll("input[data-index][data-field], textarea[data-index][data-field], select[data-index][data-field]").forEach((fieldElement) => {
+  content.querySelectorAll("input[data-index][data-field], textarea[data-index][data-field]").forEach((fieldElement) => {
     const update = () => {
       const index = Number(fieldElement.dataset.index);
       const field = fieldElement.dataset.field;
@@ -2002,20 +457,6 @@ function attachBusinessInputListeners() {
 
       if (field === "latitude" || field === "longitude") {
         value = value === "" ? null : Number(value);
-      }
-
-      if (field === "verifiedRank") {
-        value = Math.max(
-          0,
-          Math.min(100, Math.trunc(Number(value) || 0))
-        );
-      }
-
-      if (field === "publicInventoryLimit") {
-        value = Math.max(
-          1,
-          Math.min(20, Math.trunc(Number(value) || 4))
-        );
       }
 
       businessesCache[index][field] = value;
@@ -2039,34 +480,84 @@ function attachServiceInputListeners() {
 
       let value = fieldElement.type === "checkbox" ? fieldElement.checked : fieldElement.value;
 
-      if (
-        [
-          "durationMinutes",
-          "bookingIntervalMinutes",
-          "inferStartIntervalMinutes",
-          "inferenceConfidence"
-        ].includes(field)
-      ) {
+      if (field === "durationMinutes") {
         value = value === "" ? null : Number(value);
       }
 
       business.services[serviceIndex][field] = value;
-
-      if (field === "inferenceRole") {
-        business.services[serviceIndex].inferenceEnabled = Boolean(value);
-        if (value === "inferred") {
-          business.services[serviceIndex].scrapeDirectly = false;
-        }
-        if (value === "anchor") {
-          business.services[serviceIndex].scrapeDirectly = true;
-          business.services[serviceIndex].anchorServiceId = "";
-        }
+      if (field === "bookingWidgetId") {
+        business.services[serviceIndex].widgetId = value;
+        business.services[serviceIndex].integrationId = value;
       }
       setStatus("Unsaved service changes.", "info");
     };
 
     fieldElement.addEventListener("input", update);
     fieldElement.addEventListener("change", update);
+  });
+}
+
+function attachWidgetListeners() {
+  content.querySelectorAll("[data-widget-business-index][data-widget-index][data-widget-field]").forEach((element) => {
+    const update = () => {
+      const businessIndex = Number(element.dataset.widgetBusinessIndex);
+      const widgetIndex = Number(element.dataset.widgetIndex);
+      const field = element.dataset.widgetField;
+      const business = businessesCache[businessIndex];
+      if (!business?.bookingWidgets?.[widgetIndex]) return;
+
+      const value = element.type === "checkbox" ? element.checked : element.value;
+      if (field === "isDefault" && value === true) {
+        business.bookingWidgets.forEach((widget, index) => {
+          widget.isDefault = index === widgetIndex;
+        });
+      } else {
+        business.bookingWidgets[widgetIndex][field] = value;
+      }
+
+      business.bookingWidgets[widgetIndex].widgetName =
+        business.bookingWidgets[widgetIndex].label || "";
+      business.integrations = business.bookingWidgets;
+      setStatus("Unsaved booking widget changes.", "info");
+
+      if (field === "isDefault") renderBusinessesFromCache();
+    };
+    element.addEventListener("input", update);
+    element.addEventListener("change", update);
+  });
+
+  content.querySelectorAll("[data-add-widget-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const businessIndex = Number(button.dataset.addWidgetIndex);
+      const business = businessesCache[businessIndex];
+      if (!business) return;
+      business.bookingWidgets = business.bookingWidgets || [];
+      const widget = createBlankWidget(business.bookingWidgets.length);
+      if (!business.bookingWidgets.length) widget.isDefault = true;
+      business.bookingWidgets.push(widget);
+      business.integrations = business.bookingWidgets;
+      renderBusinessesFromCache();
+      setStatus("New booking widget added. Map services to it, then save.", "info");
+    });
+  });
+
+  content.querySelectorAll("[data-delete-widget-business-index][data-delete-widget-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const businessIndex = Number(button.dataset.deleteWidgetBusinessIndex);
+      const widgetIndex = Number(button.dataset.deleteWidgetIndex);
+      const business = businessesCache[businessIndex];
+      const widget = business?.bookingWidgets?.[widgetIndex];
+      if (!widget) return;
+      const widgetId = widget.widgetId || widget.id;
+      if (!window.confirm(`Delete booking widget "${widget.label || widget.widgetName || widgetId}"?`)) return;
+      business.bookingWidgets.splice(widgetIndex, 1);
+      business.services.forEach((service) => {
+        if (service.bookingWidgetId === widgetId) service.bookingWidgetId = "";
+      });
+      business.integrations = business.bookingWidgets;
+      renderBusinessesFromCache();
+      setStatus("Widget removed. Click Save Businesses to make it permanent.", "info");
+    });
   });
 }
 
@@ -2081,129 +572,16 @@ function attachAddServiceListeners() {
         businessesCache[businessIndex].services = [];
       }
 
-      businessesCache[businessIndex].services.forEach(
-        (service) => {
-          service.__adminOpen = false;
-        }
-      );
-
       businessesCache[businessIndex].services.push(createBlankService());
-      setStatus("New blank service added. Fill it in, then click Save Business.", "info");
+      setStatus("New blank service added. Fill it in, then click Save Businesses.", "info");
       renderBusinessesFromCache();
     });
   });
 }
 
-function attachServiceDisclosureListeners() {
-  content
-    .querySelectorAll(
-      "[data-service-disclosure-business-index][data-service-disclosure-service-index]"
-    )
-    .forEach((details) => {
-      details.addEventListener(
-        "toggle",
-        () => {
-          const businessIndex =
-            Number(
-              details.dataset
-                .serviceDisclosureBusinessIndex
-            );
-
-          const serviceIndex =
-            Number(
-              details.dataset
-                .serviceDisclosureServiceIndex
-            );
-
-          const service =
-            businessesCache[
-              businessIndex
-            ]?.services?.[
-              serviceIndex
-            ];
-
-          if (service) {
-            service.__adminOpen =
-              details.open;
-          }
-        }
-      );
-    });
-}
-
-function attachCloneServiceListeners() {
-  content
-    .querySelectorAll(
-      "[data-clone-business-index][data-clone-service-index]"
-    )
-    .forEach((button) => {
-      button.addEventListener(
-        "click",
-        (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-
-          const businessIndex =
-            Number(
-              button.dataset
-                .cloneBusinessIndex
-            );
-
-          const serviceIndex =
-            Number(
-              button.dataset
-                .cloneServiceIndex
-            );
-
-          const business =
-            businessesCache[
-              businessIndex
-            ];
-
-          const sourceService =
-            business?.services?.[
-              serviceIndex
-            ];
-
-          if (!sourceService) {
-            return;
-          }
-
-          business.services.forEach(
-            (service) => {
-              service.__adminOpen =
-                false;
-            }
-          );
-
-          const clone =
-            cloneServiceForAdmin(
-              sourceService
-            );
-
-          business.services.splice(
-            serviceIndex + 1,
-            0,
-            clone
-          );
-
-          setStatus(
-            "Service cloned. Platform IDs were cleared; update the copy and click Save Business.",
-            "info"
-          );
-
-          renderBusinessesFromCache();
-        }
-      );
-    });
-}
-
 function attachDeleteServiceListeners() {
   content.querySelectorAll("[data-delete-business-index][data-delete-service-index]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
+    button.addEventListener("click", () => {
       const businessIndex = Number(button.dataset.deleteBusinessIndex);
       const serviceIndex = Number(button.dataset.deleteServiceIndex);
       const business = businessesCache[businessIndex];
@@ -2220,287 +598,67 @@ function attachDeleteServiceListeners() {
       if (!confirmed) return;
 
       business.services.splice(serviceIndex, 1);
-      setStatus("Service deleted from screen. Click Save Business to make it permanent.", "info");
+      setStatus("Service deleted from screen. Click Save Businesses to make it permanent.", "info");
       renderBusinessesFromCache();
     });
   });
 }
 
-function renderBusinessSearchOption(value, selectedValue) {
-  const selected = String(value) === String(selectedValue) ? "selected" : "";
-  return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(value)}</option>`;
-}
-
-function renderBusinessSearchResults() {
+function renderBusinessesFromCache() {
   pageTitle.textContent = views.businesses.title;
   pageSubtitle.textContent = views.businesses.subtitle;
-
-  const startNumber = businessSearchState.total
-    ? (businessSearchState.page - 1) * businessSearchState.limit + 1
-    : 0;
-  const endNumber = Math.min(
-    businessSearchState.page * businessSearchState.limit,
-    businessSearchState.total
-  );
-
-  content.innerHTML = `
-    <div class="business-search-toolbar">
-      <div class="business-search-heading">
-        <div>
-          <h3>Business Manager</h3>
-          <p>Search first, then open one business to edit its details and services.</p>
-        </div>
-        <button id="addBusinessBtn" class="primary-btn">+ Add New Business</button>
-      </div>
-
-      <form id="businessSearchForm" class="business-search-grid">
-        <label class="admin-field business-name-search">
-          <span>Business Name</span>
-          <input id="businessSearchName" value="${escapeHtml(businessSearchState.name)}" placeholder="Search by name or slug" />
-        </label>
-        <label class="admin-field">
-          <span>Industry</span>
-          <select id="businessSearchIndustry">
-            <option value="">All industries</option>
-            ${businessSearchFacets.industries.map((value) => renderBusinessSearchOption(value, businessSearchState.industry)).join("")}
-          </select>
-        </label>
-        ${renderAdminMetroFilterField(
-          "City",
-          "businessSearchMetro",
-          businessSearchState.metro
-        )}
-        <label class="admin-field">
-          <span>Platform</span>
-          <select id="businessSearchPlatform">
-            <option value="">All platforms</option>
-            ${businessSearchFacets.platforms.map((value) => renderBusinessSearchOption(value, businessSearchState.platform)).join("")}
-          </select>
-        </label>
-        <label class="admin-field">
-          <span>Status</span>
-          <select id="businessSearchEnabled">
-            <option value="" ${businessSearchState.enabled === "" ? "selected" : ""}>Enabled + disabled</option>
-            <option value="true" ${businessSearchState.enabled === "true" ? "selected" : ""}>Enabled only</option>
-            <option value="false" ${businessSearchState.enabled === "false" ? "selected" : ""}>Disabled only</option>
-          </select>
-        </label>
-        <div class="business-search-actions">
-          <button class="primary-btn" type="submit">Search</button>
-          <button id="clearBusinessSearchBtn" class="secondary-btn" type="button">Clear</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="business-search-summary">
-      <strong>${businessSearchState.total} businesses</strong>
-      <span>Showing ${startNumber}-${endNumber}</span>
-    </div>
-
-    <div class="business-summary-list">
-      ${businessesCache.length ? businessesCache.map((business) => `
-        <article class="business-summary-card">
-          <div>
-            <h3>${escapeHtml(business.businessName || business.name || "Unnamed Business")}</h3>
-            <p>${escapeHtml(business.address || business.city || "No address saved")}</p>
-            <div class="business-summary-meta">
-              <span class="platform-pill">${escapeHtml(business.platform || "unknown")}</span>
-              <span>${escapeHtml(business.businessCategory || "wellness")}</span>
-              <span>${escapeHtml(business.metro || business.city || "No metro")}</span>
-              <span>${Number(business.serviceCount || 0)} services</span>
-              <span class="enabled-pill ${business.enabled === false ? "disabled" : "enabled"}">${business.enabled === false ? "Disabled" : "Enabled"}</span>
-            </div>
-          </div>
-          <button class="primary-btn edit-business-btn" data-business-id="${escapeHtml(business.businessId || business.id || "")}">Edit Business</button>
-        </article>
-      `).join("") : `<div class="empty-note">No businesses matched these filters.</div>`}
-    </div>
-
-    <div class="business-pagination">
-      <button id="previousBusinessPageBtn" class="secondary-btn" ${businessSearchState.page <= 1 ? "disabled" : ""}>Previous</button>
-      <span>Page ${businessSearchState.page} of ${businessSearchState.totalPages}</span>
-      <button id="nextBusinessPageBtn" class="secondary-btn" ${businessSearchState.page >= businessSearchState.totalPages ? "disabled" : ""}>Next</button>
-    </div>
-  `;
-
-  document.getElementById("businessSearchForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    businessSearchState.name = document.getElementById("businessSearchName")?.value.trim() || "";
-    businessSearchState.industry = document.getElementById("businessSearchIndustry")?.value || "";
-    setAdminMetroSlug(
-      document.getElementById(
-        "businessSearchMetro"
-      )?.value || "",
-      {
-        reload: false
-      }
-    );
-    businessSearchState.platform = document.getElementById("businessSearchPlatform")?.value || "";
-    businessSearchState.enabled = document.getElementById("businessSearchEnabled")?.value || "";
-    businessSearchState.page = 1;
-    await loadBusinesses();
-  });
-
-  document.getElementById("clearBusinessSearchBtn")?.addEventListener("click", async () => {
-    businessSearchState = {
-      ...businessSearchState,
-      name: "",
-      industry: "",
-      metro:
-        getSelectedAdminMetroSlug(),
-      platform: "",
-      enabled: "",
-      page: 1
-    };
-    await loadBusinesses();
-  });
-
-  document.getElementById("addBusinessBtn")?.addEventListener("click", async () => {
-    await loadAdminServiceCategories();
-    businessEditorMode = true;
-    businessesCache = [createBlankBusiness()];
-    renderBusinessesFromCache();
-  });
-
-  document.querySelectorAll(".edit-business-btn").forEach((button) => {
-    button.addEventListener("click", () => loadBusinessEditor(button.dataset.businessId));
-  });
-
-  document.getElementById("previousBusinessPageBtn")?.addEventListener("click", async () => {
-    if (businessSearchState.page > 1) {
-      businessSearchState.page -= 1;
-      await loadBusinesses();
-    }
-  });
-
-  document.getElementById("nextBusinessPageBtn")?.addEventListener("click", async () => {
-    if (businessSearchState.page < businessSearchState.totalPages) {
-      businessSearchState.page += 1;
-      await loadBusinesses();
-    }
-  });
-}
-
-function renderBusinessesFromCache() {
-  businessEditorMode = true;
-  pageTitle.textContent = businessesCache[0]?.isNew ? "Add Business" : "Edit Business";
-  pageSubtitle.textContent = "Save only this business and its service configuration.";
 
   content.innerHTML = `
     <div class="section-heading compact-heading">
       <div>
-        <button id="backToBusinessSearchBtn" class="secondary-btn">â† Back to Business Search</button>
+        <h3>${businessesCache.length} Businesses</h3>
+        <p>Edit businesses and services, then save.</p>
       </div>
+
+      <button id="saveBusinessesBtn" class="primary-btn">Save Businesses</button>
     </div>
+
     <div class="business-list">
       ${businessesCache.map(renderBusinessCard).join("")}
     </div>
   `;
 
-  document.getElementById("backToBusinessSearchBtn")?.addEventListener("click", () => {
-    businessEditorMode = false;
-    loadBusinesses();
-  });
-
+  document.getElementById("saveBusinessesBtn").addEventListener("click", saveBusinesses);
   attachBusinessInputListeners();
-  attachSquareIntegrationInputListeners();
   attachServiceInputListeners();
-  attachServiceDisclosureListeners();
+  attachWidgetListeners();
   attachAddServiceListeners();
-  attachCloneServiceListeners();
   attachDeleteServiceListeners();
-  attachSingleBusinessSaveListeners();
 }
 
-function attachSingleBusinessSaveListeners() {
-  content.querySelectorAll("[data-save-business-index]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const index = Number(button.dataset.saveBusinessIndex);
-      await saveSingleBusiness(index, button);
-    });
-  });
-}
-
-async function saveSingleBusiness(index, button = null) {
-  const business = businessesCache[index];
-
-  if (!business || !String(business.businessName || "").trim()) {
-    setStatus("Business name is required before saving.", "error");
-    return;
-  }
-
-  const originalText = button?.textContent || "Save Business";
-
+async function saveBusinesses() {
   try {
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Saving...";
-    }
+    setStatus("Saving businesses.json...", "info");
 
-    setStatus(`Saving ${business.businessName}...`, "info");
+    businessesCache.forEach((business) => {
+      business.bookingWidgets = business.bookingWidgets || [];
+      business.integrations = business.bookingWidgets;
+      (business.services || []).forEach((service) => {
+        const widgetId =
+          service.bookingWidgetId || service.widgetId || service.integrationId || "";
+        service.bookingWidgetId = widgetId;
+        service.widgetId = widgetId;
+        service.integrationId = widgetId;
+      });
+    });
 
-    const businessToSave = {
-      ...business,
-      services: Array.isArray(business.services)
-        ? business.services.map((service) => ({
-            ...Object.fromEntries(
-              Object.entries(service)
-                .filter(
-                  ([key]) =>
-                    !key.startsWith(
-                      "__admin"
-                    )
-                )
-            ),
-            inferServiceTypes: normalizeInferServiceTypes(
-              service.inferServiceTypes
-            )
-          }))
-        : []
-    };
-
-    const identifier = business.businessId || business.id || "new";
-    const data = await fetchJson(`/api/admin/businesses/${encodeURIComponent(identifier)}/save`, {
+    const data = await fetchJson("/api/admin/businesses/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ business: businessToSave })
+      body: JSON.stringify({ businesses: businessesCache })
     });
 
-    businessesCache[index] = normalizeBusinessDefaults(data.business || business);
-    setStatus(`${business.businessName} saved to PostgreSQL.`, "success");
-    renderBusinessesFromCache();
+    setStatus(`Saved ${data.count} businesses to businesses.json.`, "success");
+    await loadBusinesses();
   } catch (error) {
     setStatus(`Save failed: ${error.message}`, "error");
-    if (button) {
-      button.disabled = false;
-      button.textContent = originalText;
-    }
   }
 }
-
-async function loadBusinessEditor(businessId) {
-  try {
-    businessEditorMode = true;
-    setLoading("Loading business details and services...");
-
-    const [data] = await Promise.all([
-      fetchJson(
-        `/api/admin/businesses/${encodeURIComponent(
-          businessId
-        )}`
-      ),
-      loadAdminServiceCategories()
-    ]);
-    businessesCache = [normalizeBusinessDefaults(data.business || {})];
-    renderBusinessesFromCache();
-    setStatus(`Loaded ${businessesCache[0]?.businessName || "business"}.`, "success");
-  } catch (error) {
-    businessEditorMode = false;
-    setStatus(`Could not load business: ${error.message}`, "error");
-    await loadBusinesses();
-  }
-}
-
 function getBusinessSubscriptionKey(businessName) {
   return String(businessName || "")
     .toLowerCase()
@@ -2549,99 +707,24 @@ function renderSubscriptionTextarea(label, id, value, placeholder = "", rows = 4
 
 async function loadBusinessSubscriptionsView() {
   currentView = "subscriptions";
-  setLoading("Loading subscription search...");
+  setLoading("Loading business subscriptions...");
 
   pageTitle.textContent = views.subscriptions.title;
-  pageSubtitle.textContent = "Search businesses and manage one page of subscriptions at a time.";
+  pageSubtitle.textContent = "Manage subscription level, booking widgets, business bios, and search-card promos.";
 
   try {
-    const params = new URLSearchParams({
-      page: String(subscriptionSearchState.page),
-      limit: String(subscriptionSearchState.limit)
-    });
+    const [businessesData, subscriptionsData] = await Promise.all([
+      fetchJson("/api/admin/businesses"),
+      fetchJson("/api/admin/business-subscriptions")
+    ]);
 
-    if (subscriptionSearchState.name) params.set("name", subscriptionSearchState.name);
-    if (subscriptionSearchState.industry) params.set("industry", subscriptionSearchState.industry);
-    if (subscriptionSearchState.metro) params.set("metro", subscriptionSearchState.metro);
-    if (subscriptionSearchState.plan) params.set("plan", subscriptionSearchState.plan);
-    if (subscriptionSearchState.status) params.set("status", subscriptionSearchState.status);
-
-    const searchData = await fetchJson(`/api/admin/business-subscriptions/search?${params.toString()}`);
-    const subscriptionRows = Array.isArray(searchData.subscriptions)
-      ? searchData.subscriptions
+    const businesses = Array.isArray(businessesData.businesses)
+      ? businessesData.businesses
       : [];
 
-    subscriptionSearchState.page = Number(searchData.page || 1);
-    subscriptionSearchState.limit = Number(searchData.limit || 20);
-    subscriptionSearchState.total = Number(searchData.total || 0);
-    subscriptionSearchState.totalPages = Number(searchData.totalPages || 1);
-
-    const businesses = subscriptionRows.map((row) => ({
-      ...row,
-      businessName: row.businessName || row.business_name || "",
-      businessCategory: row.businessCategory || row.business_category || "",
-      metro: row.metro || row.city || "",
-      address: row.address || "",
-      website: row.website || "",
-      bookingUrl: row.bookingUrl || row.booking_url || "",
-      platform: row.platform || ""
-    }));
-
-    const subscriptions = Object.fromEntries(
-      subscriptionRows.map((row) => [
-        getBusinessSubscriptionKey(row.businessName || row.business_name || ""),
-        {
-          ...row,
-          subscriptionStatus: row.subscriptionStatus || row.subscription_status || row.status || "active",
-          businessProfile: row.businessProfile || row.publicProfile || row.public_profile || {},
-          bookingWidget: row.bookingWidget || row.bookingIntegration || row.booking_integration || {},
-          cardPromotion: row.cardPromotion || row.activeDeal || row.active_deal || {}
-        }
-      ])
-    );
+    const subscriptions = subscriptionsData.subscriptions || {};
 
     content.innerHTML = `
-      <form id="subscriptionSearchForm" class="admin-search-grid">
-        ${renderSubscriptionTextInput("Business Name", "subscriptionSearchName", subscriptionSearchState.name, "Search business")}
-        ${renderSubscriptionTextInput("Industry", "subscriptionSearchIndustry", subscriptionSearchState.industry, "wellness")}
-        ${renderAdminMetroFilterField(
-          "City",
-          "subscriptionSearchMetro",
-          subscriptionSearchState.metro
-        )}
-
-        <label class="admin-field">
-          <span>Plan</span>
-          <select id="subscriptionSearchPlan">
-            <option value="">All plans</option>
-            <option value="verified_basic" ${subscriptionSearchState.plan === "verified_basic" ? "selected" : ""}>Verified Basic</option>
-            <option value="premium" ${subscriptionSearchState.plan === "premium" ? "selected" : ""}>Premium</option>
-          </select>
-        </label>
-
-        <label class="admin-field">
-          <span>Status</span>
-          <select id="subscriptionSearchStatus">
-            <option value="">All statuses</option>
-            <option value="active" ${subscriptionSearchState.status === "active" ? "selected" : ""}>Active</option>
-            <option value="trialing" ${subscriptionSearchState.status === "trialing" ? "selected" : ""}>Trialing</option>
-            <option value="inactive" ${subscriptionSearchState.status === "inactive" ? "selected" : ""}>Inactive</option>
-            <option value="past_due" ${subscriptionSearchState.status === "past_due" ? "selected" : ""}>Past Due</option>
-            <option value="canceled" ${subscriptionSearchState.status === "canceled" ? "selected" : ""}>Canceled</option>
-          </select>
-        </label>
-
-        <div class="admin-search-actions">
-          <button class="primary-btn" type="submit">Search</button>
-          <button id="clearSubscriptionSearchBtn" class="secondary-btn" type="button">Clear</button>
-        </div>
-      </form>
-
-      <div class="admin-search-summary">
-        <strong>${subscriptionSearchState.total} matching businesses</strong>
-        <span>Page ${subscriptionSearchState.page} of ${subscriptionSearchState.totalPages}</span>
-      </div>
-
       <div class="section-heading compact-heading">
         <div>
           <h3>Business Subscriptions</h3>
@@ -2785,65 +868,10 @@ async function loadBusinessSubscriptionsView() {
           })
           .join("")}
       </div>
-
-      <div class="business-pagination">
-        <button id="previousSubscriptionPageBtn" class="secondary-btn" ${subscriptionSearchState.page <= 1 ? "disabled" : ""}>Previous</button>
-        <span>Page ${subscriptionSearchState.page} of ${subscriptionSearchState.totalPages}</span>
-        <button id="nextSubscriptionPageBtn" class="secondary-btn" ${subscriptionSearchState.page >= subscriptionSearchState.totalPages ? "disabled" : ""}>Next</button>
-      </div>
     `;
 
-    document.getElementById("subscriptionSearchForm")?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      subscriptionSearchState.name = getInputValue("subscriptionSearchName").trim();
-      subscriptionSearchState.industry = getInputValue("subscriptionSearchIndustry").trim();
-      setAdminMetroSlug(
-        getInputValue(
-          "subscriptionSearchMetro"
-        ),
-        {
-          reload: false
-        }
-      );
-      subscriptionSearchState.plan = getInputValue("subscriptionSearchPlan");
-      subscriptionSearchState.status = getInputValue("subscriptionSearchStatus");
-      subscriptionSearchState.page = 1;
-      await loadBusinessSubscriptionsView();
-    });
-
-    document.getElementById("clearSubscriptionSearchBtn")?.addEventListener("click", async () => {
-      subscriptionSearchState = {
-        ...subscriptionSearchState,
-        name: "",
-        industry: "",
-        metro:
-          getSelectedAdminMetroSlug(),
-        plan: "",
-        status: "",
-        page: 1
-      };
-      await loadBusinessSubscriptionsView();
-    });
-
-    document.getElementById("previousSubscriptionPageBtn")?.addEventListener("click", async () => {
-      if (subscriptionSearchState.page > 1) {
-        subscriptionSearchState.page -= 1;
-        await loadBusinessSubscriptionsView();
-      }
-    });
-
-    document.getElementById("nextSubscriptionPageBtn")?.addEventListener("click", async () => {
-      if (subscriptionSearchState.page < subscriptionSearchState.totalPages) {
-        subscriptionSearchState.page += 1;
-        await loadBusinessSubscriptionsView();
-      }
-    });
-
     attachSubscriptionSaveHandlers();
-    setStatus(
-      `Loaded ${businesses.length} of ${subscriptionSearchState.total} matching subscription records.`,
-      "success"
-    );
+    setStatus(`Loaded ${businesses.length} business subscription records.`, "success");
   } catch (error) {
     content.innerHTML = `
       <h3>Could Not Load Subscriptions</h3>
@@ -2925,38 +953,16 @@ function attachSubscriptionSaveHandlers() {
 }
 async function loadBusinesses() {
   currentView = "businesses";
-  businessEditorMode = false;
-  setLoading("Loading business search...");
+  setLoading("Loading businesses...");
 
   try {
-    if (!businessSearchFacets.industries.length && !businessSearchFacets.metros.length) {
-      const facetsData = await fetchJson("/api/admin/businesses/facets");
-      businessSearchFacets = facetsData.facets || businessSearchFacets;
-    }
-
-    const params = new URLSearchParams({
-      page: String(businessSearchState.page),
-      limit: String(businessSearchState.limit)
-    });
-
-    if (businessSearchState.name) params.set("name", businessSearchState.name);
-    if (businessSearchState.industry) params.set("industry", businessSearchState.industry);
-    if (businessSearchState.metro) params.set("metro", businessSearchState.metro);
-    if (businessSearchState.platform) params.set("platform", businessSearchState.platform);
-    if (businessSearchState.enabled) params.set("enabled", businessSearchState.enabled);
-
-    const data = await fetchJson(`/api/admin/businesses/search?${params.toString()}`);
+    const data = await fetchJson("/api/admin/businesses");
     businessesCache = Array.isArray(data.businesses)
       ? data.businesses.map(normalizeBusinessDefaults)
       : [];
 
-    businessSearchState.page = Number(data.page || 1);
-    businessSearchState.limit = Number(data.limit || 20);
-    businessSearchState.total = Number(data.total || 0);
-    businessSearchState.totalPages = Number(data.totalPages || 1);
-
-    renderBusinessSearchResults();
-    setStatus(`Loaded ${businessesCache.length} of ${businessSearchState.total} matching businesses.`, "success");
+    renderBusinessesFromCache();
+    setStatus(`Loaded ${businessesCache.length} businesses from businesses.json.`, "success");
   } catch (error) {
     content.innerHTML = `<h3>Could Not Load Businesses</h3><p>${escapeHtml(error.message)}</p>`;
     setStatus("Failed to load businesses.", "error");
@@ -2964,199 +970,29 @@ async function loadBusinesses() {
 }
 
 async function loadResults() {
-  currentView = "inventory";
-  setLoading("Loading appointment inventory search...");
+  currentView = "results";
+  setLoading("Loading latest results...");
 
-  pageTitle.textContent = views.inventory.title;
-  pageSubtitle.textContent = views.inventory.subtitle;
+  try {
+    const data = await fetchJson("/api/admin/results");
 
-  content.innerHTML = `
-    <div class="settings-panel settings-panel-full">
-      <h3>Appointment Inventory</h3>
-      <p class="admin-muted">Search PostgreSQL inventory in small pages instead of loading every appointment.</p>
+    pageTitle.textContent = views.results.title;
+    pageSubtitle.textContent = views.results.subtitle;
 
-      <form id="inventorySearchForm" class="admin-search-grid">
-        ${renderAdminMetroFilterField(
-          "City",
-          "inventoryMetro",
-          inventorySearchState.metro
-        )}
-        ${renderSubscriptionTextInput("Business", "inventoryBusiness", inventorySearchState.business, "Business name")}
-        ${renderSubscriptionTextInput("Service", "inventoryService", inventorySearchState.service, "Service name")}
-        ${renderSubscriptionTextInput("Service Type", "inventoryServiceType", inventorySearchState.serviceType, "massage")}
-        ${renderSubscriptionTextInput("Platform", "inventoryPlatform", inventorySearchState.platform, "mindbody")}
+    content.innerHTML = `
+      <h3>Latest Results JSON</h3>
+      <p>This is the raw data currently coming from <code>results.json</code>.</p>
+      <details class="raw-json-box" open>
+        <summary>View results.json</summary>
+        <pre>${escapeHtml(JSON.stringify(data.results, null, 2))}</pre>
+      </details>
+    `;
 
-        <label class="admin-field">
-          <span>Date</span>
-          <input id="inventoryDate" type="date" value="${escapeHtml(inventorySearchState.date)}" />
-        </label>
-
-        <label class="admin-field">
-          <span>Source</span>
-          <select id="inventorySourceType">
-            <option value="">Confirmed + Inferred</option>
-            <option value="confirmed" ${inventorySearchState.sourceType === "confirmed" ? "selected" : ""}>Confirmed only</option>
-            <option value="inferred" ${inventorySearchState.sourceType === "inferred" ? "selected" : ""}>Inferred only</option>
-          </select>
-        </label>
-
-        ${renderSubscriptionTextInput("Status", "inventoryStatus", inventorySearchState.status, "active")}
-
-        <label class="admin-checkbox">
-          <input id="inventoryShowPast" type="checkbox" ${inventorySearchState.showPast ? "checked" : ""} />
-          <span>Include past appointments</span>
-        </label>
-
-        <label class="admin-checkbox">
-          <input id="inventoryIncludeInactive" type="checkbox" ${inventorySearchState.includeInactive ? "checked" : ""} />
-          <span>Include inactive appointments</span>
-        </label>
-
-        <div class="admin-search-actions">
-          <button class="primary-btn" type="submit">Search Inventory</button>
-          <button id="clearInventorySearchBtn" class="secondary-btn" type="button">Clear</button>
-        </div>
-      </form>
-
-      <div id="inventoryResults"><p>Loading...</p></div>
-    </div>
-  `;
-
-  const runInventorySearch = async () => {
-    try {
-      const params = new URLSearchParams({
-        page: String(inventorySearchState.page),
-        limit: String(inventorySearchState.limit),
-        showPast: String(inventorySearchState.showPast),
-        includeInactive: String(inventorySearchState.includeInactive)
-      });
-
-      if (inventorySearchState.metro) params.set("metro", inventorySearchState.metro);
-      if (inventorySearchState.business) params.set("business", inventorySearchState.business);
-      if (inventorySearchState.service) params.set("service", inventorySearchState.service);
-      if (inventorySearchState.serviceType) params.set("serviceType", inventorySearchState.serviceType);
-      if (inventorySearchState.platform) params.set("platform", inventorySearchState.platform);
-      if (inventorySearchState.date) params.set("date", inventorySearchState.date);
-      if (inventorySearchState.sourceType) params.set("sourceType", inventorySearchState.sourceType);
-      if (inventorySearchState.status) params.set("status", inventorySearchState.status);
-
-      const data = await fetchJson(`/api/admin/results?${params.toString()}`);
-      const results = Array.isArray(data.results) ? data.results : [];
-
-      inventorySearchState.page = Number(data.page || 1);
-      inventorySearchState.limit = Number(data.limit || 25);
-      inventorySearchState.total = Number(data.total || 0);
-      inventorySearchState.totalPages = Number(data.totalPages || 1);
-
-      const target = document.getElementById("inventoryResults");
-      if (!target) return;
-
-      target.innerHTML = `
-        <div class="admin-search-summary">
-          <strong>${inventorySearchState.total} matching appointments</strong>
-          <span>Page ${inventorySearchState.page} of ${inventorySearchState.totalPages}</span>
-        </div>
-
-        <div class="inventory-list">
-          ${results.length
-            ? results.map((row) => `
-                <article class="inventory-card">
-                  <div>
-                    <strong>${escapeHtml(row.business_name || row.businessName || "Unknown business")}</strong>
-                    <p>${escapeHtml(row.service_name || row.serviceName || row.service_category || "Service")}  -  ${escapeHtml(row.duration_minutes || row.durationMinutes || "?")} min</p>
-                  </div>
-                  <div>
-                    <strong>${escapeHtml(row.local_date || row.localDate || row.target_local_date_key || "")}</strong>
-                    <p>${escapeHtml(row.local_time || row.localTime || "")}  -  ${escapeHtml(row.platform || "")}</p>
-                  </div>
-                  <span class="platform-pill">${escapeHtml(row.appointment_source || row.source_type || row.sourceType || "confirmed")}</span>
-                </article>
-              `).join("")
-            : `<p class="empty-note">No inventory records matched these filters.</p>`}
-        </div>
-
-        <div class="business-pagination">
-          <button id="previousInventoryPageBtn" class="secondary-btn" ${inventorySearchState.page <= 1 ? "disabled" : ""}>Previous</button>
-          <span>Page ${inventorySearchState.page} of ${inventorySearchState.totalPages}</span>
-          <button id="nextInventoryPageBtn" class="secondary-btn" ${inventorySearchState.page >= inventorySearchState.totalPages ? "disabled" : ""}>Next</button>
-        </div>
-
-        <details class="raw-json-box">
-          <summary>View current page as raw PostgreSQL inventory</summary>
-          <pre>${escapeHtml(JSON.stringify(results, null, 2))}</pre>
-        </details>
-      `;
-
-      document.getElementById("previousInventoryPageBtn")?.addEventListener("click", async () => {
-        if (inventorySearchState.page > 1) {
-          inventorySearchState.page -= 1;
-          await runInventorySearch();
-        }
-      });
-
-      document.getElementById("nextInventoryPageBtn")?.addEventListener("click", async () => {
-        if (inventorySearchState.page < inventorySearchState.totalPages) {
-          inventorySearchState.page += 1;
-          await runInventorySearch();
-        }
-      });
-
-      setStatus(
-        `Loaded ${results.length} of ${inventorySearchState.total} matching inventory records.`,
-        "success"
-      );
-    } catch (error) {
-      const target = document.getElementById("inventoryResults");
-      if (target) target.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
-      setStatus("Failed to load appointment inventory.", "error");
-    }
-  };
-
-  document.getElementById("inventorySearchForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    setAdminMetroSlug(
-      getInputValue(
-        "inventoryMetro"
-      ),
-      {
-        reload: false
-      }
-    );
-    inventorySearchState.business = getInputValue("inventoryBusiness").trim();
-    inventorySearchState.service = getInputValue("inventoryService").trim();
-    inventorySearchState.serviceType = getInputValue("inventoryServiceType").trim();
-    inventorySearchState.platform = getInputValue("inventoryPlatform").trim();
-    inventorySearchState.date = getInputValue("inventoryDate");
-    inventorySearchState.sourceType = getInputValue("inventorySourceType");
-    inventorySearchState.status = getInputValue("inventoryStatus").trim();
-    inventorySearchState.showPast = getInputChecked("inventoryShowPast");
-    inventorySearchState.includeInactive = getInputChecked("inventoryIncludeInactive");
-    inventorySearchState.page = 1;
-    await runInventorySearch();
-  });
-
-  document.getElementById("clearInventorySearchBtn")?.addEventListener("click", async () => {
-    inventorySearchState = {
-      metro:
-        getSelectedAdminMetroSlug(),
-      business: "",
-      service: "",
-      serviceType: "",
-      platform: "",
-      date: "",
-      sourceType: "",
-      status: "",
-      showPast: false,
-      includeInactive: false,
-      page: 1,
-      limit: 25,
-      total: 0,
-      totalPages: 1
-    };
-    await loadResults();
-  });
-
-  await runInventorySearch();
+    setStatus("Loaded latest results.", "success");
+  } catch (error) {
+    content.innerHTML = `<h3>Could Not Load Results</h3><p>${escapeHtml(error.message)}</p>`;
+    setStatus("Failed to load results.", "error");
+  }
 }
 
 async function loadErrors() {
@@ -3164,38 +1000,17 @@ async function loadErrors() {
   setLoading("Loading error logs...");
 
   try {
-    const params =
-      new URLSearchParams();
-
-    if (adminMetroSlug) {
-      params.set(
-        "metro",
-        adminMetroSlug
-      );
-    }
-
-    const data = await fetchJson(
-      `/api/admin/errors?${params.toString()}`
-    );
+    const data = await fetchJson("/api/admin/errors");
     const errors = Array.isArray(data.errors) ? data.errors : [];
 
     pageTitle.textContent = views.errors.title;
     pageSubtitle.textContent = views.errors.subtitle;
 
     content.innerHTML = `
-      <div class="section-heading compact-heading">
-        <div>
-          <h3>Error Logs</h3>
-          <p>
-            ${errors.length} error log entries found for
-            ${escapeHtml(
-              getAdminMetroContextLabel()
-            )}.
-          </p>
-        </div>
-      </div>
+      <h3>Error Logs</h3>
+      <p>${errors.length} error log entries found.</p>
       <details class="raw-json-box" open>
-        <summary>View PostgreSQL scrape errors</summary>
+        <summary>View errorLogs.json</summary>
         <pre>${escapeHtml(JSON.stringify(errors, null, 2))}</pre>
       </details>
     `;
@@ -3261,19 +1076,7 @@ function setNestedSetting(target, path, value) {
 }
 
 async function getBusinessesForSettings() {
-  const params =
-    new URLSearchParams();
-
-  if (adminMetroSlug) {
-    params.set(
-      "metro",
-      adminMetroSlug
-    );
-  }
-
-  const data = await fetchJson(
-    `/api/admin/businesses?${params.toString()}`
-  );
+  const data = await fetchJson("/api/admin/businesses");
   return Array.isArray(data.businesses)
     ? data.businesses.map(normalizeBusinessDefaults)
     : [];
@@ -3284,28 +1087,26 @@ function renderTargetedScrapePanel() {
 
   return `
     <div class="settings-panel settings-panel-full">
-      <h3>Refresh Selected Availability</h3>
+      <h3>Run Targeted Scrape</h3>
       <p class="settings-help">
-        Choose a business and service. Automatic uses its configured integration; API only requires an enabled API connection. A queued job is not yet a completed refresh.
+        Choose from real businesses and services in businesses.json. This avoids typos and bad commands.
       </p>
 
       <div class="targeted-scrape-grid">
-        <label class="admin-field"><span>Refresh method</span><select id="targetIntegrationType">
-          <option value="">Automatic (configured integration)</option><option value="api">API only</option><option value="scrape">Scraping only</option>
-        </select></label>
         ${renderSelect("1. Platform", "targetPlatform", platforms, "Choose platform")}
         ${renderSelect("2. Business", "targetBusiness", [], "Choose business")}
         ${renderSelect("3. Service", "targetService", [], "Choose service")}
-        ${renderSelect("4. Duration", "targetDuration", [], "Any duration")}
-        ${renderSelect("5. Service Type", "targetServiceType", [], "Any service type")}
-        ${renderSelect("6. Priority", "targetPriority", ["high", "medium", "normal", "low"], "Any priority")}
-        ${renderSelect("7. Discovery Status", "targetDiscoveryStatus", ["approved", "manual", "test", "pending"], "Any status")}
+        ${renderSelect("4. Booking Widget", "targetWidget", [], "Automatic widget")}
+        ${renderSelect("5. Duration", "targetDuration", [], "Any duration")}
+        ${renderSelect("6. Service Type", "targetServiceType", [], "Any service type")}
+        ${renderSelect("7. Priority", "targetPriority", ["high", "medium", "normal", "low"], "Any priority")}
+        ${renderSelect("8. Discovery Status", "targetDiscoveryStatus", ["approved", "manual", "test", "pending"], "Any status")}
       </div>
 
       <div class="targeted-options">
         ${renderTargetedCheckbox("Force refresh", "targetForceRefresh", true)}
         ${renderTargetedCheckbox("Manual mode", "targetManual", true)}
-        
+        ${renderTargetedCheckbox("On-demand mode", "targetOnDemand", false)}
         ${renderTargetedCheckbox("Ignore service rules", "targetIgnoreServiceRules", false)}
         ${renderTargetedCheckbox("Skip Vagaro discovery", "targetSkipVagaroDiscovery", true)}
       </div>
@@ -3315,7 +1116,7 @@ function renderTargetedScrapePanel() {
       </div>
 
       <div class="targeted-actions">
-        <button id="runTargetedScrapeBtn" class="primary-btn">Refresh Selected Availability</button>
+        <button id="runTargetedScrapeBtn" class="primary-btn">Run Targeted Scrape</button>
         <button id="clearTargetedScrapeBtn" class="secondary-btn">Reset Choices</button>
       </div>
     </div>
@@ -3343,6 +1144,7 @@ async function loadSettings() {
     const serviceRules = settings.serviceRules || {};
     const platforms = settings.platforms || {};
     const clusters = settings.clusters || {};
+    const onDemand = settings.onDemand || {};
 
     content.innerHTML = `
       <div class="settings-grid">
@@ -3352,9 +1154,12 @@ async function loadSettings() {
           <h3>Scraping Controls</h3>
           ${renderSettingsCheckbox("Scraping Enabled", "scraping.enabled", scraping.enabled !== false)}
           ${renderSettingsCheckbox("Search Enabled", "searchEnabled", settings.searchEnabled !== false)}
+          ${renderSettingsCheckbox("Scheduled Scraping Enabled", "scraping.scheduledScrapingEnabled", scraping.scheduledScrapingEnabled !== false)}
+          ${renderSettingsCheckbox("On-Demand Scraping Enabled", "scraping.onDemandEnabled", scraping.onDemandEnabled !== false)}
           ${renderSettingsCheckbox("Skip Fresh Cache", "scraping.skipFreshCache", scraping.skipFreshCache !== false)}
           ${renderSettingsCheckbox("Skip Vagaro Discovery By Default", "scraping.skipVagaroDiscoveryByDefault", scraping.skipVagaroDiscoveryByDefault !== false)}
           ${renderSettingsInput("Default Lookahead Hours", "scraping.defaultLookaheadHours", scraping.defaultLookaheadHours || 48, "number")}
+          ${renderSettingsInput("Default Interval Minutes", "scraping.defaultIntervalMinutes", scraping.defaultIntervalMinutes || 15, "number")}
           ${renderSettingsInput("Max Concurrent Scrapes", "scraping.maxConcurrentScrapes", scraping.maxConcurrentScrapes || 1, "number")}
         </div>
 
@@ -3376,9 +1181,12 @@ async function loadSettings() {
           <div class="service-rules-grid">
             ${renderSettingsArrayInput("Scheduled Priorities", "serviceRules.scheduledPriorities", serviceRules.scheduledPriorities || ["high"])}
             ${renderSettingsArrayInput("Scheduled Discovery Statuses", "serviceRules.scheduledDiscoveryStatuses", serviceRules.scheduledDiscoveryStatuses || ["approved"])}
+            ${renderSettingsArrayInput("On-Demand Priorities", "serviceRules.onDemandPriorities", serviceRules.onDemandPriorities || ["high", "medium", "normal"])}
+            ${renderSettingsArrayInput("On-Demand Discovery Statuses", "serviceRules.onDemandDiscoveryStatuses", serviceRules.onDemandDiscoveryStatuses || ["approved", "manual"])}
             ${renderSettingsArrayInput("Manual Priorities", "serviceRules.manualPriorities", serviceRules.manualPriorities || ["high", "medium", "normal", "low"])}
             ${renderSettingsArrayInput("Manual Discovery Statuses", "serviceRules.manualDiscoveryStatuses", serviceRules.manualDiscoveryStatuses || ["approved", "manual", "test", "pending"])}
             ${renderSettingsInput("Max Services Per Business / Scheduled Run", "serviceRules.maxServicesPerBusinessPerScheduledRun", serviceRules.maxServicesPerBusinessPerScheduledRun || 2, "number")}
+            ${renderSettingsInput("Max Services Per Business / On-Demand Run", "serviceRules.maxServicesPerBusinessPerOnDemandRun", serviceRules.maxServicesPerBusinessPerOnDemandRun || 4, "number")}
             ${renderSettingsCheckbox("Allow Services Without Priority", "serviceRules.allowServicesWithoutPriority", serviceRules.allowServicesWithoutPriority === true)}
             ${renderSettingsCheckbox("Allow Services Without Discovery Status", "serviceRules.allowServicesWithoutDiscoveryStatus", serviceRules.allowServicesWithoutDiscoveryStatus === true)}
           </div>
@@ -3391,10 +1199,30 @@ async function loadSettings() {
           ).join("")}
         </div>
 
-        <div class="settings-panel settings-panel-full legacy-scheduler-note">
-          <h3>PostgreSQL Scheduler</h3>
-          <p class="settings-help">Schedules are no longer configured in admin settings. Use the <strong>Schedules</strong> tab to create and manage PostgreSQL-backed schedules, groups, exceptions, jobs, and workers.</p>
-          <button id="openSchedulerTabBtn" class="secondary-btn" type="button">Open Schedules</button>
+        <div class="settings-panel">
+          <h3>On-Demand Rules</h3>
+          ${renderSettingsCheckbox("On-Demand Enabled", "onDemand.enabled", onDemand.enabled !== false)}
+          ${renderSettingsCheckbox("Require Geo Filter", "onDemand.requireGeoFilter", onDemand.requireGeoFilter === true)}
+          ${renderSettingsInput("Max Jobs Per Search", "onDemand.maxJobsPerSearch", onDemand.maxJobsPerSearch || 10, "number")}
+          ${renderSettingsInput("On-Demand TTL Minutes", "onDemand.ttlMinutes", onDemand.ttlMinutes || 10, "number")}
+        </div>
+
+        <div class="settings-panel settings-panel-full">
+          <h3>Clusters</h3>
+          ${
+            Object.keys(clusters).length
+              ? Object.keys(clusters).map((clusterId) => {
+                  const cluster = clusters[clusterId] || {};
+                  return `
+                    <div class="cluster-settings-card">
+                      <h4>${escapeHtml(clusterId)}</h4>
+                      ${renderSettingsCheckbox("Cluster Enabled", `clusters.${clusterId}.enabled`, cluster.enabled !== false)}
+                      ${renderSettingsInput("Interval Minutes", `clusters.${clusterId}.intervalMinutes`, cluster.intervalMinutes || 15, "number")}
+                    </div>
+                  `;
+                }).join("")
+              : `<p class="empty-note">No cluster settings found.</p>`
+          }
         </div>
 
         <div class="settings-panel settings-panel-full">
@@ -3403,12 +1231,13 @@ async function loadSettings() {
             <button id="saveSettingsBtn" class="primary-btn">Save Settings</button>
             <button id="reloadSettingsBtn" class="secondary-btn">Reload Settings</button>
             <button id="clearCacheBtn" class="danger-btn large-danger-btn">Clear Cache</button>
-            <button id="runScrapeOnceBtn" class="secondary-btn">Refresh Availability Once</button>
+            <button id="runSchedulerOnceBtn" class="secondary-btn">Run Scheduler Once</button>
+            <button id="runScrapeOnceBtn" class="secondary-btn">Run Scrape Once</button>
             <button id="viewCacheStatsBtn" class="secondary-btn">View Cache Stats</button>
           </div>
 
           <details class="raw-json-box">
-            <summary>Raw PostgreSQL admin settings</summary>
+            <summary>Raw admin-settings.json</summary>
             <pre>${escapeHtml(JSON.stringify(settings, null, 2))}</pre>
           </details>
         </div>
@@ -3480,8 +1309,13 @@ function attachSettingsListeners(settings) {
     }
   });
 
-  document.getElementById("openSchedulerTabBtn")?.addEventListener("click", () => {
-    loadView("schedules");
+  document.getElementById("runSchedulerOnceBtn")?.addEventListener("click", async () => {
+    try {
+      await fetchJson("/api/admin/scheduler/run-once", { method: "POST" });
+      setStatus("Scheduler run started.", "success");
+    } catch (error) {
+      setStatus(`Scheduler run failed: ${error.message}`, "error");
+    }
   });
 
   document.getElementById("runScrapeOnceBtn")?.addEventListener("click", async () => {
@@ -3492,9 +1326,9 @@ function attachSettingsListeners(settings) {
         body: JSON.stringify({ forceRefresh: false })
       });
 
-      setStatus("Availability refresh queued.", "success");
+      setStatus("Scrape run started.", "success");
     } catch (error) {
-      setStatus(`Availability refresh failed: ${error.message}`, "error");
+      setStatus(`Scrape run failed: ${error.message}`, "error");
     }
   });
 
@@ -3553,6 +1387,7 @@ function hydrateTargetedDropdowns() {
     const businesses = getBusinessesForPlatform(platform).map((business) => business.businessName);
     fillSelect("targetBusiness", uniqueSorted(businesses), "Choose business");
     fillSelect("targetService", [], "Choose service");
+    fillSelect("targetWidget", [], "Automatic widget");
     fillSelect("targetDuration", [], "Any duration");
     fillSelect("targetServiceType", [], "Any service type");
     updateTargetedPreview();
@@ -3561,10 +1396,16 @@ function hydrateTargetedDropdowns() {
   const refreshServices = () => {
     const businessName = businessSelect.value;
     const services = getServicesForBusinessName(businessName);
+    const business = settingsBusinessesCache.find((item) => item.businessName === businessName);
 
     fillSelect("targetService", uniqueSorted(services.map((service) => service.serviceName)), "Choose service");
     fillSelect("targetDuration", uniqueSorted(services.map((service) => service.durationMinutes).filter(Boolean)), "Any duration");
     fillSelect("targetServiceType", uniqueSorted(services.map((service) => service.serviceType).filter(Boolean)), "Any service type");
+    fillSelect(
+      "targetWidget",
+      (business?.bookingWidgets || []).map((widget, index) => widget.widgetId || widget.id || `widget-${index + 1}`),
+      "Automatic widget"
+    );
 
     updateTargetedPreview();
   };
@@ -3580,6 +1421,7 @@ function hydrateTargetedDropdowns() {
       const serviceTypeSelect = document.getElementById("targetServiceType");
       const prioritySelect = document.getElementById("targetPriority");
       const discoverySelect = document.getElementById("targetDiscoveryStatus");
+      const widgetSelect = document.getElementById("targetWidget");
 
       if (durationSelect && selectedService.durationMinutes) {
         durationSelect.value = String(selectedService.durationMinutes);
@@ -3596,6 +1438,10 @@ function hydrateTargetedDropdowns() {
       if (discoverySelect && selectedService.discoveryStatus) {
         discoverySelect.value = selectedService.discoveryStatus;
       }
+
+      if (widgetSelect && selectedService.bookingWidgetId) {
+        widgetSelect.value = selectedService.bookingWidgetId;
+      }
     }
 
     updateTargetedPreview();
@@ -3606,8 +1452,8 @@ function hydrateTargetedDropdowns() {
   serviceSelect.addEventListener("change", refreshFromService);
 
   [
-    "targetIntegrationType",
     "targetDuration",
+    "targetWidget",
     "targetServiceType",
     "targetPriority",
     "targetDiscoveryStatus",
@@ -3633,16 +1479,17 @@ function getCheckboxValue(id) {
 
 function buildTargetedPayload() {
   const payload = {
-    integrationType: getSelectValue("targetIntegrationType"),
     platform: getSelectValue("targetPlatform"),
     business: getSelectValue("targetBusiness"),
     service: getSelectValue("targetService"),
+    widget: getSelectValue("targetWidget"),
     serviceType: getSelectValue("targetServiceType"),
     durationMinutes: getSelectValue("targetDuration"),
     priority: getSelectValue("targetPriority"),
     discoveryStatus: getSelectValue("targetDiscoveryStatus"),
     forceRefresh: getCheckboxValue("targetForceRefresh"),
     manual: getCheckboxValue("targetManual"),
+    onDemand: getCheckboxValue("targetOnDemand"),
     ignoreServiceRules: getCheckboxValue("targetIgnoreServiceRules"),
     skipVagaroDiscovery: getCheckboxValue("targetSkipVagaroDiscovery")
   };
@@ -3665,34 +1512,34 @@ function attachTargetedScrapeListeners() {
     const payload = buildTargetedPayload();
 
     try {
-      setStatus("Queueing availability refresh...", "info");
+      setStatus("Starting targeted scrape...", "info");
 
-      const data = await fetchJson("/api/admin/scrape/targeted", {
+      const data = await fetchJson("/api/admin/scrape/widget-targeted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
-      setStatus(`Availability refresh queued. Job ID: ${data.jobId}. Check Scheduler → Recent Jobs for completion.`, "success");
+      setStatus(`Targeted scrape started. Args: ${data.args.join(" ")}`, "success");
     } catch (error) {
-      setStatus(`Availability refresh failed: ${error.message}`, "error");
+      setStatus(`Targeted scrape failed: ${error.message}`, "error");
     }
   });
 
   document.getElementById("clearTargetedScrapeBtn")?.addEventListener("click", () => {
-    ["targetIntegrationType", "targetPlatform", "targetBusiness", "targetService", "targetDuration", "targetServiceType", "targetPriority", "targetDiscoveryStatus"].forEach((id) => {
+    ["targetPlatform", "targetBusiness", "targetService", "targetWidget", "targetDuration", "targetServiceType", "targetPriority", "targetDiscoveryStatus"].forEach((id) => {
       const element = document.getElementById(id);
       if (element) element.value = "";
     });
 
     document.getElementById("targetForceRefresh").checked = true;
     document.getElementById("targetManual").checked = true;
-    if (document.getElementById("targetOnDemand")) document.getElementById("targetOnDemand").checked = false;
+    document.getElementById("targetOnDemand").checked = false;
     document.getElementById("targetIgnoreServiceRules").checked = false;
     document.getElementById("targetSkipVagaroDiscovery").checked = true;
 
     hydrateTargetedDropdowns();
-    setStatus("Availability refresh choices reset.", "info");
+    setStatus("Targeted scrape choices reset.", "info");
   });
 }
 async function approveBusinessClaim(claimId) {
@@ -3767,7 +1614,7 @@ function renderClaimCard(claim) {
 
           <p>
             ${escapeHtml(claim.ownerName || "Unknown Owner")}
-             - 
+            ·
             ${escapeHtml(claim.email || "")}
           </p>
         </div>
@@ -3830,1208 +1677,61 @@ function renderClaimCard(claim) {
 
 async function loadClaims() {
   currentView = "claims";
-  setLoading("Loading business claim search...");
 
-  pageTitle.textContent = views.claims.title;
-  pageSubtitle.textContent = views.claims.subtitle;
+  setLoading("Loading business claims...");
 
   try {
-    const params = new URLSearchParams({
-      page: String(claimSearchState.page),
-      limit: String(claimSearchState.limit)
-    });
+    const data = await fetchJson("/api/business/claims");
 
-    if (claimSearchState.business) params.set("business", claimSearchState.business);
-    if (claimSearchState.owner) params.set("owner", claimSearchState.owner);
-    if (claimSearchState.email) params.set("email", claimSearchState.email);
-    if (claimSearchState.status) params.set("status", claimSearchState.status);
+    const claims = Array.isArray(data.claims)
+      ? data.claims
+      : [];
 
-    const data = await fetchJson(`/api/admin/claims/search?${params.toString()}`);
-    const claims = Array.isArray(data.claims) ? data.claims : [];
-
-    claimSearchState.page = Number(data.page || 1);
-    claimSearchState.limit = Number(data.limit || 20);
-    claimSearchState.total = Number(data.total || 0);
-    claimSearchState.totalPages = Number(data.totalPages || 1);
+    pageTitle.textContent = views.claims.title;
+    pageSubtitle.textContent = views.claims.subtitle;
 
     content.innerHTML = `
-      <form id="claimSearchForm" class="admin-search-grid">
-        ${renderSubscriptionTextInput("Business", "claimSearchBusiness", claimSearchState.business, "Business name")}
-        ${renderSubscriptionTextInput("Owner", "claimSearchOwner", claimSearchState.owner, "Owner name")}
-        ${renderSubscriptionTextInput("Email", "claimSearchEmail", claimSearchState.email, "owner@example.com")}
-
-        <label class="admin-field">
-          <span>Status</span>
-          <select id="claimSearchStatus">
-            <option value="">All statuses</option>
-            <option value="claimed_pending" ${claimSearchState.status === "claimed_pending" ? "selected" : ""}>Pending</option>
-            <option value="claimed_verified" ${claimSearchState.status === "claimed_verified" ? "selected" : ""}>Verified</option>
-            <option value="claimed_rejected" ${claimSearchState.status === "claimed_rejected" ? "selected" : ""}>Rejected</option>
-          </select>
-        </label>
-
-        <div class="admin-search-actions">
-          <button class="primary-btn" type="submit">Search Claims</button>
-          <button id="clearClaimSearchBtn" class="secondary-btn" type="button">Clear</button>
-        </div>
-      </form>
-
       <div class="section-heading compact-heading">
         <div>
-          <h3>${claimSearchState.total} Matching Claims</h3>
+          <h3>${claims.length} Claims</h3>
+
           <p>
-            Pending: ${escapeHtml(data.stats?.pending || 0)}  - 
-            Verified: ${escapeHtml(data.stats?.verified || 0)}  - 
-            Rejected: ${escapeHtml(data.stats?.rejected || 0)}
+            Pending:
+            ${escapeHtml(data.stats?.pending || 0)}
+            · Verified:
+            ${escapeHtml(data.stats?.verified || 0)}
+            · Rejected:
+            ${escapeHtml(data.stats?.rejected || 0)}
           </p>
         </div>
       </div>
 
       <div class="business-list">
-        ${claims.length
-          ? claims.map(renderClaimCard).join("")
-          : `<p class="empty-note">No business claims matched these filters.</p>`}
-      </div>
-
-      <div class="business-pagination">
-        <button id="previousClaimPageBtn" class="secondary-btn" ${claimSearchState.page <= 1 ? "disabled" : ""}>Previous</button>
-        <span>Page ${claimSearchState.page} of ${claimSearchState.totalPages}</span>
-        <button id="nextClaimPageBtn" class="secondary-btn" ${claimSearchState.page >= claimSearchState.totalPages ? "disabled" : ""}>Next</button>
+        ${
+          claims.length
+            ? claims.map(renderClaimCard).join("")
+            : `<p class="empty-note">No business claims found.</p>`
+        }
       </div>
     `;
 
-    document.getElementById("claimSearchForm")?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      claimSearchState.business = getInputValue("claimSearchBusiness").trim();
-      claimSearchState.owner = getInputValue("claimSearchOwner").trim();
-      claimSearchState.email = getInputValue("claimSearchEmail").trim();
-      claimSearchState.status = getInputValue("claimSearchStatus");
-      claimSearchState.page = 1;
-      await loadClaims();
-    });
-
-    document.getElementById("clearClaimSearchBtn")?.addEventListener("click", async () => {
-      claimSearchState = {
-        business: "",
-        owner: "",
-        email: "",
-        status: "",
-        page: 1,
-        limit: 20,
-        total: 0,
-        totalPages: 1
-      };
-      await loadClaims();
-    });
-
-    document.getElementById("previousClaimPageBtn")?.addEventListener("click", async () => {
-      if (claimSearchState.page > 1) {
-        claimSearchState.page -= 1;
-        await loadClaims();
-      }
-    });
-
-    document.getElementById("nextClaimPageBtn")?.addEventListener("click", async () => {
-      if (claimSearchState.page < claimSearchState.totalPages) {
-        claimSearchState.page += 1;
-        await loadClaims();
-      }
-    });
-
     attachClaimActionListeners();
-    setStatus(`Loaded ${claims.length} of ${claimSearchState.total} matching business claims.`, "success");
+
+    setStatus(
+      `Loaded ${claims.length} business claims.`,
+      "success"
+    );
   } catch (error) {
     content.innerHTML = `
       <h3>Could Not Load Claims</h3>
       <p>${escapeHtml(error.message)}</p>
     `;
-    setStatus("Failed to load business claims.", "error");
-  }
-}
 
-
-const SCHEDULER_WEEKDAYS = [
-  { value: "MO", label: "Mon" },
-  { value: "TU", label: "Tue" },
-  { value: "WE", label: "Wed" },
-  { value: "TH", label: "Thu" },
-  { value: "FR", label: "Fri" },
-  { value: "SA", label: "Sat" },
-  { value: "SU", label: "Sun" }
-];
-
-function formatSchedulerDateTime(value) {
-  if (!value) return "—";
-
-  const date = new Date(value);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return String(value);
-  }
-
-  return new Intl.DateTimeFormat(
-    "en-US",
-    {
-      timeZone:
-        getSelectedAdminMetro()
-          ?.timezone ||
-        "America/Chicago",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short"
-    }
-  ).format(date);
-}
-
-function schedulerStatusClass(value) {
-  const status = String(value || "").toLowerCase();
-  if (["success", "succeeded", "online", "running"].includes(status)) return "success";
-  if (["error", "failed", "offline", "cancelled", "canceled", "partial_error"].includes(status)) return "error";
-  if (["queued", "pending", "idle"].includes(status)) return "warning";
-  return "neutral";
-}
-
-function schedulerBoolean(value, fallback = false) {
-  if (value === true || value === "true") return true;
-  if (value === false || value === "false") return false;
-  return fallback;
-}
-
-function schedulerNumber(value, fallback = null) {
-  if (value === undefined || value === null || value === "") return fallback;
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function schedulerStringList(value) {
-  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
-  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
-}
-
-function getSchedulerBusinessPublicId(business = {}) {
-  return business.businessId || business.business_id || business.public_business_id || "";
-}
-
-function getSchedulerBusinessName(business = {}) {
-  return business.businessName || business.business_name || getSchedulerBusinessPublicId(business) || "Unknown business";
-}
-
-function getSchedulerSelectedValues(id) {
-  const element = document.getElementById(id);
-  if (!element) return [];
-  return [...element.selectedOptions].map((option) => option.value).filter(Boolean);
-}
-
-function setSchedulerSelectedValues(id, values = []) {
-  const selected = new Set(values.map(String));
-  const element = document.getElementById(id);
-  if (!element) return;
-  [...element.options].forEach((option) => {
-    option.selected = selected.has(String(option.value));
-  });
-}
-
-function getCheckedSchedulerDays() {
-  return [...document.querySelectorAll("[data-scheduler-day]:checked")]
-    .map((input) => input.value)
-    .filter(Boolean);
-}
-
-function setCheckedSchedulerDays(days = []) {
-  const selected = new Set((days || []).map(String));
-  document.querySelectorAll("[data-scheduler-day]").forEach((input) => {
-    input.checked = selected.has(input.value);
-  });
-}
-
-function renderSchedulerMetric(label, value, hint = "") {
-  return `
-    <article class="scheduler-metric">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(value ?? 0)}</strong>
-      ${hint ? `<small>${escapeHtml(hint)}</small>` : ""}
-    </article>
-  `;
-}
-
-function renderSchedulerStatusPill(status) {
-  return `<span class="scheduler-status ${schedulerStatusClass(status)}">${escapeHtml(status || "unknown")}</span>`;
-}
-
-function renderSchedulerBusinessOptions(selected = "") {
-  return schedulerV2State.businesses.map((business) => {
-    const id = getSchedulerBusinessPublicId(business);
-    const label = `${getSchedulerBusinessName(business)}${business.platform ? ` · ${business.platform}` : ""}`;
-    return `<option value="${escapeHtml(id)}" ${String(id) === String(selected) ? "selected" : ""}>${escapeHtml(label)}</option>`;
-  }).join("");
-}
-
-function renderSchedulerGroupOptions(selected = "") {
-  return schedulerV2State.groups.map((group) =>
-    `<option value="${escapeHtml(group.id)}" ${String(group.id) === String(selected) ? "selected" : ""}>${escapeHtml(group.name)}</option>`
-  ).join("");
-}
-
-function renderSchedulerWeekdayControls() {
-  return `
-    <fieldset class="scheduler-weekdays admin-field-full">
-      <legend>Days to run</legend>
-      <div class="scheduler-weekday-grid">
-        ${SCHEDULER_WEEKDAYS.map((day) => `
-          <label>
-            <input type="checkbox" value="${day.value}" data-scheduler-day checked />
-            <span>${day.label}</span>
-          </label>
-        `).join("")}
-      </div>
-    </fieldset>
-  `;
-}
-
-function renderSchedulerHealth() {
-  const health = schedulerV2State.health || {};
-  const queue = schedulerV2State.queue || {};
-  return `
-    <section class="scheduler-section scheduler-health-section">
-      <div class="scheduler-section-heading">
-        <div>
-          <h3>Scheduler Health</h3>
-          <p>Live status from PostgreSQL and the Render worker services.</p>
-        </div>
-        <div class="scheduler-toolbar">
-          <button id="runDueSchedulesBtn" class="primary-btn" type="button">Run Due Schedules</button>
-          <button id="runAllSchedulesBtn" class="secondary-btn" type="button">Run All Enabled Now</button>
-          <button id="refreshSchedulerBtn" class="secondary-btn" type="button">Refresh</button>
-        </div>
-      </div>
-      <div class="scheduler-metrics-grid">
-        ${renderSchedulerMetric("Enabled schedules", health.enabled_schedules || 0)}
-        ${renderSchedulerMetric("Enabled groups", health.enabled_groups || 0)}
-        ${renderSchedulerMetric("Queued jobs", queue.queued || queue.queued_jobs || 0)}
-        ${renderSchedulerMetric("Running jobs", queue.running || queue.running_jobs || 0)}
-        ${renderSchedulerMetric("Workers online", health.workers_online || 0)}
-        ${renderSchedulerMetric("Errors in 24h", health.errors_24h || 0)}
-      </div>
-      <div class="scheduler-health-foot">
-        <span><strong>Next scheduled run:</strong> ${escapeHtml(formatSchedulerDateTime(health.next_run_at))}</span>
-        <span><strong>Last successful schedule:</strong> ${escapeHtml(formatSchedulerDateTime(health.last_success_at))}</span>
-      </div>
-    </section>
-  `;
-}
-
-function renderScheduleEditor() {
-  return `
-    <section class="scheduler-section">
-      <div class="scheduler-section-heading">
-        <div>
-          <h3 id="scheduleEditorTitle">Create Schedule</h3>
-          <p>Create a PostgreSQL schedule without editing JSON.</p>
-        </div>
-        <button id="resetScheduleFormBtn" class="secondary-btn" type="button">Clear Form</button>
-      </div>
-      <input id="scheduleId" type="hidden" />
-      <div class="business-edit-grid scheduler-form-grid">
-        <label class="admin-field">
-          <span>Schedule name</span>
-          <input id="scheduleName" type="text" placeholder="Austin massage every 30 minutes" />
-        </label>
-        <label class="admin-field">
-          <span>Timezone</span>
-          <select id="scheduleTimezone">
-            <option value="America/Chicago">America/Chicago</option>
-            <option value="America/New_York">America/New_York</option>
-            <option value="America/Denver">America/Denver</option>
-            <option value="America/Los_Angeles">America/Los_Angeles</option>
-          </select>
-        </label>
-        <label class="admin-checkbox scheduler-enabled-checkbox">
-          <input id="scheduleEnabled" type="checkbox" checked />
-          <span>Schedule enabled</span>
-        </label>
-        <label class="admin-field">
-          <span>Target type</span>
-          <select id="scheduleTargetType">
-            <option value="business">One business</option>
-            <option value="group">Scrape group</option>
-          </select>
-        </label>
-        <label id="scheduleBusinessField" class="admin-field admin-field-full">
-          <span>Business</span>
-          <select id="scheduleBusinessId">
-            <option value="">Choose a business</option>
-            ${renderSchedulerBusinessOptions()}
-          </select>
-        </label>
-        <label id="scheduleGroupField" class="admin-field admin-field-full scheduler-hidden">
-          <span>Scrape group</span>
-          <select id="scheduleGroupId">
-            <option value="">Choose a group</option>
-            ${renderSchedulerGroupOptions()}
-          </select>
-        </label>
-        ${renderSchedulerWeekdayControls()}
-        <label class="admin-field">
-          <span>Timing mode</span>
-          <select id="scheduleTimingMode">
-            <option value="times">Specific times</option>
-            <option value="interval">Repeating interval</option>
-          </select>
-        </label>
-        <label id="scheduleTimesField" class="admin-field">
-          <span>Run times</span>
-          <input id="scheduleTimes" type="text" value="00:00" placeholder="00:00, 06:00, 12:00, 18:00" />
-          <small>24-hour times, separated by commas.</small>
-        </label>
-        <label id="scheduleIntervalField" class="admin-field scheduler-hidden">
-          <span>Interval minutes</span>
-          <input id="scheduleIntervalMinutes" type="number" min="1" value="30" />
-        </label>
-        <label id="scheduleWindowStartField" class="admin-field scheduler-hidden">
-          <span>Window start</span>
-          <input id="scheduleWindowStart" type="time" value="00:00" />
-        </label>
-        <label id="scheduleWindowEndField" class="admin-field scheduler-hidden">
-          <span>Window end</span>
-          <input id="scheduleWindowEnd" type="time" value="23:59" />
-        </label>
-      </div>
-      <details class="scheduler-advanced">
-        <summary>Availability and queue options</summary>
-        <p class="settings-help">API and scraping use the same queue. API only never falls back to scraping. Enable Force refresh for a live request each run. Existing priority, service and platform rules still apply.</p>
-        <label class="admin-field"><span>Refresh method</span><select id="scheduleIntegrationType">
-          <option value="">Automatic (configured integration)</option><option value="api">API only</option><option value="scrape">Scraping only</option>
-        </select></label>
-        <div class="business-edit-grid scheduler-form-grid scheduler-advanced-grid">
-          <label class="admin-field">
-            <span>Lookahead hours</span>
-            <input id="scheduleLookaheadHours" type="number" min="1" value="48" />
-          </label>
-          <label class="admin-field">
-            <span>Days forward</span>
-            <input id="scheduleDaysForward" type="number" min="1" placeholder="Leave blank to use lookahead" />
-          </label>
-          <label class="admin-field">
-            <span>Platform override</span>
-            <select id="schedulePlatform">
-              <option value="">Use business integration</option>
-              ${schedulerV2State.platforms.map((platform) => {
-                const value = platform.id || platform.platform || platform.name || platform;
-                const label = platform.label || platform.name || platform.platform || platform;
-                return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
-              }).join("")}
-            </select>
-          </label>
-          <label class="admin-field">
-            <span>Queue priority</span>
-            <input id="scheduleQueuePriority" type="number" value="100" />
-          </label>
-          <label class="admin-field">
-            <span>Maximum attempts</span>
-            <input id="scheduleMaxAttempts" type="number" min="1" value="3" />
-          </label>
-          <label class="admin-field">
-            <span>Timeout seconds</span>
-            <input id="scheduleTimeoutSeconds" type="number" min="60" value="1800" />
-          </label>
-          <label class="admin-checkbox"><input id="scheduleForceRefresh" type="checkbox" /><span>Force refresh</span></label>
-          <label class="admin-checkbox"><input id="scheduleForceDirectScrape" type="checkbox" /><span>Force direct scrape</span></label>
-          <label class="admin-checkbox"><input id="scheduleIgnoreServiceRules" type="checkbox" /><span>Ignore service rules</span></label>
-          <label class="admin-checkbox"><input id="scheduleSkipVagaroDiscovery" type="checkbox" checked /><span>Skip Vagaro discovery</span></label>
-        </div>
-      </details>
-      <div class="scheduler-form-actions">
-        <button id="saveScheduleBtn" class="primary-btn" type="button">Save Schedule</button>
-      </div>
-    </section>
-  `;
-}
-
-function renderScheduleList() {
-  return `
-    <section class="scheduler-section">
-      <div class="scheduler-section-heading">
-        <div>
-          <h3>Schedules</h3>
-          <p>${schedulerV2State.schedules.length} PostgreSQL schedule(s).</p>
-        </div>
-      </div>
-      <div class="scheduler-card-list">
-        ${schedulerV2State.schedules.length ? schedulerV2State.schedules.map((schedule) => {
-          const rules = schedule.calendar_rules || {};
-          const target = schedule.group_name || schedule.business_name || schedule.public_business_id || "No target";
-          const timing = Array.isArray(rules.times) && rules.times.length
-            ? rules.times.join(", ")
-            : rules.intervalMinutes
-              ? `Every ${rules.intervalMinutes} minutes${rules.windowStart ? ` from ${rules.windowStart}` : ""}${rules.windowEnd ? ` to ${rules.windowEnd}` : ""}`
-              : "Midnight";
-          const days = Array.isArray(rules.daysOfWeek) && rules.daysOfWeek.length ? rules.daysOfWeek.join(", ") : "Every day";
-          return `
-            <article class="scheduler-card ${schedule.enabled === false ? "scheduler-card-disabled" : ""}">
-              <div class="scheduler-card-main">
-                <div class="scheduler-card-title-row">
-                  <h4>${escapeHtml(schedule.name || "Unnamed schedule")}</h4>
-                  ${renderSchedulerStatusPill(schedule.enabled === false ? "disabled" : "enabled")}
-                </div>
-                <p><strong>Target:</strong> ${escapeHtml(target)}</p>
-                <p><strong>Refresh method:</strong> ${escapeHtml(schedule.scrape_options?.integrationType === "api" ? "API only" : schedule.scrape_options?.integrationType === "scrape" ? "Scraping only" : "Automatic (configured integration)")}</p>
-                <p><strong>Runs:</strong> ${escapeHtml(days)} · ${escapeHtml(timing)} · ${escapeHtml(schedule.timezone || "America/Chicago")}</p>
-                <p><strong>Next:</strong> ${escapeHtml(formatSchedulerDateTime(schedule.next_run_at))}</p>
-                ${schedule.last_error ? `<p class="scheduler-error-text"><strong>Last error:</strong> ${escapeHtml(schedule.last_error)}</p>` : ""}
-              </div>
-              <div class="scheduler-card-actions">
-                <button class="secondary-btn" type="button" data-edit-schedule="${escapeHtml(schedule.id)}">Edit</button>
-                <button class="secondary-btn" type="button" data-toggle-schedule="${escapeHtml(schedule.id)}">${schedule.enabled === false ? "Enable" : "Disable"}</button>
-                <button class="secondary-btn" type="button" data-recalculate-schedule="${escapeHtml(schedule.id)}">Recalculate</button>
-                <button class="danger-btn large-danger-btn" type="button" data-delete-schedule="${escapeHtml(schedule.id)}">Delete</button>
-              </div>
-            </article>
-          `;
-        }).join("") : `<p class="empty-note">No schedules exist yet. Use the form above to create the first one.</p>`}
-      </div>
-    </section>
-  `;
-}
-
-function renderGroupEditor() {
-  return `
-    <section class="scheduler-section">
-      <div class="scheduler-section-heading">
-        <div>
-          <h3 id="groupEditorTitle">Create Scrape Group</h3>
-          <p>Combine explicit businesses with optional database filters.</p>
-        </div>
-        <button id="resetGroupFormBtn" class="secondary-btn" type="button">Clear Form</button>
-      </div>
-      <input id="groupId" type="hidden" />
-      <div class="business-edit-grid scheduler-form-grid">
-        <label class="admin-field">
-          <span>Group name</span>
-          <input id="groupName" type="text" placeholder="Austin massage businesses" />
-        </label>
-        <label class="admin-checkbox scheduler-enabled-checkbox">
-          <input id="groupEnabled" type="checkbox" checked />
-          <span>Group enabled</span>
-        </label>
-        <label class="admin-field admin-field-full">
-          <span>Description</span>
-          <textarea id="groupDescription" rows="2" placeholder="What this group is used for"></textarea>
-        </label>
-        <label class="admin-field admin-field-full">
-          <span>Explicit businesses</span>
-          <select id="groupBusinessIds" multiple size="8">
-            ${renderSchedulerBusinessOptions()}
-          </select>
-          <small>Hold Ctrl/Command to select multiple businesses.</small>
-        </label>
-        <label class="admin-field">
-          <span>Platform filters</span>
-          <input id="groupPlatforms" type="text" placeholder="mindbody, meevo" />
-        </label>
-        <label class="admin-field">
-          <span>Industry filters</span>
-          <input id="groupIndustries" type="text" placeholder="wellness, massage" />
-        </label>
-        <label class="admin-field">
-          <span>Marketplace metro</span>
-          <select id="groupMetros">
-            ${renderAdminMetroOptions(
-              getSelectedAdminMetroSlug(),
-              {
-                placeholder:
-                  "Any marketplace city"
-              }
-            )}
-          </select>
-        </label>
-        <label class="admin-field">
-          <span>Priority filters</span>
-          <input id="groupPriorities" type="text" placeholder="high, normal" />
-        </label>
-        <label class="admin-field">
-          <span>Discovery status filters</span>
-          <input id="groupDiscoveryStatuses" type="text" placeholder="approved, manual" />
-        </label>
-        <label class="admin-field">
-          <span>Business name contains</span>
-          <input id="groupNameContains" type="text" placeholder="Optional name filter" />
-        </label>
-      </div>
-      <div class="scheduler-form-actions">
-        <button id="saveGroupBtn" class="primary-btn" type="button">Save Group</button>
-      </div>
-      <div class="scheduler-card-list scheduler-sublist">
-        ${schedulerV2State.groups.length ? schedulerV2State.groups.map((group) => `
-          <article class="scheduler-card ${group.enabled === false ? "scheduler-card-disabled" : ""}">
-            <div class="scheduler-card-main">
-              <div class="scheduler-card-title-row">
-                <h4>${escapeHtml(group.name)}</h4>
-                ${renderSchedulerStatusPill(group.enabled === false ? "disabled" : "enabled")}
-              </div>
-              <p>${escapeHtml(group.description || "No description")}</p>
-              <p><strong>Explicit businesses:</strong> ${escapeHtml((group.businesses || []).length)}</p>
-            </div>
-            <div class="scheduler-card-actions">
-              <button class="secondary-btn" type="button" data-edit-group="${escapeHtml(group.id)}">Edit</button>
-              <button class="secondary-btn" type="button" data-toggle-group="${escapeHtml(group.id)}">${group.enabled === false ? "Enable" : "Disable"}</button>
-              <button class="danger-btn large-danger-btn" type="button" data-delete-group="${escapeHtml(group.id)}">Delete</button>
-            </div>
-          </article>
-        `).join("") : `<p class="empty-note">No scrape groups configured.</p>`}
-      </div>
-    </section>
-  `;
-}
-
-function renderExceptionManager() {
-  return `
-    <section class="scheduler-section">
-      <div class="scheduler-section-heading">
-        <div>
-          <h3>Schedule Exceptions</h3>
-          <p>Skip, force, or override a schedule on a specific date.</p>
-        </div>
-      </div>
-      <div class="business-edit-grid scheduler-form-grid">
-        <label class="admin-field">
-          <span>Schedule</span>
-          <select id="exceptionScheduleId">
-            <option value="">Choose a schedule</option>
-            ${schedulerV2State.schedules.map((schedule) => `<option value="${escapeHtml(schedule.id)}">${escapeHtml(schedule.name)}</option>`).join("")}
-          </select>
-        </label>
-        <label class="admin-field">
-          <span>Date</span>
-          <input id="exceptionDate" type="date" />
-        </label>
-        <label class="admin-field">
-          <span>Action</span>
-          <select id="exceptionAction">
-            <option value="skip">Skip this date</option>
-            <option value="run">Force a run</option>
-            <option value="override">Override the normal time</option>
-          </select>
-        </label>
-        <label class="admin-field">
-          <span>Override time</span>
-          <input id="exceptionTime" type="time" />
-        </label>
-        <label class="admin-field admin-field-full">
-          <span>Reason</span>
-          <input id="exceptionReason" type="text" placeholder="Holiday, special event, maintenance..." />
-        </label>
-      </div>
-      <div class="scheduler-form-actions">
-        <button id="saveExceptionBtn" class="primary-btn" type="button">Save Exception</button>
-      </div>
-      <div class="scheduler-table-wrap">
-        <table class="scheduler-table">
-          <thead><tr><th>Date</th><th>Schedule</th><th>Action</th><th>Time</th><th>Reason</th><th></th></tr></thead>
-          <tbody>
-            ${schedulerV2State.exceptions.length ? schedulerV2State.exceptions.map((row) => {
-              const schedule = schedulerV2State.schedules.find((item) => String(item.id) === String(row.schedule_id));
-              return `<tr>
-                <td>${escapeHtml(String(row.exception_date || "").slice(0, 10))}</td>
-                <td>${escapeHtml(schedule?.name || row.schedule_id || "Deleted schedule")}</td>
-                <td>${renderSchedulerStatusPill(row.action)}</td>
-                <td>${escapeHtml(row.override_time || "—")}</td>
-                <td>${escapeHtml(row.reason || "—")}</td>
-                <td><button class="danger-btn" type="button" data-delete-exception="${escapeHtml(row.id)}">Delete</button></td>
-              </tr>`;
-            }).join("") : `<tr><td colspan="6" class="empty-note">No exceptions configured.</td></tr>`}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  `;
-}
-
-function renderWorkerAndQueuePanels() {
-  return `
-    <div class="scheduler-two-column">
-      <section class="scheduler-section">
-        <div class="scheduler-section-heading"><div><h3>Workers</h3><p>Render scrape workers registered in PostgreSQL.</p></div></div>
-        <div class="scheduler-card-list compact">
-          ${schedulerV2State.workers.length ? schedulerV2State.workers.map((worker) => `
-            <article class="scheduler-mini-card">
-              <div>
-                <strong>${escapeHtml(worker.worker_name || worker.worker_id || worker.name || worker.id || "Worker")}</strong>
-                <p>Heartbeat: ${escapeHtml(formatSchedulerDateTime(worker.last_heartbeat_at || worker.heartbeat_at))}</p>
-              </div>
-              ${renderSchedulerStatusPill(worker.effective_status || worker.status || "unknown")}
-            </article>
-          `).join("") : `<p class="empty-note">No workers have registered yet.</p>`}
-        </div>
-      </section>
-      <section class="scheduler-section">
-        <div class="scheduler-section-heading"><div><h3>Recent Jobs</h3><p>Latest queued and completed availability jobs (API or scraping).</p></div></div>
-        <div class="scheduler-card-list compact">
-          ${schedulerV2State.jobs.length ? schedulerV2State.jobs.slice(0, 30).map((job) => `
-            <article class="scheduler-mini-card scheduler-job-card">
-              <div>
-                <strong>${escapeHtml(job.request_payload?.businessName || job.request_payload?.business_name || job.script_name || "Scrape job")}</strong>
-                <p>${escapeHtml(job.source || "manual")} · attempt ${escapeHtml(job.attempt_count || job.attempts || 0)}/${escapeHtml(job.max_attempts || 0)} · ${escapeHtml(formatSchedulerDateTime(job.created_at))}</p>
-                ${(job.error_message || job.last_error) ? `<p class="scheduler-error-text">${escapeHtml(job.error_message || job.last_error)}</p>` : ""}
-              </div>
-              <div class="scheduler-job-actions">
-                ${renderSchedulerStatusPill(job.status)}
-                ${["failed", "cancelled", "canceled"].includes(String(job.status || "").toLowerCase()) ? `<button class="secondary-btn" type="button" data-retry-job="${escapeHtml(job.id)}">Retry</button>` : ""}
-                ${["queued", "running"].includes(String(job.status || "").toLowerCase()) ? `<button class="danger-btn" type="button" data-cancel-job="${escapeHtml(job.id)}">Cancel</button>` : ""}
-              </div>
-            </article>
-          `).join("") : `<p class="empty-note">No scrape jobs found.</p>`}
-        </div>
-      </section>
-    </div>
-  `;
-}
-
-function renderSchedulerHistory() {
-  return `
-    <section class="scheduler-section">
-      <div class="scheduler-section-heading"><div><h3>Schedule History</h3><p>The latest scheduler occurrences and job counts.</p></div></div>
-      <div class="scheduler-table-wrap">
-        <table class="scheduler-table">
-          <thead><tr><th>Started</th><th>Schedule</th><th>Occurrence</th><th>Status</th><th>Businesses</th><th>Jobs</th><th>Rejected</th></tr></thead>
-          <tbody>
-            ${schedulerV2State.history.length ? schedulerV2State.history.map((row) => `
-              <tr>
-                <td>${escapeHtml(formatSchedulerDateTime(row.started_at))}</td>
-                <td>${escapeHtml(row.schedule_name || row.schedule_id || "Deleted schedule")}</td>
-                <td>${escapeHtml(row.occurrence_key || "—")}</td>
-                <td>${renderSchedulerStatusPill(row.status)}</td>
-                <td>${escapeHtml(row.businesses_selected || 0)}</td>
-                <td>${escapeHtml(row.jobs_built || 0)}</td>
-                <td>${escapeHtml(row.jobs_rejected || 0)}</td>
-              </tr>
-            `).join("") : `<tr><td colspan="7" class="empty-note">No scheduler history yet.</td></tr>`}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  `;
-}
-
-async function loadSchedulerV2() {
-  currentView = "schedules";
-  pageTitle.textContent = views.schedules.title;
-  pageSubtitle.textContent = views.schedules.subtitle;
-  setLoading("Loading PostgreSQL scheduler...");
-
-  try {
-    const [groupsData, schedulesData, exceptionsData, historyData, healthData, jobsData, platformsData, businessesData] = await Promise.all([
-      fetchJson("/api/admin/v2/scheduler/groups"),
-      fetchJson("/api/admin/v2/scheduler/schedules"),
-      fetchJson("/api/admin/v2/scheduler/exceptions"),
-      fetchJson("/api/admin/v2/scheduler/history?limit=100"),
-      fetchJson("/api/admin/v2/scheduler/health"),
-      fetchJson("/api/admin/v2/scheduler/jobs?limit=100"),
-      fetchJson("/api/admin/v2/integrations/platforms"),
-      fetchJson(
-        `/api/admin/businesses/search?enabled=true&page=1&limit=100${
-          adminMetroSlug
-            ? `&metro=${encodeURIComponent(
-                adminMetroSlug
-              )}`
-            : ""
-        }`
-      )
-    ]);
-
-    const rawSchedulerState = {
-      groups: groupsData.groups || [],
-      schedules: schedulesData.schedules || [],
-      exceptions: exceptionsData.exceptions || [],
-      history: historyData.history || [],
-      health: healthData.health || {},
-      queue: healthData.queue || {},
-      workers: healthData.workers || [],
-      jobs: jobsData.jobs || [],
-      businesses: businessesData.businesses || businessesData.results || [],
-      platforms: platformsData.platforms || []
-    };
-
-    schedulerV2State =
-      filterSchedulerStateForAdminMetro(
-        rawSchedulerState
-      );
-
-    content.innerHTML = `
-      <div class="scheduler-dashboard">
-        ${renderSchedulerHealth()}
-        ${renderScheduleEditor()}
-        ${renderScheduleList()}
-        ${renderGroupEditor()}
-        ${renderExceptionManager()}
-        ${renderWorkerAndQueuePanels()}
-        ${renderSchedulerHistory()}
-      </div>
-    `;
-
-    attachSchedulerV2Listeners();
-    updateScheduleTargetFields();
-    updateScheduleTimingFields();
-    updateExceptionTimeField();
     setStatus(
-      `Loaded ${getAdminMetroContextLabel()} schedules, queue jobs, and worker status.`,
-      "success"
+      "Failed to load business claims.",
+      "error"
     );
-  } catch (error) {
-    content.innerHTML = `
-      <section class="scheduler-section">
-        <h3>Could Not Load PostgreSQL Scheduler</h3>
-        <p>${escapeHtml(error.message)}</p>
-        <p class="empty-note">Confirm migrations 006 and 007 are installed and that <code>/api/admin/v2</code> is mounted.</p>
-      </section>
-    `;
-    setStatus(`Scheduler failed to load: ${error.message}`, "error");
   }
-}
-
-function updateScheduleTargetFields() {
-  const type = getInputValue("scheduleTargetType") || "business";
-  document.getElementById("scheduleBusinessField")?.classList.toggle("scheduler-hidden", type !== "business");
-  document.getElementById("scheduleGroupField")?.classList.toggle("scheduler-hidden", type !== "group");
-}
-
-function updateScheduleTimingFields() {
-  const mode = getInputValue("scheduleTimingMode") || "times";
-  document.getElementById("scheduleTimesField")?.classList.toggle("scheduler-hidden", mode !== "times");
-  document.getElementById("scheduleIntervalField")?.classList.toggle("scheduler-hidden", mode !== "interval");
-  document.getElementById("scheduleWindowStartField")?.classList.toggle("scheduler-hidden", mode !== "interval");
-  document.getElementById("scheduleWindowEndField")?.classList.toggle("scheduler-hidden", mode !== "interval");
-}
-
-function updateExceptionTimeField() {
-  const action = getInputValue("exceptionAction") || "skip";
-  const field = document.getElementById("exceptionTime")?.closest("label");
-  field?.classList.toggle("scheduler-hidden", action === "skip");
-}
-
-function resetScheduleForm() {
-  const id = (name) => document.getElementById(name);
-  if (id("scheduleId")) id("scheduleId").value = "";
-  if (id("scheduleName")) id("scheduleName").value = "";
-  if (id("scheduleTimezone")) {
-    id("scheduleTimezone").value =
-      getSelectedAdminMetro()
-        ?.timezone ||
-      "America/Chicago";
-  }
-  if (id("scheduleEnabled")) id("scheduleEnabled").checked = true;
-  if (id("scheduleTargetType")) id("scheduleTargetType").value = "business";
-  if (id("scheduleBusinessId")) id("scheduleBusinessId").value = "";
-  if (id("scheduleGroupId")) id("scheduleGroupId").value = "";
-  setCheckedSchedulerDays(SCHEDULER_WEEKDAYS.map((day) => day.value));
-  if (id("scheduleTimingMode")) id("scheduleTimingMode").value = "times";
-  if (id("scheduleTimes")) id("scheduleTimes").value = "00:00";
-  if (id("scheduleIntervalMinutes")) id("scheduleIntervalMinutes").value = "30";
-  if (id("scheduleWindowStart")) id("scheduleWindowStart").value = "00:00";
-  if (id("scheduleWindowEnd")) id("scheduleWindowEnd").value = "23:59";
-  if (id("scheduleLookaheadHours")) id("scheduleLookaheadHours").value = "48";
-  if (id("scheduleDaysForward")) id("scheduleDaysForward").value = "";
-  if (id("schedulePlatform")) id("schedulePlatform").value = "";
-  if (id("scheduleIntegrationType")) id("scheduleIntegrationType").value = "";
-  if (id("scheduleQueuePriority")) id("scheduleQueuePriority").value = "100";
-  if (id("scheduleMaxAttempts")) id("scheduleMaxAttempts").value = "3";
-  if (id("scheduleTimeoutSeconds")) id("scheduleTimeoutSeconds").value = "1800";
-  ["scheduleForceRefresh", "scheduleForceDirectScrape", "scheduleIgnoreServiceRules"].forEach((name) => { if (id(name)) id(name).checked = false; });
-  if (id("scheduleSkipVagaroDiscovery")) id("scheduleSkipVagaroDiscovery").checked = true;
-  if (id("scheduleEditorTitle")) id("scheduleEditorTitle").textContent = "Create Schedule";
-  if (id("saveScheduleBtn")) id("saveScheduleBtn").textContent = "Save Schedule";
-  updateScheduleTargetFields();
-  updateScheduleTimingFields();
-}
-
-function populateScheduleForm(schedule) {
-  const rules = schedule.calendar_rules || {};
-  const options = schedule.scrape_options || {};
-  document.getElementById("scheduleId").value = schedule.id || "";
-  document.getElementById("scheduleName").value = schedule.name || "";
-  document.getElementById("scheduleTimezone").value = schedule.timezone || "America/Chicago";
-  document.getElementById("scheduleEnabled").checked = schedule.enabled !== false;
-  const targetType = schedule.group_id ? "group" : "business";
-  document.getElementById("scheduleTargetType").value = targetType;
-  document.getElementById("scheduleGroupId").value = schedule.group_id || "";
-  document.getElementById("scheduleBusinessId").value = schedule.public_business_id || schedule.business_id || "";
-  setCheckedSchedulerDays(Array.isArray(rules.daysOfWeek) && rules.daysOfWeek.length ? rules.daysOfWeek : SCHEDULER_WEEKDAYS.map((day) => day.value));
-  const timingMode = rules.intervalMinutes ? "interval" : "times";
-  document.getElementById("scheduleTimingMode").value = timingMode;
-  document.getElementById("scheduleTimes").value = Array.isArray(rules.times) ? rules.times.join(", ") : "00:00";
-  document.getElementById("scheduleIntervalMinutes").value = rules.intervalMinutes || 30;
-  document.getElementById("scheduleWindowStart").value = rules.windowStart || "00:00";
-  document.getElementById("scheduleWindowEnd").value = rules.windowEnd || "23:59";
-  document.getElementById("scheduleLookaheadHours").value = options.lookaheadHours ?? 48;
-  document.getElementById("scheduleDaysForward").value = options.daysForward ?? "";
-  document.getElementById("schedulePlatform").value = options.platform || "";
-  document.getElementById("scheduleIntegrationType").value = options.integrationType || "";
-  document.getElementById("scheduleQueuePriority").value = options.queuePriority ?? 100;
-  document.getElementById("scheduleMaxAttempts").value = options.maxAttempts ?? 3;
-  document.getElementById("scheduleTimeoutSeconds").value = options.timeoutSeconds ?? 1800;
-  document.getElementById("scheduleForceRefresh").checked = schedulerBoolean(options.forceRefresh);
-  document.getElementById("scheduleForceDirectScrape").checked = schedulerBoolean(options.forceDirectScrape);
-  document.getElementById("scheduleIgnoreServiceRules").checked = schedulerBoolean(options.ignoreServiceRules);
-  document.getElementById("scheduleSkipVagaroDiscovery").checked = schedulerBoolean(options.skipVagaroDiscovery, true);
-  document.getElementById("scheduleEditorTitle").textContent = `Edit ${schedule.name || "Schedule"}`;
-  document.getElementById("saveScheduleBtn").textContent = "Update Schedule";
-  updateScheduleTargetFields();
-  updateScheduleTimingFields();
-  document.getElementById("scheduleEditorTitle")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function buildSchedulePayload(overrides = {}) {
-  const timingMode = getInputValue("scheduleTimingMode") || "times";
-  const daysOfWeek = getCheckedSchedulerDays();
-  if (!daysOfWeek.length) throw new Error("Choose at least one day of the week.");
-
-  const calendarRules = { daysOfWeek };
-  if (timingMode === "interval") {
-    const intervalMinutes = schedulerNumber(getInputValue("scheduleIntervalMinutes"));
-    if (!intervalMinutes || intervalMinutes < 1) throw new Error("Interval minutes must be at least 1.");
-    calendarRules.intervalMinutes = intervalMinutes;
-    calendarRules.windowStart = getInputValue("scheduleWindowStart") || "00:00";
-    calendarRules.windowEnd = getInputValue("scheduleWindowEnd") || "23:59";
-    calendarRules.times = [];
-  } else {
-    const times = schedulerStringList(getInputValue("scheduleTimes"));
-    if (!times.length) throw new Error("Enter at least one run time.");
-    calendarRules.times = times;
-    calendarRules.intervalMinutes = 0;
-  }
-
-  const scrapeOptions = {};
-  const integrationType = getInputValue("scheduleIntegrationType");
-  if (integrationType) scrapeOptions.integrationType = integrationType;
-  const numericOptions = {
-    lookaheadHours: schedulerNumber(getInputValue("scheduleLookaheadHours")),
-    daysForward: schedulerNumber(getInputValue("scheduleDaysForward")),
-    queuePriority: schedulerNumber(getInputValue("scheduleQueuePriority"), 100),
-    maxAttempts: schedulerNumber(getInputValue("scheduleMaxAttempts"), 3),
-    timeoutSeconds: schedulerNumber(getInputValue("scheduleTimeoutSeconds"), 1800)
-  };
-  Object.entries(numericOptions).forEach(([key, value]) => {
-    if (value !== null) scrapeOptions[key] = value;
-  });
-  const platform = getInputValue("schedulePlatform");
-  if (platform) scrapeOptions.platform = platform;
-  scrapeOptions.forceRefresh = getInputChecked("scheduleForceRefresh");
-  scrapeOptions.forceDirectScrape = getInputChecked("scheduleForceDirectScrape");
-  scrapeOptions.ignoreServiceRules = getInputChecked("scheduleIgnoreServiceRules");
-  scrapeOptions.skipVagaroDiscovery = getInputChecked("scheduleSkipVagaroDiscovery");
-
-  const targetType = getInputValue("scheduleTargetType") || "business";
-  const groupId = targetType === "group" ? getInputValue("scheduleGroupId") : null;
-  const businessId = targetType === "business" ? getInputValue("scheduleBusinessId") : null;
-  if (!groupId && !businessId) throw new Error(`Choose a ${targetType}.`);
-
-  const name = getInputValue("scheduleName").trim();
-  if (!name) throw new Error("Schedule name is required.");
-
-  return {
-    id: getInputValue("scheduleId") || null,
-    name,
-    enabled: getInputChecked("scheduleEnabled"),
-    timezone: getInputValue("scheduleTimezone") || "America/Chicago",
-    groupId: groupId || null,
-    businessId: businessId || null,
-    calendarRules,
-    scrapeOptions,
-    ...overrides
-  };
-}
-
-function resetGroupForm() {
-  document.getElementById("groupId").value = "";
-  document.getElementById("groupName").value = "";
-  document.getElementById("groupEnabled").checked = true;
-  document.getElementById("groupDescription").value = "";
-  setSchedulerSelectedValues("groupBusinessIds", []);
-  [
-    "groupPlatforms",
-    "groupIndustries",
-    "groupPriorities",
-    "groupDiscoveryStatuses",
-    "groupNameContains"
-  ].forEach((id) => {
-    document.getElementById(id).value = "";
-  });
-
-  document.getElementById(
-    "groupMetros"
-  ).value =
-    getSelectedAdminMetroSlug();
-  document.getElementById("groupEditorTitle").textContent = "Create Scrape Group";
-  document.getElementById("saveGroupBtn").textContent = "Save Group";
-}
-
-function populateGroupForm(group) {
-  const selector = group.selector || {};
-  document.getElementById("groupId").value = group.id || "";
-  document.getElementById("groupName").value = group.name || "";
-  document.getElementById("groupEnabled").checked = group.enabled !== false;
-  document.getElementById("groupDescription").value = group.description || "";
-  setSchedulerSelectedValues("groupBusinessIds", (group.businesses || []).map(getSchedulerBusinessPublicId));
-  document.getElementById("groupPlatforms").value = schedulerStringList(selector.platforms || selector.platform).join(", ");
-  document.getElementById("groupIndustries").value = schedulerStringList(selector.businessCategories || selector.industries || selector.industry).join(", ");
-  document.getElementById(
-    "groupMetros"
-  ).value =
-    schedulerStringList(
-      selector.metros ||
-      selector.metro ||
-      selector.cities ||
-      selector.city
-    )[0] || "";
-  document.getElementById("groupPriorities").value = schedulerStringList(selector.priorities || selector.priority).join(", ");
-  document.getElementById("groupDiscoveryStatuses").value = schedulerStringList(selector.discoveryStatuses || selector.discoveryStatus).join(", ");
-  document.getElementById("groupNameContains").value = selector.nameContains || selector.businessName || "";
-  document.getElementById("groupEditorTitle").textContent = `Edit ${group.name || "Group"}`;
-  document.getElementById("saveGroupBtn").textContent = "Update Group";
-  document.getElementById("groupEditorTitle")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function buildGroupPayload(overrides = {}) {
-  const selector = {};
-  const mappings = [
-    ["platforms", "groupPlatforms"],
-    ["businessCategories", "groupIndustries"],
-    ["metros", "groupMetros"],
-    ["priorities", "groupPriorities"],
-    ["discoveryStatuses", "groupDiscoveryStatuses"]
-  ];
-  mappings.forEach(([key, id]) => {
-    const values = schedulerStringList(getInputValue(id));
-    if (values.length) selector[key] = values;
-  });
-  const nameContains = getInputValue("groupNameContains").trim();
-  if (nameContains) selector.nameContains = nameContains;
-
-  const name = getInputValue("groupName").trim();
-  if (!name) throw new Error("Group name is required.");
-  return {
-    id: getInputValue("groupId") || null,
-    name,
-    description: getInputValue("groupDescription").trim(),
-    enabled: getInputChecked("groupEnabled"),
-    businessIds: getSchedulerSelectedValues("groupBusinessIds"),
-    selector,
-    ...overrides
-  };
-}
-
-async function saveSchedulerRecord(url, payload, successMessage) {
-  setStatus("Saving...", "info");
-  await fetchJson(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  setStatus(successMessage, "success");
-  await loadSchedulerV2();
-}
-
-function attachSchedulerV2Listeners() {
-  document.getElementById("refreshSchedulerBtn")?.addEventListener("click", loadSchedulerV2);
-  document.getElementById("runDueSchedulesBtn")?.addEventListener("click", async () => {
-    try {
-      setStatus("Checking due schedules...", "info");
-      const result = await fetchJson("/api/admin/v2/scheduler/run-v2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ force: false })
-      });
-      setStatus(result.message || "Due schedules checked.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Scheduler run failed: ${error.message}`, "error");
-    }
-  });
-  document.getElementById("runAllSchedulesBtn")?.addEventListener("click", async () => {
-    if (!window.confirm("Queue every enabled schedule now? Duplicate locks still apply.")) return;
-    try {
-      setStatus("Queueing all enabled schedules...", "info");
-      const result = await fetchJson("/api/admin/v2/scheduler/run-v2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ force: true })
-      });
-      setStatus(result.message || "Enabled schedules queued.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Forced scheduler run failed: ${error.message}`, "error");
-    }
-  });
-
-  document.getElementById("scheduleTargetType")?.addEventListener("change", updateScheduleTargetFields);
-  document.getElementById("scheduleTimingMode")?.addEventListener("change", updateScheduleTimingFields);
-  document.getElementById("exceptionAction")?.addEventListener("change", updateExceptionTimeField);
-  document.getElementById("resetScheduleFormBtn")?.addEventListener("click", resetScheduleForm);
-  document.getElementById("resetGroupFormBtn")?.addEventListener("click", resetGroupForm);
-
-  document.getElementById("saveScheduleBtn")?.addEventListener("click", async () => {
-    try {
-      await saveSchedulerRecord("/api/admin/v2/scheduler/schedules", buildSchedulePayload(), "Schedule saved to PostgreSQL.");
-    } catch (error) {
-      setStatus(`Schedule save failed: ${error.message}`, "error");
-    }
-  });
-
-  document.getElementById("saveGroupBtn")?.addEventListener("click", async () => {
-    try {
-      await saveSchedulerRecord("/api/admin/v2/scheduler/groups", buildGroupPayload(), "Scrape group saved to PostgreSQL.");
-    } catch (error) {
-      setStatus(`Group save failed: ${error.message}`, "error");
-    }
-  });
-
-  document.getElementById("saveExceptionBtn")?.addEventListener("click", async () => {
-    try {
-      const scheduleId = getInputValue("exceptionScheduleId");
-      const exceptionDate = getInputValue("exceptionDate");
-      if (!scheduleId) throw new Error("Choose a schedule.");
-      if (!exceptionDate) throw new Error("Choose an exception date.");
-      await saveSchedulerRecord("/api/admin/v2/scheduler/exceptions", {
-        scheduleId,
-        exceptionDate,
-        action: getInputValue("exceptionAction") || "skip",
-        overrideTime: getInputValue("exceptionTime") || null,
-        reason: getInputValue("exceptionReason").trim()
-      }, "Schedule exception saved.");
-    } catch (error) {
-      setStatus(`Exception save failed: ${error.message}`, "error");
-    }
-  });
-
-  document.querySelectorAll("[data-edit-schedule]").forEach((button) => button.addEventListener("click", () => {
-    const schedule = schedulerV2State.schedules.find((item) => String(item.id) === String(button.dataset.editSchedule));
-    if (schedule) populateScheduleForm(schedule);
-  }));
-  document.querySelectorAll("[data-toggle-schedule]").forEach((button) => button.addEventListener("click", async () => {
-    const schedule = schedulerV2State.schedules.find((item) => String(item.id) === String(button.dataset.toggleSchedule));
-    if (!schedule) return;
-    try {
-      const payload = {
-        id: schedule.id,
-        name: schedule.name,
-        enabled: schedule.enabled === false,
-        timezone: schedule.timezone,
-        groupId: schedule.group_id || null,
-        businessId: schedule.group_id ? null : (schedule.public_business_id || schedule.business_id),
-        calendarRules: schedule.calendar_rules || {},
-        scrapeOptions: schedule.scrape_options || {},
-        nextRunAt: schedule.next_run_at || null
-      };
-      await saveSchedulerRecord("/api/admin/v2/scheduler/schedules", payload, `Schedule ${payload.enabled ? "enabled" : "disabled"}.`);
-    } catch (error) {
-      setStatus(`Schedule update failed: ${error.message}`, "error");
-    }
-  }));
-  document.querySelectorAll("[data-recalculate-schedule]").forEach((button) => button.addEventListener("click", async () => {
-    try {
-      await fetchJson(`/api/admin/v2/scheduler/schedules/${button.dataset.recalculateSchedule}/recalculate`, { method: "POST" });
-      setStatus("Next run recalculated.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Recalculation failed: ${error.message}`, "error");
-    }
-  }));
-  document.querySelectorAll("[data-delete-schedule]").forEach((button) => button.addEventListener("click", async () => {
-    if (!window.confirm("Delete this schedule and its future configuration?")) return;
-    try {
-      await fetchJson(`/api/admin/v2/scheduler/schedules/${button.dataset.deleteSchedule}`, { method: "DELETE" });
-      setStatus("Schedule deleted.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Schedule delete failed: ${error.message}`, "error");
-    }
-  }));
-
-  document.querySelectorAll("[data-edit-group]").forEach((button) => button.addEventListener("click", () => {
-    const group = schedulerV2State.groups.find((item) => String(item.id) === String(button.dataset.editGroup));
-    if (group) populateGroupForm(group);
-  }));
-  document.querySelectorAll("[data-toggle-group]").forEach((button) => button.addEventListener("click", async () => {
-    const group = schedulerV2State.groups.find((item) => String(item.id) === String(button.dataset.toggleGroup));
-    if (!group) return;
-    try {
-      await saveSchedulerRecord("/api/admin/v2/scheduler/groups", {
-        id: group.id,
-        name: group.name,
-        description: group.description || "",
-        enabled: group.enabled === false,
-        businessIds: (group.businesses || []).map(getSchedulerBusinessPublicId),
-        selector: group.selector || {}
-      }, `Group ${group.enabled === false ? "enabled" : "disabled"}.`);
-    } catch (error) {
-      setStatus(`Group update failed: ${error.message}`, "error");
-    }
-  }));
-  document.querySelectorAll("[data-delete-group]").forEach((button) => button.addEventListener("click", async () => {
-    if (!window.confirm("Delete this scrape group? Schedules using it must be changed first.")) return;
-    try {
-      await fetchJson(`/api/admin/v2/scheduler/groups/${button.dataset.deleteGroup}`, { method: "DELETE" });
-      setStatus("Scrape group deleted.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Group delete failed: ${error.message}`, "error");
-    }
-  }));
-
-  document.querySelectorAll("[data-delete-exception]").forEach((button) => button.addEventListener("click", async () => {
-    if (!window.confirm("Delete this schedule exception?")) return;
-    try {
-      await fetchJson(`/api/admin/v2/scheduler/exceptions/${button.dataset.deleteException}`, { method: "DELETE" });
-      setStatus("Schedule exception deleted.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Exception delete failed: ${error.message}`, "error");
-    }
-  }));
-
-  document.querySelectorAll("[data-retry-job]").forEach((button) => button.addEventListener("click", async () => {
-    try {
-      await fetchJson(`/api/admin/v2/scheduler/jobs/${button.dataset.retryJob}/retry`, { method: "POST" });
-      setStatus("Job requeued.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Job retry failed: ${error.message}`, "error");
-    }
-  }));
-  document.querySelectorAll("[data-cancel-job]").forEach((button) => button.addEventListener("click", async () => {
-    if (!window.confirm("Request cancellation for this job?")) return;
-    try {
-      await fetchJson(`/api/admin/v2/scheduler/jobs/${button.dataset.cancelJob}/cancel`, { method: "POST" });
-      setStatus("Job cancellation requested.", "success");
-      await loadSchedulerV2();
-    } catch (error) {
-      setStatus(`Job cancellation failed: ${error.message}`, "error");
-    }
-  }));
-}
-
-function ensureSchedulerNavButton() {
-  if (document.querySelector(".nav-btn[data-view='schedules']")) {
-    refreshNavButtons();
-    return;
-  }
-  const navContainer = document.querySelector(".nav") || document.querySelector(".admin-nav") || document.querySelector("nav");
-  if (!navContainer) return;
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "nav-btn";
-  button.dataset.view = "schedules";
-  button.textContent = "Schedules";
-  const settingsButton = navContainer.querySelector(".nav-btn[data-view='settings']");
-  if (settingsButton) navContainer.insertBefore(button, settingsButton);
-  else navContainer.appendChild(button);
-  refreshNavButtons();
 }
 
 function refreshNavButtons() {
@@ -5083,15 +1783,13 @@ function loadView(viewName) {
 
   if (viewName === "businesses") return loadBusinesses();
   if (viewName === "claims") return loadClaims();
-  if (viewName === "results" || viewName === "inventory") return loadResults();
+  if (viewName === "results") return loadResults();
   if (viewName === "errors") return loadErrors();
   if (viewName === "settings") return loadSettings();
-  if (viewName === "schedules") return loadSchedulerV2();
   if (viewName === "subscriptions") return loadBusinessSubscriptionsView();
 }
 
 ensureSubscriptionsNavButton();
-ensureSchedulerNavButton();
 
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -5103,13 +1801,4 @@ refreshBtn.addEventListener("click", () => {
   loadView(currentView);
 });
 
-async function initializeAdminPortal() {
-  try {
-    await loadAdminMetros();
-  } finally {
-    attachAdminMetroWorkspace();
-    loadView("businesses");
-  }
-}
-
-initializeAdminPortal();
+loadView("businesses");
