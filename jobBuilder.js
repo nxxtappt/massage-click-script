@@ -1,10 +1,5 @@
 const { loadAdminSettings } = require("./adminSettingsManager");
 const { normalizeServiceType } = require("./normalizationUtils");
-const {
-  applyWidgetToJob,
-  getBookingWidgets,
-  resolveWidgetForService
-} = require("./bookingWidgetManager");
 
 function normalize(value) {
   return String(value || "")
@@ -287,11 +282,6 @@ function getEnabledServicesForBusiness(business) {
           serviceName: service.serviceName || business.serviceName || "",
           serviceType,
           durationMinutes: service.durationMinutes || business.durationMinutes || null,
-          bookingWidgetId:
-            service.bookingWidgetId ||
-            service.widgetId ||
-            service.integrationId ||
-            "",
 
           platformServiceId:
             service.platformServiceId ||
@@ -406,8 +396,6 @@ inference:
       serviceName: business.serviceName || "",
       serviceType,
       durationMinutes: business.durationMinutes || null,
-      bookingWidgetId:
-        business.bookingWidgetId || business.widgetId || business.integrationId || "",
 
       platformServiceId:
         business.platformServiceId ||
@@ -672,12 +660,8 @@ function servicePassesServiceRules(service, business, filters = {}, adminSetting
 }
 
 function serviceMatchesFilters(service, business, filters = {}) {
-  if (filters.platform) {
-    const platforms = [
-      business.platform,
-      ...getBookingWidgets(business).map((widget) => widget.platform)
-    ].map(normalize);
-    if (!platforms.includes(normalize(filters.platform))) return false;
+  if (filters.platform && normalize(business.platform) !== normalize(filters.platform)) {
+    return false;
   }
 
   const serviceType = normalizeServiceType(service.serviceType);
@@ -783,12 +767,7 @@ function limitServicesPerBusiness(jobs, filters = {}, adminSettings = null) {
   const limited = [];
 
   for (const job of jobs) {
-    // A configured limit applies independently to each booking widget. This
-    // prevents the first widget from consuming a business's entire scheduled
-    // allowance and starving its other service catalogues.
-    const key = `${normalize(job.businessName || job.name || "unknown")}:${normalize(
-      job.bookingWidgetId || job.widgetId || "default"
-    )}`;
+    const key = normalize(job.businessName || job.name || "unknown");
 
     if (!grouped.has(key)) {
       grouped.set(key, 0);
@@ -927,39 +906,6 @@ function buildScrapeJobs(businesses, filters = {}) {
         continue;
       }
 
-      const requestedWidget =
-        filters.widget || filters.widgetId || filters.bookingWidgetId || "";
-      const serviceWidget =
-        service.bookingWidgetId || service.widgetId || service.integrationId || "";
-
-      if (requestedWidget && serviceWidget && normalize(requestedWidget) !== normalize(serviceWidget)) {
-        continue;
-      }
-
-      const selectedWidget = resolveWidgetForService(
-        business,
-        service,
-        requestedWidget
-      );
-
-      if (requestedWidget && !selectedWidget) {
-        continue;
-      }
-
-      if (
-        filters.platform &&
-        selectedWidget?.platform &&
-        normalize(selectedWidget.platform) !== normalize(filters.platform)
-      ) {
-        continue;
-      }
-
-      const widgetRouting = applyWidgetToJob(
-        business,
-        service,
-        requestedWidget
-      );
-
       const distanceMiles =
         filters.latitude &&
         filters.longitude &&
@@ -982,12 +928,10 @@ function buildScrapeJobs(businesses, filters = {}) {
 
       jobs.push({
         ...business,
-        ...widgetRouting,
 
-        integrationType:
-          widgetRouting.integrationType || business.integrationType || "scrape",
-        apiProvider: widgetRouting.apiProvider || business.apiProvider || "",
-        credentialId: widgetRouting.credentialId || business.credentialId || "",
+        integrationType: business.integrationType || "scrape",
+        apiProvider: business.apiProvider || "",
+        credentialId: business.credentialId || "",
 
         serviceName: service.serviceName,
         serviceType: normalizeServiceType(service.serviceType),

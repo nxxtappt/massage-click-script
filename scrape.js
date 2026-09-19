@@ -1045,17 +1045,7 @@ let results = [];
       });
 
       const rawResult = await scrapeWithRetries(browser, job);
-      const result = {
-        ...filterResultToScrapeWindow(rawResult, job),
-        // Keep the exact widget route on every result. Scrapers may return a
-        // generic business URL, but the service-level widget is the correct
-        // booking destination for cards and dynamic pages.
-        bookingUrl: rawResult.bookingUrl || job.bookingUrl || "",
-        widgetId: job.widgetId || job.bookingWidgetId || "",
-        widgetName: job.widgetName || job.bookingWidgetName || "",
-        bookingWidgetId: job.bookingWidgetId || job.widgetId || "",
-        bookingWidgetName: job.bookingWidgetName || job.widgetName || ""
-      };
+      const result = filterResultToScrapeWindow(rawResult, job);
 
       const rawScrapeResult = await insertRawScrapeResult({
         scrapeRunId: scrapeRun.id,
@@ -1088,11 +1078,6 @@ function resultTimesToAppointments(result = {}) {
   if (Array.isArray(result.appointments) && result.appointments.length > 0) {
     return result.appointments.map((appointment) => ({
       ...appointment,
-      bookingUrl: appointment.bookingUrl || result.bookingUrl || "",
-      widgetId: appointment.widgetId || result.widgetId || result.bookingWidgetId || "",
-      widgetName: appointment.widgetName || result.widgetName || result.bookingWidgetName || "",
-      bookingWidgetId:
-        appointment.bookingWidgetId || result.bookingWidgetId || result.widgetId || "",
       sourceType: appointment.sourceType || "confirmed",
       localDateKey: appointment.localDateKey || localDateKey
     }));
@@ -1106,9 +1091,6 @@ function resultTimesToAppointments(result = {}) {
     businessName: result.businessName,
     platform: result.platform,
     bookingUrl: result.bookingUrl,
-    widgetId: result.widgetId || result.bookingWidgetId || "",
-    widgetName: result.widgetName || result.bookingWidgetName || "",
-    bookingWidgetId: result.bookingWidgetId || result.widgetId || "",
 
     serviceName: result.serviceName || result.service,
     service: result.serviceName || result.service,

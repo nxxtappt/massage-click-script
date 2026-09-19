@@ -21,14 +21,6 @@ function buildArgsForTarget(target = {}) {
     );
   }
 
-  if (target.serviceName) {
-    args.push(`--service=${target.serviceName}`);
-  }
-
-  if (target.bookingWidgetId || target.widgetId) {
-    args.push(`--widget=${target.bookingWidgetId || target.widgetId}`);
-  }
-
   if (
     target.durationMinutes
   ) {

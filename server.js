@@ -5,7 +5,6 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const businessManager = require("./businessManager");
-const { resolveWidgetForService } = require("./bookingWidgetManager");
 const { spawn } = require("child_process");
 const {
   storagePath,
@@ -176,42 +175,6 @@ app.post("/api/email-capture", (req, res) => {
 
 app.use("/uploads", express.static(storagePath("public", "uploads")));
 app.use(express.static(path.join(__dirname, "public")));
-
-// Widget-aware manual scrape endpoint. Kept separate from the legacy targeted
-// route so older adminRoutes deployments remain backward compatible.
-app.post("/api/admin/scrape/widget-targeted", requireAdminAuth, (req, res) => {
-  const allowed = [
-    ["platform", "platform"],
-    ["business", "business"],
-    ["service", "service"],
-    ["widget", "widget"],
-    ["serviceType", "serviceType"],
-    ["durationMinutes", "duration"],
-    ["priority", "priority"],
-    ["discoveryStatus", "discoveryStatus"],
-    ["forceRefresh", "forceRefresh"],
-    ["manual", "manual"],
-    ["onDemand", "onDemand"],
-    ["ignoreServiceRules", "ignoreServiceRules"],
-    ["skipVagaroDiscovery", "skipVagaroDiscovery"]
-  ];
-  const args = allowed.flatMap(([bodyKey, cliKey]) => {
-    const value = req.body?.[bodyKey];
-    return value === undefined || value === null || value === ""
-      ? []
-      : [`--${cliKey}=${String(value)}`];
-  });
-
-  const child = spawn("node", ["scrape.js", ...args], {
-    cwd: __dirname,
-    stdio: "inherit"
-  });
-  child.on("error", (error) => {
-    console.error("[WIDGET TARGETED SCRAPE] Failed to start:", error.message);
-  });
-
-  res.status(202).json({ success: true, args });
-});
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/business", businessPortalRoutes);
@@ -752,7 +715,6 @@ function buildBusinessMetadataMap() {
     if (!key) return;
 
      map[key] = {
-  business,
   address: business.address || "",
   platform: business.platform || "",
   bookingUrl: business.bookingUrl || "",
@@ -2034,33 +1996,6 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
       ? Number(metadata.longitude)
       : null;
 
-  const appointmentService = {
-    serviceName:
-      rawAppointment.serviceName ||
-      rawAppointment.service_name ||
-      rawAppointment.service ||
-      "",
-    serviceType:
-      rawAppointment.serviceType ||
-      rawAppointment.service_type ||
-      rawAppointment.serviceCategory ||
-      rawAppointment.service_category ||
-      "",
-    serviceId:
-      rawAppointment.serviceId || rawAppointment.service_id || "",
-    platformServiceId:
-      rawAppointment.platformServiceId || rawAppointment.platform_service_id || "",
-    bookingWidgetId:
-      rawAppointment.bookingWidgetId ||
-      rawAppointment.booking_widget_id ||
-      rawAppointment.widgetId ||
-      rawAppointment.widget_id ||
-      ""
-  };
-  const routedWidget = metadata.business
-    ? resolveWidgetForService(metadata.business, appointmentService)
-    : null;
-
   return {
     ...rawAppointment,
     businessName,
@@ -2069,34 +2004,8 @@ function normalizeInventoryAppointment(rawAppointment = {}, metadataMap = {}) {
       rawAppointment.business_category ||
       metadata.businessCategory ||
       "wellness",
-    platform:
-      rawAppointment.platform || routedWidget?.platform || metadata.platform || "unknown",
-    bookingUrl:
-      rawAppointment.bookingUrl ||
-      rawAppointment.booking_url ||
-      routedWidget?.bookingUrl ||
-      metadata.bookingUrl ||
-      "",
-    widgetId:
-      rawAppointment.widgetId ||
-      rawAppointment.widget_id ||
-      rawAppointment.bookingWidgetId ||
-      rawAppointment.booking_widget_id ||
-      routedWidget?.widgetId ||
-      "",
-    widgetName:
-      rawAppointment.widgetName ||
-      rawAppointment.widget_name ||
-      rawAppointment.bookingWidgetName ||
-      routedWidget?.label ||
-      "",
-    bookingWidgetId:
-      rawAppointment.bookingWidgetId ||
-      rawAppointment.booking_widget_id ||
-      rawAppointment.widgetId ||
-      rawAppointment.widget_id ||
-      routedWidget?.widgetId ||
-      "",
+    platform: rawAppointment.platform || metadata.platform || "unknown",
+    bookingUrl: rawAppointment.bookingUrl || rawAppointment.booking_url || metadata.bookingUrl || "",
     serviceName:
       rawAppointment.serviceName ||
       rawAppointment.service_name ||
@@ -2396,6 +2305,10 @@ function buildLiveSearchTargets(query) {
   return;
 }
 
+      if (platformFilter && normalizeSearchText(business.platform) !== platformFilter) {
+        return;
+      }
+
       const services =
         Array.isArray(business.services) && business.services.length
           ? business.services
@@ -2423,26 +2336,11 @@ function buildLiveSearchTargets(query) {
       );
 
       matchingServices.forEach((service) => {
-        const widget = resolveWidgetForService(business, service);
-        const routedPlatform = widget?.platform || business.platform || "";
-        if (platformFilter && normalizeSearchText(routedPlatform) !== platformFilter) {
-          return;
-        }
         targets.push({
-          business: {
-            ...business,
-            platform: routedPlatform,
-            bookingUrl: widget?.bookingUrl || business.bookingUrl || "",
-            integrationType: widget?.integrationType || business.integrationType || "scrape",
-            apiProvider: widget?.apiProvider || business.apiProvider || "",
-            credentialId: widget?.credentialId || business.credentialId || ""
-          },
+          business,
           service,
           businessName,
-          platform: routedPlatform,
-          bookingUrl: widget?.bookingUrl || business.bookingUrl || "",
-          widgetId: widget?.widgetId || "",
-          bookingWidgetId: widget?.widgetId || "",
+          platform: business.platform || "",
           serviceName: service.serviceName || business.serviceName || "",
           serviceType: service.serviceType || business.serviceType || "",
           durationMinutes:
@@ -2489,7 +2387,6 @@ async function runLiveScrapeTarget(target) {
     const serviceName = target.serviceName || "";
     const serviceType = target.serviceType || "";
     const durationMinutes = target.durationMinutes || "";
-    const widgetId = target.bookingWidgetId || target.widgetId || "";
 
     if (!businessName) {
       return resolve({
@@ -2566,10 +2463,6 @@ upsertBusinessResult(
 
     if (durationMinutes) {
       args.push(`--duration=${durationMinutes}`);
-    }
-
-    if (widgetId) {
-      args.push(`--widget=${widgetId}`);
     }
 
     console.log("");
