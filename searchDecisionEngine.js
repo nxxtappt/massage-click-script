@@ -685,6 +685,10 @@ function buildTargetsForIntent(
         job.bookingUrl ||
         "",
 
+      widgetId: job.widgetId || job.bookingWidgetId || "",
+      widgetName: job.widgetName || job.bookingWidgetName || "",
+      bookingWidgetId: job.bookingWidgetId || job.widgetId || "",
+
       platformServiceId:
         job.platformServiceId ||
         "",

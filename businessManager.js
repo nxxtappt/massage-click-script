@@ -1,4 +1,9 @@
 let BusinessRepository = null;
+const {
+  getBookingWidgets,
+  getPublicBookingWidgets,
+  resolveWidgetForService
+} = require("./bookingWidgetManager");
 
 try {
   BusinessRepository = require("./database/BusinessRepository");
@@ -149,6 +154,11 @@ function normalizeBusinessShape(business = {}) {
 
   const subscription = normalizeSubscriptionShape(business.subscription);
 
+  const normalizedIntegrations = getBookingWidgets({
+    ...business,
+    integrations: Array.isArray(business.integrations) ? business.integrations : []
+  });
+
   return {
     ...business,
     id: businessId,
@@ -208,9 +218,8 @@ function normalizeBusinessShape(business = {}) {
     discoveryStatus:
       business.discoveryStatus || business.discovery_status || "",
     services: Array.isArray(business.services) ? business.services : [],
-    integrations: Array.isArray(business.integrations)
-      ? business.integrations
-      : [],
+    integrations: normalizedIntegrations,
+    bookingWidgets: normalizedIntegrations,
     locations: Array.isArray(business.locations) ? business.locations : [],
     searchAliases: Array.isArray(business.searchAliases)
       ? business.searchAliases
@@ -454,6 +463,19 @@ function buildBusinessPageData(business = {}) {
       : item.amenities
   };
 
+  const bookingWidgets = getPublicBookingWidgets(item);
+  const publicServices = item.services.map((service) => {
+    const widget = resolveWidgetForService(item, service);
+
+    return {
+      ...service,
+      bookingWidgetId: widget?.widgetId || "",
+      bookingWidgetName: widget?.label || "",
+      bookingUrl: widget?.bookingUrl || item.bookingUrl || "",
+      platform: widget?.platform || item.platform || ""
+    };
+  });
+
   return {
     businessId: item.businessId,
     businessName,
@@ -465,6 +487,7 @@ function buildBusinessPageData(business = {}) {
     businessCategory: item.businessCategory || "wellness",
     platform: item.platform || "",
     bookingUrl: item.bookingUrl || "",
+    bookingWidgets,
     website: item.website || "",
     phone: item.phone || "",
     email: item.email || "",
@@ -487,7 +510,7 @@ function buildBusinessPageData(business = {}) {
     publicProfile,
     activeDeal: item.isPremium ? item.activeDeal : {},
     bookingIntegration: item.isPremium ? item.bookingIntegration : {},
-    services: item.services,
+    services: publicServices,
     amenities: publicProfile.amenities || [],
     specialties: publicProfile.specialties || []
   };

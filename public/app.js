@@ -748,6 +748,8 @@ const businessUrl =
                     localDateKey: appointment.localDateKey || "",
                     localTimeKey: appointment.localTimeKey || "",
                     bookingUrl: appointment.bookingUrl || bookingUrl,
+                    widgetId: appointment.widgetId || appointment.bookingWidgetId || "",
+                    widgetName: appointment.widgetName || appointment.bookingWidgetName || "",
                     sourcePage: "search"
                   }))}"
                 >

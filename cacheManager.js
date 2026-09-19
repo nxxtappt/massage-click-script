@@ -87,6 +87,7 @@ function buildCacheKey(result) {
   return [
     normalize(result.businessName),
     normalize(result.platform),
+    normalize(result.bookingWidgetId || result.widgetId || ""),
     normalize(
       result.serviceName ||
       result.service
@@ -306,6 +307,10 @@ function upsertAppointmentResult(
     bookingUrl:
       result.bookingUrl ||
       null,
+
+    widgetId: result.widgetId || result.bookingWidgetId || null,
+    widgetName: result.widgetName || result.bookingWidgetName || null,
+    bookingWidgetId: result.bookingWidgetId || result.widgetId || null,
 
     platform:
       result.platform || null,

@@ -118,7 +118,33 @@ function normalizeBusinessDefaults(business) {
     normalized.services = [];
   }
 
+  normalized.bookingWidgets = Array.isArray(business.bookingWidgets)
+    ? business.bookingWidgets
+    : Array.isArray(business.integrations)
+      ? business.integrations
+      : [];
+
+  // The repository already persists integrations. Keep both names in sync so
+  // this remains compatible with existing adminRoutes/BusinessRepository code.
+  normalized.integrations = normalized.bookingWidgets;
+
   return normalized;
+}
+
+function createBlankWidget(index = 0) {
+  const widgetId = `widget-${Date.now()}-${index}`;
+  return {
+    id: widgetId,
+    widgetId,
+    label: "",
+    platform: "",
+    bookingUrl: "",
+    integrationType: "scrape",
+    apiProvider: "",
+    credentialId: "",
+    enabled: true,
+    isDefault: false
+  };
 }
 
 function createBlankService() {
@@ -128,6 +154,7 @@ function createBlankService() {
     serviceName: "",
     platformServiceId: "",
     serviceButtonId: "",
+    bookingWidgetId: "",
     enabled: true,
     priority: "normal",
     discoveryStatus: "manual"
@@ -161,13 +188,17 @@ function getAllServicesForBusiness(business) {
 }
 
 function getPlatformsFromBusinesses() {
-  return uniqueSorted(settingsBusinessesCache.map((business) => business.platform));
+  return uniqueSorted(settingsBusinessesCache.flatMap((business) => [
+    business.platform,
+    ...(business.bookingWidgets || []).map((widget) => widget.platform)
+  ]));
 }
 
 function getBusinessesForPlatform(platform) {
   return settingsBusinessesCache.filter((business) => {
     if (!platform) return true;
-    return business.platform === platform;
+    return business.platform === platform ||
+      (business.bookingWidgets || []).some((widget) => widget.platform === platform);
   });
 }
 
@@ -236,6 +267,25 @@ function renderServiceCheckbox(label, field, checked, businessIndex, serviceInde
   `;
 }
 
+function renderServiceWidgetSelect(service, businessIndex, serviceIndex) {
+  const widgets = businessesCache[businessIndex]?.bookingWidgets || [];
+  const selected = service.bookingWidgetId || service.widgetId || service.integrationId || "";
+
+  return `
+    <label class="admin-field">
+      <span>Booking Widget</span>
+      <select data-business-index="${businessIndex}" data-service-index="${serviceIndex}" data-service-field="bookingWidgetId">
+        <option value="">Default / automatic</option>
+        ${widgets.map((widget, widgetIndex) => {
+          const id = widget.widgetId || widget.id || `widget-${widgetIndex + 1}`;
+          const label = widget.label || widget.widgetName || `Widget ${widgetIndex + 1}`;
+          return `<option value="${escapeHtml(id)}" ${String(selected) === String(id) ? "selected" : ""}>${escapeHtml(label)}</option>`;
+        }).join("")}
+      </select>
+    </label>
+  `;
+}
+
 function renderServiceCard(service, businessIndex, serviceIndex) {
   return `
     <div class="service-card">
@@ -262,6 +312,7 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
         ${renderServiceInput("Service Name", "serviceName", service.serviceName, businessIndex, serviceIndex)}
         ${renderServiceInput("Platform Service ID", "platformServiceId", service.platformServiceId, businessIndex, serviceIndex)}
         ${renderServiceInput("Service Button ID", "serviceButtonId", service.serviceButtonId, businessIndex, serviceIndex)}
+        ${renderServiceWidgetSelect(service, businessIndex, serviceIndex)}
         ${renderServiceInput("Priority", "priority", service.priority, businessIndex, serviceIndex)}
         ${renderServiceInput("Discovery Status", "discoveryStatus", service.discoveryStatus, businessIndex, serviceIndex)}
         <div class="admin-field checkbox-wrap">
@@ -270,6 +321,53 @@ function renderServiceCard(service, businessIndex, serviceIndex) {
         </div>
       </div>
     </div>
+  `;
+}
+
+function renderWidgetInput(label, field, value, businessIndex, widgetIndex, type = "text") {
+  return `
+    <label class="admin-field">
+      <span>${escapeHtml(label)}</span>
+      <input type="${type}" data-widget-business-index="${businessIndex}" data-widget-index="${widgetIndex}" data-widget-field="${escapeHtml(field)}" value="${escapeHtml(value ?? "")}" />
+    </label>
+  `;
+}
+
+function renderBookingWidgetsSection(business, businessIndex) {
+  const widgets = business.bookingWidgets || [];
+  return `
+    <details class="services-section booking-widgets-section" open>
+      <summary class="services-summary">
+        <span>Booking Widgets</span>
+        <small>${widgets.length} configured</small>
+      </summary>
+      <div class="services-inner">
+        <div class="services-actions">
+          <button class="secondary-btn add-widget-btn" data-add-widget-index="${businessIndex}">+ Add Booking Widget</button>
+        </div>
+        ${widgets.length ? widgets.map((widget, widgetIndex) => `
+          <div class="service-card widget-card">
+            <div class="service-card-header">
+              <div>
+                <h4>${escapeHtml(widget.label || widget.widgetName || `Widget ${widgetIndex + 1}`)}</h4>
+                <p>${escapeHtml(widget.platform || "platform not set")} · ${widget.isDefault ? "default" : "service mapped"}</p>
+              </div>
+              <button class="danger-btn delete-widget-btn" data-delete-widget-business-index="${businessIndex}" data-delete-widget-index="${widgetIndex}">Delete</button>
+            </div>
+            <div class="service-edit-grid">
+              ${renderWidgetInput("Widget Name", "label", widget.label || widget.widgetName, businessIndex, widgetIndex)}
+              ${renderWidgetInput("Platform", "platform", widget.platform, businessIndex, widgetIndex)}
+              ${renderWidgetInput("Booking URL", "bookingUrl", widget.bookingUrl || widget.url, businessIndex, widgetIndex, "url")}
+              ${renderWidgetInput("Integration Type", "integrationType", widget.integrationType || "scrape", businessIndex, widgetIndex)}
+              ${renderWidgetInput("API Provider", "apiProvider", widget.apiProvider, businessIndex, widgetIndex)}
+              ${renderWidgetInput("Credential ID", "credentialId", widget.credentialId, businessIndex, widgetIndex)}
+              <label class="admin-checkbox service-checkbox"><input type="checkbox" data-widget-business-index="${businessIndex}" data-widget-index="${widgetIndex}" data-widget-field="enabled" ${widget.enabled !== false ? "checked" : ""}><span>Enabled</span></label>
+              <label class="admin-checkbox service-checkbox"><input type="checkbox" data-widget-business-index="${businessIndex}" data-widget-index="${widgetIndex}" data-widget-field="isDefault" ${widget.isDefault ? "checked" : ""}><span>Default widget</span></label>
+            </div>
+          </div>
+        `).join("") : `<p class="empty-note">No widgets configured. The top-level Booking URL remains the fallback.</p>`}
+      </div>
+    </details>
   `;
 }
 
@@ -336,6 +434,7 @@ function renderBusinessCard(business, index) {
         </div>
       </details>
 
+      ${renderBookingWidgetsSection(business, index)}
       ${renderServicesSection(business, index)}
 
       <details class="raw-json-box">
@@ -386,11 +485,79 @@ function attachServiceInputListeners() {
       }
 
       business.services[serviceIndex][field] = value;
+      if (field === "bookingWidgetId") {
+        business.services[serviceIndex].widgetId = value;
+        business.services[serviceIndex].integrationId = value;
+      }
       setStatus("Unsaved service changes.", "info");
     };
 
     fieldElement.addEventListener("input", update);
     fieldElement.addEventListener("change", update);
+  });
+}
+
+function attachWidgetListeners() {
+  content.querySelectorAll("[data-widget-business-index][data-widget-index][data-widget-field]").forEach((element) => {
+    const update = () => {
+      const businessIndex = Number(element.dataset.widgetBusinessIndex);
+      const widgetIndex = Number(element.dataset.widgetIndex);
+      const field = element.dataset.widgetField;
+      const business = businessesCache[businessIndex];
+      if (!business?.bookingWidgets?.[widgetIndex]) return;
+
+      const value = element.type === "checkbox" ? element.checked : element.value;
+      if (field === "isDefault" && value === true) {
+        business.bookingWidgets.forEach((widget, index) => {
+          widget.isDefault = index === widgetIndex;
+        });
+      } else {
+        business.bookingWidgets[widgetIndex][field] = value;
+      }
+
+      business.bookingWidgets[widgetIndex].widgetName =
+        business.bookingWidgets[widgetIndex].label || "";
+      business.integrations = business.bookingWidgets;
+      setStatus("Unsaved booking widget changes.", "info");
+
+      if (field === "isDefault") renderBusinessesFromCache();
+    };
+    element.addEventListener("input", update);
+    element.addEventListener("change", update);
+  });
+
+  content.querySelectorAll("[data-add-widget-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const businessIndex = Number(button.dataset.addWidgetIndex);
+      const business = businessesCache[businessIndex];
+      if (!business) return;
+      business.bookingWidgets = business.bookingWidgets || [];
+      const widget = createBlankWidget(business.bookingWidgets.length);
+      if (!business.bookingWidgets.length) widget.isDefault = true;
+      business.bookingWidgets.push(widget);
+      business.integrations = business.bookingWidgets;
+      renderBusinessesFromCache();
+      setStatus("New booking widget added. Map services to it, then save.", "info");
+    });
+  });
+
+  content.querySelectorAll("[data-delete-widget-business-index][data-delete-widget-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const businessIndex = Number(button.dataset.deleteWidgetBusinessIndex);
+      const widgetIndex = Number(button.dataset.deleteWidgetIndex);
+      const business = businessesCache[businessIndex];
+      const widget = business?.bookingWidgets?.[widgetIndex];
+      if (!widget) return;
+      const widgetId = widget.widgetId || widget.id;
+      if (!window.confirm(`Delete booking widget "${widget.label || widget.widgetName || widgetId}"?`)) return;
+      business.bookingWidgets.splice(widgetIndex, 1);
+      business.services.forEach((service) => {
+        if (service.bookingWidgetId === widgetId) service.bookingWidgetId = "";
+      });
+      business.integrations = business.bookingWidgets;
+      renderBusinessesFromCache();
+      setStatus("Widget removed. Click Save Businesses to make it permanent.", "info");
+    });
   });
 }
 
@@ -459,6 +626,7 @@ function renderBusinessesFromCache() {
   document.getElementById("saveBusinessesBtn").addEventListener("click", saveBusinesses);
   attachBusinessInputListeners();
   attachServiceInputListeners();
+  attachWidgetListeners();
   attachAddServiceListeners();
   attachDeleteServiceListeners();
 }
@@ -466,6 +634,18 @@ function renderBusinessesFromCache() {
 async function saveBusinesses() {
   try {
     setStatus("Saving businesses.json...", "info");
+
+    businessesCache.forEach((business) => {
+      business.bookingWidgets = business.bookingWidgets || [];
+      business.integrations = business.bookingWidgets;
+      (business.services || []).forEach((service) => {
+        const widgetId =
+          service.bookingWidgetId || service.widgetId || service.integrationId || "";
+        service.bookingWidgetId = widgetId;
+        service.widgetId = widgetId;
+        service.integrationId = widgetId;
+      });
+    });
 
     const data = await fetchJson("/api/admin/businesses/save", {
       method: "POST",
@@ -916,10 +1096,11 @@ function renderTargetedScrapePanel() {
         ${renderSelect("1. Platform", "targetPlatform", platforms, "Choose platform")}
         ${renderSelect("2. Business", "targetBusiness", [], "Choose business")}
         ${renderSelect("3. Service", "targetService", [], "Choose service")}
-        ${renderSelect("4. Duration", "targetDuration", [], "Any duration")}
-        ${renderSelect("5. Service Type", "targetServiceType", [], "Any service type")}
-        ${renderSelect("6. Priority", "targetPriority", ["high", "medium", "normal", "low"], "Any priority")}
-        ${renderSelect("7. Discovery Status", "targetDiscoveryStatus", ["approved", "manual", "test", "pending"], "Any status")}
+        ${renderSelect("4. Booking Widget", "targetWidget", [], "Automatic widget")}
+        ${renderSelect("5. Duration", "targetDuration", [], "Any duration")}
+        ${renderSelect("6. Service Type", "targetServiceType", [], "Any service type")}
+        ${renderSelect("7. Priority", "targetPriority", ["high", "medium", "normal", "low"], "Any priority")}
+        ${renderSelect("8. Discovery Status", "targetDiscoveryStatus", ["approved", "manual", "test", "pending"], "Any status")}
       </div>
 
       <div class="targeted-options">
@@ -1206,6 +1387,7 @@ function hydrateTargetedDropdowns() {
     const businesses = getBusinessesForPlatform(platform).map((business) => business.businessName);
     fillSelect("targetBusiness", uniqueSorted(businesses), "Choose business");
     fillSelect("targetService", [], "Choose service");
+    fillSelect("targetWidget", [], "Automatic widget");
     fillSelect("targetDuration", [], "Any duration");
     fillSelect("targetServiceType", [], "Any service type");
     updateTargetedPreview();
@@ -1214,10 +1396,16 @@ function hydrateTargetedDropdowns() {
   const refreshServices = () => {
     const businessName = businessSelect.value;
     const services = getServicesForBusinessName(businessName);
+    const business = settingsBusinessesCache.find((item) => item.businessName === businessName);
 
     fillSelect("targetService", uniqueSorted(services.map((service) => service.serviceName)), "Choose service");
     fillSelect("targetDuration", uniqueSorted(services.map((service) => service.durationMinutes).filter(Boolean)), "Any duration");
     fillSelect("targetServiceType", uniqueSorted(services.map((service) => service.serviceType).filter(Boolean)), "Any service type");
+    fillSelect(
+      "targetWidget",
+      (business?.bookingWidgets || []).map((widget, index) => widget.widgetId || widget.id || `widget-${index + 1}`),
+      "Automatic widget"
+    );
 
     updateTargetedPreview();
   };
@@ -1233,6 +1421,7 @@ function hydrateTargetedDropdowns() {
       const serviceTypeSelect = document.getElementById("targetServiceType");
       const prioritySelect = document.getElementById("targetPriority");
       const discoverySelect = document.getElementById("targetDiscoveryStatus");
+      const widgetSelect = document.getElementById("targetWidget");
 
       if (durationSelect && selectedService.durationMinutes) {
         durationSelect.value = String(selectedService.durationMinutes);
@@ -1249,6 +1438,10 @@ function hydrateTargetedDropdowns() {
       if (discoverySelect && selectedService.discoveryStatus) {
         discoverySelect.value = selectedService.discoveryStatus;
       }
+
+      if (widgetSelect && selectedService.bookingWidgetId) {
+        widgetSelect.value = selectedService.bookingWidgetId;
+      }
     }
 
     updateTargetedPreview();
@@ -1260,6 +1453,7 @@ function hydrateTargetedDropdowns() {
 
   [
     "targetDuration",
+    "targetWidget",
     "targetServiceType",
     "targetPriority",
     "targetDiscoveryStatus",
@@ -1288,6 +1482,7 @@ function buildTargetedPayload() {
     platform: getSelectValue("targetPlatform"),
     business: getSelectValue("targetBusiness"),
     service: getSelectValue("targetService"),
+    widget: getSelectValue("targetWidget"),
     serviceType: getSelectValue("targetServiceType"),
     durationMinutes: getSelectValue("targetDuration"),
     priority: getSelectValue("targetPriority"),
@@ -1319,7 +1514,7 @@ function attachTargetedScrapeListeners() {
     try {
       setStatus("Starting targeted scrape...", "info");
 
-      const data = await fetchJson("/api/admin/scrape/targeted", {
+      const data = await fetchJson("/api/admin/scrape/widget-targeted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -1332,7 +1527,7 @@ function attachTargetedScrapeListeners() {
   });
 
   document.getElementById("clearTargetedScrapeBtn")?.addEventListener("click", () => {
-    ["targetPlatform", "targetBusiness", "targetService", "targetDuration", "targetServiceType", "targetPriority", "targetDiscoveryStatus"].forEach((id) => {
+    ["targetPlatform", "targetBusiness", "targetService", "targetWidget", "targetDuration", "targetServiceType", "targetPriority", "targetDiscoveryStatus"].forEach((id) => {
       const element = document.getElementById(id);
       if (element) element.value = "";
     });

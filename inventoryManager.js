@@ -22,6 +22,11 @@ function getAppointmentIdentityKey(appointment = {}) {
   return [
     appointment.businessName || appointment.business_name || "",
     appointment.platform || "",
+    appointment.bookingWidgetId ||
+      appointment.booking_widget_id ||
+      appointment.widgetId ||
+      appointment.widget_id ||
+      "",
     appointment.serviceName || appointment.service_name || appointment.service || "",
     appointment.serviceCategory ||
       appointment.service_category ||
@@ -324,6 +329,12 @@ function normalizeInventoryRow(row = {}) {
 
     platform: row.platform || "",
     bookingUrl: row.bookingUrl || row.booking_url || "",
+    widgetId:
+      row.widgetId || row.widget_id || row.bookingWidgetId || row.booking_widget_id || "",
+    widgetName:
+      row.widgetName || row.widget_name || row.bookingWidgetName || row.booking_widget_name || "",
+    bookingWidgetId:
+      row.bookingWidgetId || row.booking_widget_id || row.widgetId || row.widget_id || "",
 
     serviceName,
     service: serviceName,
@@ -485,6 +496,10 @@ async function insertConfirmedAppointments(resultOrAppointments = {}, options = 
             serviceType: appointment.serviceType || options.serviceType,
             durationMinutes: appointment.durationMinutes || options.durationMinutes,
             bookingUrl: appointment.bookingUrl || options.bookingUrl,
+            widgetId: appointment.widgetId || options.widgetId || options.bookingWidgetId,
+            widgetName: appointment.widgetName || options.widgetName,
+            bookingWidgetId:
+              appointment.bookingWidgetId || options.bookingWidgetId || options.widgetId,
             appointments: [appointment]
           },
           {
@@ -739,6 +754,10 @@ async function getInventory(filters = {}) {
             appointment.serviceCategory || result.serviceCategory || result.serviceType,
           durationMinutes: appointment.durationMinutes || result.durationMinutes,
           bookingUrl: appointment.bookingUrl || result.bookingUrl,
+          widgetId: appointment.widgetId || result.widgetId || result.bookingWidgetId,
+          widgetName: appointment.widgetName || result.widgetName || result.bookingWidgetName,
+          bookingWidgetId:
+            appointment.bookingWidgetId || result.bookingWidgetId || result.widgetId,
           sourceType: appointment.sourceType || "confirmed"
         })
       );
