@@ -34,7 +34,7 @@
   <meta property="og:description" content="Search current appointment openings across local Austin providers and book directly.">
   <meta property="og:url" content="https://nextappt.ai/">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"NextAppt.ai","url":"https://nextappt.ai/","description":"Live local appointment availability across multiple service categories."}</script>
-  <link rel="stylesheet" href="/landing.css" />
+  <link rel="stylesheet" href="/landing.css?v=20260919-featured-businesses" />
   <link rel="stylesheet" href="/siteLegal.css?v=20260808-legal-footer" />
 </head>
 
@@ -60,46 +60,32 @@
           </div>
         </div>
 
-        <div class="search-preview-card">
-          <div class="preview-search">
-            <span>Search</span>
-            <strong>“appointment near me today”</strong>
+        <div
+          id="featuredBusinessShowcase"
+          class="featured-business-showcase"
+          aria-label="Featured verified businesses with available appointments"
+        >
+          <div class="featured-business-heading">
+            <div>
+              <p class="featured-business-eyebrow">Verified businesses</p>
+              <p class="featured-business-caption">Fresh openings, ranked the same way as search</p>
+            </div>
+
+            <div class="featured-business-controls" aria-label="Featured business controls">
+              <button id="featuredBusinessPrevious" type="button" aria-label="Show previous business">&#8249;</button>
+              <button id="featuredBusinessNext" type="button" aria-label="Show next business">&#8250;</button>
+            </div>
           </div>
 
-          <div class="preview-results">
-            <article class="preview-result">
-              <div>
-                <h3>Massage appointments</h3>
-                <p>Current openings from Austin providers</p>
-              </div>
-              <div class="preview-times">
-                <span>Today</span>
-                <span>View live times</span>
-              </div>
-            </article>
+          <div id="featuredBusinessStage" class="featured-business-stage" aria-live="off">
+            <div class="featured-business-loading" role="status">
+              Loading verified businesses...
+            </div>
+          </div>
 
-            <article class="preview-result">
-              <div>
-                <h3>Hair appointments</h3>
-                <p>Current salon and barbershop openings</p>
-              </div>
-              <div class="preview-times">
-                <span>Today</span>
-                <span>Tomorrow</span>
-                <span>View live times</span>
-              </div>
-            </article>
-
-            <article class="preview-result">
-              <div>
-                <h3>Skin and med spa appointments</h3>
-                <p>Current consultation and treatment openings</p>
-              </div>
-              <div class="preview-times">
-                <span>Today</span>
-                <span>View live times</span>
-              </div>
-            </article>
+          <div class="featured-business-footer">
+            <span id="featuredBusinessPosition" aria-hidden="true"></span>
+            <a href="/austin">View all live appointments</a>
           </div>
         </div>
       </div>
@@ -238,6 +224,7 @@
     </section>
   </main>
   <script src="/emailCapture.js?v=20260807-user-accounts"></script>
+  <script src="/landing-featured-businesses.js?v=20260919-featured-businesses"></script>
   <script src="/siteAnalytics.js?v=20260808-persistent-analytics"></script>
 
   <footer class="site-legal-footer">
