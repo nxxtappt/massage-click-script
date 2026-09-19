@@ -20,13 +20,10 @@ function toNumberOrNull(value) {
 
 function getAppointmentIdentityKey(appointment = {}) {
   return [
+    appointment.businessServiceId || appointment.business_service_id || "",
+    appointment.anchorServiceId || appointment.anchor_service_id || "",
     appointment.businessName || appointment.business_name || "",
     appointment.platform || "",
-    appointment.bookingWidgetId ||
-      appointment.booking_widget_id ||
-      appointment.widgetId ||
-      appointment.widget_id ||
-      "",
     appointment.serviceName || appointment.service_name || appointment.service || "",
     appointment.serviceCategory ||
       appointment.service_category ||
@@ -195,6 +192,11 @@ function slugifyBusinessName(value = "") {
 let cachedBusinessMetadataMap = null;
 let cachedBusinessMetadataAt = 0;
 
+function clearBusinessMetadataCache() {
+  cachedBusinessMetadataMap = null;
+  cachedBusinessMetadataAt = 0;
+}
+
 function getBusinessMetadataMap() {
   const now = Date.now();
 
@@ -229,6 +231,18 @@ function getBusinessMetadataMap() {
         businessUrl: business.businessUrl || `/business/${slug}`,
         enabled: business.enabled !== false,
         businessEnabled: business.enabled !== false,
+
+        // NEXTAPPT VERIFIED CONTROLS HOTFIX V2: inventoryManager
+        verifiedRank: Math.max(
+          0,
+          Math.min(100, Math.trunc(toNumber(business.verifiedRank) ?? 0))
+        ),
+        publicInventoryVisible: business.publicInventoryVisible !== false,
+        publicInventoryLimit: Math.max(
+          1,
+          Math.min(20, Math.trunc(toNumber(business.publicInventoryLimit) ?? 4))
+        ),
+
         subscriptionPlan: business.subscriptionPlan || "",
         subscriptionStatus: business.subscriptionStatus || "",
         reviewSummary: business.reviewSummary || null,
@@ -273,8 +287,18 @@ function normalizeInventoryRow(row = {}) {
     row.service_type ||
     "";
 
+  const categorySlug =
+    row.categorySlug ||
+    row.category_slug ||
+    row.marketplaceCategory ||
+    row.marketplace_category ||
+    row.rawJson?.categorySlug ||
+    row.raw_json?.categorySlug ||
+    "";
+
   const businessName = row.businessName || row.business_name || "";
   const metadata = getBusinessMetadata(businessName);
+  const hasBusinessMetadata = Boolean(metadata.businessName);
 
   const rawAppointmentStart =
     row.appointmentStart ||
@@ -300,25 +324,33 @@ function normalizeInventoryRow(row = {}) {
       ? `${localDateKey}T${localTimeKey}:00`
       : rawAppointmentStart || "";
 
-  const latitude =
-    toNumber(row.latitude) ??
-    toNumber(row.businessLatitude) ??
-    toNumber(row.business_latitude) ??
-    metadata.latitude ??
-    null;
+  const latitude = hasBusinessMetadata
+    ? metadata.latitude ?? null
+    : toNumber(row.latitude) ??
+      toNumber(row.businessLatitude) ??
+      toNumber(row.business_latitude) ??
+      null;
 
-  const longitude =
-    toNumber(row.longitude) ??
-    toNumber(row.businessLongitude) ??
-    toNumber(row.business_longitude) ??
-    metadata.longitude ??
-    null;
+  const longitude = hasBusinessMetadata
+    ? metadata.longitude ?? null
+    : toNumber(row.longitude) ??
+      toNumber(row.businessLongitude) ??
+      toNumber(row.business_longitude) ??
+      null;
 
   const displayDate = row.date || row.displayDate || formatDisplayDate(localDateKey);
   const displayTime = row.time || row.displayTime || formatDisplayTime(localTimeKey);
 
   return {
     id: row.id || null,
+    businessServiceId:
+      row.businessServiceId || row.business_service_id || null,
+    anchorServiceId:
+      row.anchorServiceId || row.anchor_service_id || null,
+    inferredAppointmentId:
+      row.inferredAppointmentId || row.inferred_id || null,
+    confirmedAppointmentId:
+      row.confirmedAppointmentId || row.confirmed_id || null,
 
     businessName: businessName || metadata.businessName || "",
     businessCategory:
@@ -329,15 +361,11 @@ function normalizeInventoryRow(row = {}) {
 
     platform: row.platform || "",
     bookingUrl: row.bookingUrl || row.booking_url || "",
-    widgetId:
-      row.widgetId || row.widget_id || row.bookingWidgetId || row.booking_widget_id || "",
-    widgetName:
-      row.widgetName || row.widget_name || row.bookingWidgetName || row.booking_widget_name || "",
-    bookingWidgetId:
-      row.bookingWidgetId || row.booking_widget_id || row.widgetId || row.widget_id || "",
 
     serviceName,
     service: serviceName,
+    categorySlug,
+    marketplaceCategory: categorySlug,
     serviceCategory,
     serviceType: serviceCategory,
     durationMinutes: toNumberOrNull(row.durationMinutes || row.duration_minutes),
@@ -395,6 +423,13 @@ function normalizeInventoryRow(row = {}) {
       row.appointment_source ||
       "confirmed",
 
+    inferenceReason:
+      row.inferenceReason || row.inference_reason || "",
+    inferenceGeneratedAt:
+      row.inferenceGeneratedAt || row.inference_generated_at || "",
+    inferredFrom:
+      row.inferredFrom || row.inferred_from || row.raw_json?.inferredFrom || null,
+
     confidence:
       row.confidence === undefined || row.confidence === null
         ? 1
@@ -405,24 +440,69 @@ function normalizeInventoryRow(row = {}) {
 
     status: row.status || row.inventoryStatus || row.inventory_status || "active",
 
-    enabled:
-      row.enabled !== undefined && row.enabled !== null
+    enabled: hasBusinessMetadata
+      ? metadata.enabled !== false
+      : row.enabled !== undefined && row.enabled !== null
         ? row.enabled !== false
-        : metadata.enabled !== false,
-    businessEnabled:
-      row.businessEnabled !== undefined && row.businessEnabled !== null
+        : true,
+    businessEnabled: hasBusinessMetadata
+      ? metadata.businessEnabled !== false
+      : row.businessEnabled !== undefined && row.businessEnabled !== null
         ? row.businessEnabled !== false
-        : metadata.businessEnabled !== false,
+        : true,
+
+    verifiedRank: hasBusinessMetadata
+      ? metadata.verifiedRank || 0
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            Math.trunc(
+              toNumber(row.verifiedRank ?? row.verified_rank) ?? 0
+            )
+          )
+        ),
+
+    publicInventoryVisible: hasBusinessMetadata
+      ? metadata.publicInventoryVisible !== false
+      : ![
+          false,
+          0,
+          "false",
+          "0",
+          "off",
+          "no"
+        ].includes(
+          typeof (row.publicInventoryVisible ?? row.public_inventory_visible) === "string"
+            ? String(row.publicInventoryVisible ?? row.public_inventory_visible)
+                .trim()
+                .toLowerCase()
+            : (row.publicInventoryVisible ?? row.public_inventory_visible)
+        ),
+
+    publicInventoryLimit: hasBusinessMetadata
+      ? metadata.publicInventoryLimit || 4
+      : Math.max(
+          1,
+          Math.min(
+            20,
+            Math.trunc(
+              toNumber(row.publicInventoryLimit ?? row.public_inventory_limit) ?? 4
+            )
+          )
+        ),
 
     latitude,
     longitude,
-    address: row.address || row.businessAddress || row.business_address || metadata.address || "",
-    logoUrl: row.logoUrl || row.logo_url || metadata.logoUrl || "",
-    logoAlt:
-      row.logoAlt ||
-      row.logo_alt ||
-      metadata.logoAlt ||
-      `${businessName || "Business"} logo`,
+    address: hasBusinessMetadata
+      ? metadata.address || ""
+      : row.address || row.businessAddress || row.business_address || "",
+    logoUrl: hasBusinessMetadata
+      ? metadata.logoUrl || ""
+      : row.logoUrl || row.logo_url || "",
+    logoAlt: hasBusinessMetadata
+      ? metadata.logoAlt || `${businessName || "Business"} logo`
+      : row.logoAlt || row.logo_alt || `${businessName || "Business"} logo`,
 
     claimed: row.claimed === true || metadata.claimed === true,
     verificationStatus:
@@ -454,8 +534,14 @@ function normalizeFilters(filters = {}) {
     businessName: filters.businessName || filters.business || "",
     platform: filters.platform || "",
     serviceName: filters.serviceName || filters.service || "",
+    categorySlug:
+      filters.categorySlug ||
+      filters.marketplaceCategory ||
+      filters.topLevelCategory ||
+      filters.category ||
+      "",
     serviceCategory:
-      filters.serviceCategory || filters.serviceType || filters.category || "",
+      filters.serviceCategory || filters.serviceType || "",
     durationMinutes: toNumberOrNull(filters.durationMinutes || filters.duration),
     providerName: filters.providerName || filters.therapistName || filters.provider || "",
     startDate: filters.startDate || filters.localDateStart || filters.fromDate || "",
@@ -474,6 +560,9 @@ function normalizeFilters(filters = {}) {
     includeDisabledBusinesses:
       filters.includeDisabledBusinesses === true ||
       String(filters.includeDisabledBusinesses) === "true",
+    includeHiddenInventory:
+      filters.includeHiddenInventory === true ||
+      String(filters.includeHiddenInventory) === "true",
     includeInferred:
       filters.includeInferred !== false && String(filters.includeInferred) !== "false",
     includeConfirmed:
@@ -496,10 +585,6 @@ async function insertConfirmedAppointments(resultOrAppointments = {}, options = 
             serviceType: appointment.serviceType || options.serviceType,
             durationMinutes: appointment.durationMinutes || options.durationMinutes,
             bookingUrl: appointment.bookingUrl || options.bookingUrl,
-            widgetId: appointment.widgetId || options.widgetId || options.bookingWidgetId,
-            widgetName: appointment.widgetName || options.widgetName,
-            bookingWidgetId:
-              appointment.bookingWidgetId || options.bookingWidgetId || options.widgetId,
             appointments: [appointment]
           },
           {
@@ -532,14 +617,36 @@ async function insertInferredAppointments(inferredAppointments = [], options = {
   const saved = [];
 
   for (const appointment of inferredAppointments) {
+    const confidenceCandidate =
+      appointment.confidenceScore ??
+      appointment.inferenceConfidence ??
+      (typeof appointment.confidence === "number" ? appointment.confidence : null) ??
+      options.inferenceConfidence ??
+      0.85;
+
+    const confidence = Number(confidenceCandidate);
+
     saved.push(
       await inventoryRepository.insertInferredAppointment({
         ...appointment,
         businessName: appointment.businessName || options.businessName,
         platform: appointment.platform || options.platform,
-        sourceType: appointment.sourceType || "inferred",
-        confidence:
-          appointment.confidence === undefined ? 0.75 : Number(appointment.confidence)
+        businessServiceId:
+          appointment.businessServiceId ||
+          appointment.inferredBusinessServiceId ||
+          options.businessServiceId ||
+          null,
+        anchorServiceId:
+          appointment.anchorServiceId ||
+          appointment.inferenceAnchorServiceId ||
+          appointment.inferredFrom?.businessServiceId ||
+          options.anchorServiceId ||
+          null,
+        sourceType: "inferred",
+        confidence: Number.isFinite(confidence) ? confidence : 0.85,
+        inferenceReason:
+          appointment.inferenceReason || options.inferenceReason || "service_anchor",
+        rawJson: appointment
       })
     );
   }
@@ -602,6 +709,14 @@ function filterInventory(appointments = [], filters = {}) {
     }
 
     if (
+      normalizedFilters.categorySlug &&
+      normalizeText(normalized.categorySlug) !==
+        normalizeText(normalizedFilters.categorySlug)
+    ) {
+      return false;
+    }
+
+    if (
       normalizedFilters.serviceName &&
       !normalizeText(normalized.serviceName).includes(
         normalizeText(normalizedFilters.serviceName)
@@ -658,6 +773,13 @@ function filterInventory(appointments = [], filters = {}) {
     }
 
     if (!normalizedFilters.includeDisabledBusinesses && normalized.businessEnabled === false) {
+      return false;
+    }
+
+    if (
+      !normalizedFilters.includeHiddenInventory &&
+      normalized.publicInventoryVisible === false
+    ) {
       return false;
     }
 
@@ -750,14 +872,16 @@ async function getInventory(filters = {}) {
           businessName: appointment.businessName || result.businessName,
           platform: appointment.platform || result.platform,
           serviceName: appointment.serviceName || result.serviceName || result.service,
+          categorySlug:
+            appointment.categorySlug ||
+            appointment.category_slug ||
+            result.categorySlug ||
+            result.category_slug ||
+            "",
           serviceCategory:
             appointment.serviceCategory || result.serviceCategory || result.serviceType,
           durationMinutes: appointment.durationMinutes || result.durationMinutes,
           bookingUrl: appointment.bookingUrl || result.bookingUrl,
-          widgetId: appointment.widgetId || result.widgetId || result.bookingWidgetId,
-          widgetName: appointment.widgetName || result.widgetName || result.bookingWidgetName,
-          bookingWidgetId:
-            appointment.bookingWidgetId || result.bookingWidgetId || result.widgetId,
           sourceType: appointment.sourceType || "confirmed"
         })
       );
@@ -868,5 +992,6 @@ module.exports = {
 
   normalizeInventoryRow,
   normalizeFilters,
-  getAppointmentIdentityKey
+  getAppointmentIdentityKey,
+  clearBusinessMetadataCache
 };
