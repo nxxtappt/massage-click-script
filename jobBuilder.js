@@ -1,5 +1,6 @@
 const { loadAdminSettings } = require("./adminSettingsManager");
 const { normalizeServiceType } = require("./normalizationUtils");
+const { getInferencePlan } = require("./availabilityInferencePlanner");
 const {
   resolveEnabledIntegration,
   validateIntegration,
@@ -812,8 +813,8 @@ function serviceMatchesFilters(service, business, filters = {}) {
     }
   }
 
-if (filters.service) {
-  const targetServiceRaw = normalize(filters.service);
+if (filters.service || filters.serviceName) {
+  const targetServiceRaw = normalize(filters.service || filters.serviceName);
 
   if (
     !serviceName.includes(targetServiceRaw) &&
@@ -882,10 +883,6 @@ function limitServicesPerBusiness(jobs, filters = {}, adminSettings = null) {
     limit = null;
   }
 
-  if (!limit || limit <= 0) {
-    return jobs;
-  }
-
   const grouped = new Map();
   const limited = [];
 
@@ -898,7 +895,29 @@ function limitServicesPerBusiness(jobs, filters = {}, adminSettings = null) {
 
     const currentCount = grouped.get(key);
 
-    if (currentCount >= limit) {
+    // Only omit a direct API request when an anchor is actually in this run,
+    // uses the same credential and date range, and can infer this exact target.
+    // Explicit service requests always query the real session type.
+    const inferredBySelectedAnchor = job.integrationType === "api" &&
+      job.apiInferenceSkipMappedTargets === true &&
+      !hasExplicitServiceTarget(filters) &&
+      filters.forceDirectScrape !== true && filters.forceDirectScrape !== "true" &&
+      serviceIsInferredTarget(job) &&
+      limited.some((anchor) => {
+        if (anchor.integrationType !== "api" ||
+            normalize(anchor.businessName) !== key ||
+            String(anchor.credentialId || "") !== String(job.credentialId || "") ||
+            String(anchor.integrationId || "") !== String(job.integrationId || "") ||
+            anchor.scrapeStartDate !== job.scrapeStartDate ||
+            anchor.scrapeEndDate !== job.scrapeEndDate) return false;
+        const plan = getInferencePlan(anchor, anchor);
+        return plan.canInfer && plan.inferServices.some((target) =>
+          String(target.id) === String(job.businessServiceId)
+        );
+      });
+    if (inferredBySelectedAnchor) continue;
+
+    if (limit && limit > 0 && currentCount >= limit) {
       continue;
     }
 

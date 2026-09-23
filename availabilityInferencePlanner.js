@@ -38,7 +38,13 @@ function getSearchInference(service = {}) {
     enabled:
       nested.enabled !== undefined
         ? nested.enabled
-        : service.inferenceEnabled === true,
+        : service.inferenceEnabled === true ||
+          service.inferenceRole === "anchor" ||
+          service.inferenceRole === "inferred" ||
+          nested.isInferenceAnchor === true ||
+          nested.canBeInferred === true ||
+          nested.inferenceRole === "anchor" ||
+          nested.inferenceRole === "inferred",
     isInferenceAnchor:
       nested.isInferenceAnchor === true ||
       nested.inferenceRole === "anchor" ||

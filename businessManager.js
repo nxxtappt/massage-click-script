@@ -296,6 +296,7 @@ function normalizeBusinessShape(business = {}) {
     integrationType: primaryIntegration?.integrationType || business.integrationType || business.integration_type || "scrape",
     apiProvider: primaryIntegration?.apiProvider || business.apiProvider || business.api_provider || "",
     credentialId: primaryIntegration?.credentialId || business.credentialId || business.credential_id || "",
+    apiInferenceSkipMappedTargets: business.apiInferenceSkipMappedTargets === true,
     integrationStatus: primaryIntegration?.status || business.integrationStatus || business.integration_status || "active",
     integrationConfig: primaryIntegration?.config || business.integrationConfig || {},
     bookingUrl: primaryIntegration?.bookingUrl || business.bookingUrl || business.booking_url || "",

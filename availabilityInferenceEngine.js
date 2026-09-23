@@ -193,7 +193,7 @@ function buildFallbackInferencePlan(anchorAppointment = {}, businessConfig = {})
   };
 }
 
-function getResolvedInferencePlan(anchorAppointment = {}, businessConfig = {}) {
+function getResolvedInferencePlan(anchorAppointment = {}, businessConfig = {}, options = {}) {
   const plannerPlan = getInferencePlan(
     {
       id:
@@ -214,7 +214,8 @@ function getResolvedInferencePlan(anchorAppointment = {}, businessConfig = {}) {
     businessConfig
   );
 
-  if (plannerPlan?.canInfer) {
+  // API-derived availability must follow only explicit canonical mappings.
+  if (plannerPlan?.canInfer || options.inferenceMode === "api_pipeline") {
     return plannerPlan;
   }
 
@@ -254,7 +255,7 @@ function inferAppointmentsFromWindow(window = {}, businessConfig = {}, options =
     return [];
   }
 
-  const plan = getResolvedInferencePlan(anchorAppointment, businessConfig);
+  const plan = getResolvedInferencePlan(anchorAppointment, businessConfig, options);
 
   if (!plan.canInfer) {
     return [];
@@ -327,6 +328,7 @@ if (
 
       inferred.push({
         ...slot,
+        timezone: anchorAppointment.timezone || anchorAppointment.timeZone || "America/Chicago",
 
         sourceType: "inferred",
         confidence: slot.confidence || "medium_high",
@@ -392,7 +394,11 @@ function inferAppointmentsFromResults(appointments = [], businessConfig = {}, op
     return [];
   }
 
-  const windows = buildAvailabilityWindowsFromAppointments(appointments);
+  // Independent API bookable items may share an anonymous staff label. Never
+  // join adjacent items into a longer availability window for API inference.
+  const windows = options.inferenceMode === "api_pipeline"
+    ? appointments.flatMap((item) => buildAvailabilityWindowsFromAppointments([item]))
+    : buildAvailabilityWindowsFromAppointments(appointments);
 
   const inferred = windows.flatMap((window) =>
     inferAppointmentsFromWindow(window, businessConfig, options)

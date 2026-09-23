@@ -1444,11 +1444,11 @@ const hydratedBusinessConfig =
     normalizeResultKeyValue(result.businessName || job.businessName)
   ) || job;
 
-const mergedAppointments = job.integrationType === "api" ? confirmedAppointments : mergeConfirmedAndInferredAppointments(
+const mergedAppointments = mergeConfirmedAndInferredAppointments(
   confirmedAppointments,
   hydratedBusinessConfig,
   {
-    inferenceMode: "scrape_pipeline"
+    inferenceMode: job.integrationType === "api" ? "api_pipeline" : "scrape_pipeline"
   }
 );
 
@@ -1456,7 +1456,7 @@ const resultWithInference = {
   ...result,
   appointments: mergedAppointments,
   inferenceSummary: {
-    enabled: job.integrationType !== "api",
+    enabled: true,
     confirmedAppointmentCount: confirmedAppointments.length,
     totalAppointmentCount: mergedAppointments.length,
     inferredAppointmentCount:
@@ -1489,10 +1489,16 @@ const inventoryScope = {
   scrapeEndDate: result.scrapeEndDate || job.scrapeEndDate || null
 };
 const inventoryOptions = { scrapeRunId: scrapeRun.id, rawScrapeResultId: rawScrapeResult.id };
+const inferredAppointments = mergedAppointments.filter(
+  (appointment) => String(appointment.sourceType || "").toLowerCase() === "inferred"
+);
 let reconciledInventory, insertedInventoryAppointments;
 try {
   if (job.integrationType === "api") {
-    const published = await replaceApiInventory(confirmedInventoryResult, inventoryScope, inventoryOptions);
+    const published = await replaceApiInventory(confirmedInventoryResult, inventoryScope, {
+      ...inventoryOptions,
+      inferredAppointments
+    });
     reconciledInventory = published.reconciled;
     insertedInventoryAppointments = published.inserted;
   } else {
@@ -1514,12 +1520,7 @@ console.log(
   `[INVENTORY] Saved ${insertedInventoryAppointments.length} confirmed appointment(s) to PostgreSQL inventory.`
 );
 
-const inferredAppointments = mergedAppointments.filter(
-  (appointment) =>
-    String(appointment.sourceType || "").toLowerCase() === "inferred"
-);
-
-if (inferredAppointments.length > 0) {
+if (job.integrationType !== "api" && inferredAppointments.length > 0) {
   const savedInferred = await inventoryManager.insertInferredAppointments(
     inferredAppointments,
     {

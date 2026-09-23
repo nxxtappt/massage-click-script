@@ -14,6 +14,16 @@ function studioToday(timeZone = "America/Chicago") {
   return `${read("year")}-${read("month")}-${read("day")}`;
 }
 
+function studioDateAndTime(absoluteStart, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+  }).formatToParts(new Date(absoluteStart));
+  const read = (type) => parts.find((part) => part.type === type)?.value;
+  return { date: `${read("year")}-${read("month")}-${read("day")}`,
+    time: `${read("hour")}:${read("minute")}` };
+}
+
 function buildDateRange(options = {}) {
   const {
     scrapeStartDate = "",
@@ -103,8 +113,11 @@ function getDateKeyFromAppointment(appointment = {}) {
   return match ? match[1] : "";
 }
 
-function appointmentWithinDateRange(appointment = {}, startDate = "", endDate = "") {
-  const dateKey = getDateKeyFromAppointment(appointment);
+function appointmentWithinDateRange(appointment = {}, startDate = "", endDate = "", timeZone = "America/Chicago") {
+  const rawStart = getStartDateTime(appointment);
+  const dateKey = /(?:Z|[+-]\d{2}:\d{2})$/.test(rawStart)
+    ? studioDateAndTime(rawStart, timeZone).date
+    : getDateKeyFromAppointment(appointment);
 
   if (!dateKey) {
     return false;
@@ -135,6 +148,7 @@ function normalizeMindbodyAppointment(options = {}) {
   const parts = String(startDateTime).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?(Z|[+-]\d{2}:\d{2})?$/);
   if (!parts) throw new Error("Mindbody returned an invalid appointment start time.");
   const absoluteStart = parts[3] ? startDateTime : localDateTime(parts[1], parts[2], timeZone);
+  const local = studioDateAndTime(absoluteStart, timeZone);
 
   const appointmentDate =
     appointment.rawDate ||
@@ -157,7 +171,7 @@ function normalizeMindbodyAppointment(options = {}) {
 
   return {
     businessName,
-    platform: "mindbody-api",
+    platform: "mindbody",
     integrationType: "api",
     bookingUrl,
 
@@ -165,10 +179,14 @@ function normalizeMindbodyAppointment(options = {}) {
     serviceType: service.serviceType,
     durationMinutes: service.durationMinutes,
     platformServiceId: service.sessionTypeId,
+    sessionTypeId: service.sessionTypeId,
 
     therapistName: getStaffName(appointment),
 
     startTime: absoluteStart,
+    localDateKey: local.date,
+    localTimeKey: local.time,
+    staffId: staff.Id || staff.id || appointment.StaffId || appointment.staffId || null,
     timezone: timeZone,
     date: appointmentDate,
     time: appointmentTime,
@@ -270,7 +288,7 @@ async function syncMindbodyBusiness(options = {}) {
         throw new Error("Mindbody returned an availability without a valid start time; inventory was not refreshed.");
       }
 
-      if (!appointmentWithinDateRange(appointment, dateRange.startDate, dateRange.endDate)) {
+      if (!appointmentWithinDateRange(appointment, dateRange.startDate, dateRange.endDate, credential.metadata.timeZone || "America/Chicago")) {
         return false;
       }
 
@@ -294,5 +312,6 @@ async function syncMindbodyBusiness(options = {}) {
 }
 
 module.exports = {
-  syncMindbodyBusiness
+  syncMindbodyBusiness,
+  normalizeMindbodyAppointment
 };
