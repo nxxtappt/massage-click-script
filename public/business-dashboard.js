@@ -1452,19 +1452,18 @@ function renderBillingPanel(dashboard) {
       <h3>Choose your NextAppt tier</h3>
       <p>Explore Business Membership Tiers. Payment is not available here yet; selecting a plan sends your request to our team and does not change your current access.</p>
       <div class="billing-tier-grid">
-        ${card("verified_free", "Verified Free", "$0", [ "Your verified listing, free.",
+        ${card("verified_free", "Verified Free", "$0", "Your verified listing, free.", [
           "Verified business badge", "Business profile and logo", "Public view of up to 3 different services"
         ])}
-        ${card("premium", "Premium", '<s>$99</s> $29', [ "$29/month for your first three months, then $99/month.", "Free API setup for a limited time ($499 value)", 
+        ${card("premium", "Premium", '<s>$99</s> $29', "$29/month for your first three months, then $99/month. Free API setup for a limited time ($499 value).", [
           "Verified business badge", "Business profile and logo", "CRM/API connection and availability", "Booking widget and search-card deals", "Public view of up to 5 different services updated hourly", "Premium placement and appointment analytics"
         ], true)}
-        ${card("premium_intel", "Premium Intel", "$199", [ "Free API setup for a limited time ($499 value)", 
-          "Verified business badge", "Business profile and logo", "CRM/API connection and availability", "Booking widget and search-card deals", "Public view of up to 10 different services updated($10 for each additional service)", "Premium placement and appointment analytics",
-        "Local market intelligence reports", "Advanced analytics" ], true)}
-        ])}
+        ${card("premium_intel", "Premium Intel", "$199", "Free API setup for a limited time ($499 value).", [
+          "Verified business badge", "Business profile and logo", "CRM/API connection and availability", "Booking widget and search-card deals", "Public view of up to 10 different services updated ($10 for each additional service)", "Premium placement and appointment analytics", "Local market intelligence reports", "Advanced analytics"
+        ], true)}
       </div>
       <p class="billing-footnote">Offers are subject to availability when enrollment opens. No payment is currently collected when you request a plan.</p>
-      <p id="billingStatus" class="billing-response" role="status" aria-live="polite"></p>
+      <p id="billingInterestStatus" class="billing-response" role="status" aria-live="polite"></p>
     </div>`;
 }
 
