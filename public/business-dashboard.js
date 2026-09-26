@@ -1449,21 +1449,22 @@ function renderBillingPanel(dashboard) {
   return `
     <div class="admin-business-card billing-panel">
       <span class="dashboard-eyebrow">Plans &amp; billing</span>
-      <h3>Choose how NextAppt works for your business</h3>
-      <p>Explore plans and tell us which one you want. Payment is not available here yet; selecting a plan sends your request to our team and does not change your access.</p>
+      <h3>Choose your NextAppt tier</h3>
+      <p>Explore Business Membership Tiers. Payment is not available here yet; selecting a plan sends your request to our team and does not change your current access.</p>
       <div class="billing-tier-grid">
         ${card("verified_free", "Verified Free", "$0", "Your verified listing, free.", [
-          "Verified business badge", "Business profile and logo", "Direct booking through your existing system"
+          "Verified business badge", "Business profile and logo", "Public view of up to 3 different services"
         ])}
-        ${card("premium", "Premium", '<s>$99</s> $29', "$29/month for your first three months, then $99/month. Free API setup for a limited time.", [
-          "Everything in Verified Free", "CRM/API connection and availability", "Booking widget and search-card deals", "Premium placement and appointment analytics"
+        ${card("premium", "Premium", '<s>$99</s> $29', "$29/month for your first three months, then $99/month. Free API setup for a limited time ($499 value).", [
+          "Verified business badge", "Business profile and logo", "CRM/API connection and availability", "Booking widget and search-card deals", "Public view of up to 5 different services updated hourly", "Premium placement and appointment analytics"
         ], true)}
         ${card("premium_intel", "Premium Intel", "$199", "Free API setup for a limited time.", [
-          "Everything in Premium", "Local market intelligence reports", "Advanced analytics"
+          "Verified business badge", "Business profile and logo", "CRM/API connection and availability ($499 value)", "Booking widget and search-card deals", "Public view of up to 10 different services updated($10 for each additional service)", "Premium placement and appointment analytics"
+        ], true)} "Local market intelligence reports", "Advanced analytics"
         ])}
       </div>
-      <p class="billing-footnote">Offers are subject to availability when enrollment opens. No payment is collected when you request a plan.</p>
-      <p id="billingInterestStatus" class="billing-response" role="status" aria-live="polite"></p>
+      <p class="billing-footnote">Offers are subject to availability when enrollment opens. No payment is currently collected when you request a plan.</p>
+      <p id="billingStatus" class="billing-response" role="status" aria-live="polite"></p>
     </div>`;
 }
 
