@@ -30,6 +30,7 @@ const {
 
 const businessManager = require("./businessManager");
 const crmCredentialRepository = require("./database/crmCredentialRepository");
+const billingLeadRepository = require("./database/billingLeadRepository");
 const { getKey } = require("./crmCredentialVault");
 const { getAdapter, listAdapters } = require("./crmProviders/registry");
 const {
@@ -1247,6 +1248,32 @@ router.get("/dashboard", requireBusinessSession, async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+// Interest only. Subscription access and billing are never changed by this route.
+router.post("/billing/interest", requireBusinessSession, async (req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    const plan = req.body?.plan;
+    if (!["verified_free", "premium", "premium_intel"].includes(plan)) {
+      return res.status(400).json({ success: false, error: "Choose a valid plan." });
+    }
+
+    const business = await getVerifiedCrmBusiness(req.businessSession);
+    if (!business) {
+      return res.status(403).json({ success: false, error: "A verified business account is required." });
+    }
+    const lead = await billingLeadRepository.registerInterest({
+      businessKey: String(business.businessId || business.id),
+      businessName: String(business.businessName || business.name),
+      email: String(req.businessSession.email).trim().toLowerCase(),
+      plan
+    });
+    res.json({ success: true, message: "Thanks. We have your interest and will follow up.", lead });
+  } catch (error) {
+    console.error("[BILLING INTEREST ERROR]", error);
+    res.status(500).json({ success: false, error: "Could not save interest. Please try again." });
   }
 });
 

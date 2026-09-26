@@ -17,6 +17,7 @@ const inventoryRepository = require("./database/inventoryRepository");
 const runtimeStateRepository = require("./database/runtimeStateRepository");
 const { loadClaims, getClaimStats } = require("./businessClaimManager");
 const scrapeJobRepository = require("./database/scrapeJobRepository");
+const billingLeadRepository = require("./database/billingLeadRepository");
 const { runDueSchedules } = require("./schedulerV2");
 const {
   listMarketplaceMetros,
@@ -549,6 +550,32 @@ router.get("/businesses/:id", async (req, res, next) => {
   } catch (error) {
     console.error("[ADMIN BUSINESS DETAIL ERROR]", error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get("/billing-leads", async (req, res) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json({ success: true, ...(await billingLeadRepository.listLeads({
+      status: String(req.query.status || ""), limit: req.query.limit
+    })) });
+  } catch (error) {
+    console.error("[ADMIN BILLING LEADS ERROR]", error);
+    res.status(500).json({ success: false, error: "Could not load billing leads." });
+  }
+});
+
+router.post("/billing-leads/:id/status", async (req, res) => {
+  try {
+    const lead = await billingLeadRepository.setLeadStatus(req.params.id, req.body?.status);
+    if (!lead) return res.status(404).json({ success: false, error: "Lead not found." });
+    res.json({ success: true, lead });
+  } catch (error) {
+    if (error.message === "Invalid lead update.") {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+    console.error("[ADMIN BILLING LEAD UPDATE ERROR]", error);
+    res.status(500).json({ success: false, error: "Could not update billing lead." });
   }
 });
 

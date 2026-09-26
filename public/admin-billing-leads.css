@@ -1,0 +1,8 @@
+.billing-lead-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; margin-left: 5px; color: #002b49; background: #ffe080; font-weight: 800; font-size: 12px; }
+.billing-lead-badge[hidden] { display: none; }
+.billing-lead-list { display: grid; gap: 13px; margin-top: 18px; }
+.billing-lead-card { border: 1px solid #d5e3ea; background: #fff; border-radius: 12px; padding: 18px; }
+.billing-lead-card[data-status="new"] { border-left: 5px solid #e6ad23; }
+.billing-lead-card h4 { margin: 0 0 9px; color: #002b49; }
+.billing-lead-card p { margin: 5px 0; overflow-wrap: anywhere; }
+.billing-lead-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 14px; }

@@ -1357,7 +1357,8 @@ function renderDashboard(dashboard) {
       { id: "business-connections", label: "Connections" },
       { id: "business-booking", label: "Booking" },
       { id: "business-deal", label: "Deals" },
-      { id: "business-analytics", label: "Analytics" }
+      { id: "business-analytics", label: "Analytics" },
+      { id: "business-billing", label: "Billing" }
     ],
     dashboard.email || ""
   );
@@ -1415,6 +1416,10 @@ function renderDashboard(dashboard) {
               )
         }
       </section>
+
+      <section id="business-billing" class="dashboard-section">
+        ${renderBillingPanel(dashboard)}
+      </section>
     </div>
   `;
 
@@ -1422,6 +1427,66 @@ function renderDashboard(dashboard) {
   attachCredentialConnectionHandlers(dashboard);
   attachBookingWidgetHandlers();
   attachDealHandlers();
+  attachBillingHandlers();
+}
+
+function renderBillingPanel(dashboard) {
+  const current = dashboard.plan === "premium" ? "premium" : "verified_free";
+  const card = (key, title, price, detail, items, featured = false) => `
+    <article class="billing-tier${featured ? " billing-tier-featured" : ""}">
+      ${featured ? '<span class="billing-tier-ribbon">Limited time offer</span>' : ""}
+      <h4>${title}</h4>
+      <div class="billing-tier-price">${price}<span>/month</span></div>
+      <p class="billing-tier-detail">${detail}</p>
+      <ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>
+      <button type="button" class="${featured ? "primary-btn" : "secondary-btn"} billing-tier-action"
+        data-billing-interest="${key}">
+        ${current === key ? "Keep current plan" : `Request ${title}`}
+      </button>
+      ${current === key ? '<span class="billing-current">Current plan</span>' : ""}
+    </article>`;
+
+  return `
+    <div class="admin-business-card billing-panel">
+      <span class="dashboard-eyebrow">Plans &amp; billing</span>
+      <h3>Choose how NextAppt works for your business</h3>
+      <p>Explore plans and tell us which one you want. Payment is not available here yet; selecting a plan sends your request to our team and does not change your access.</p>
+      <div class="billing-tier-grid">
+        ${card("verified_free", "Verified Free", "$0", "Your verified listing, free.", [
+          "Verified business badge", "Business profile and logo", "Direct booking through your existing system"
+        ])}
+        ${card("premium", "Premium", '<s>$99</s> $29', "$29/month for your first three months, then $99/month. Free API setup for a limited time.", [
+          "Everything in Verified Free", "CRM/API connection and availability", "Booking widget and search-card deals", "Premium placement and appointment analytics"
+        ], true)}
+        ${card("premium_intel", "Premium Intel", "$199", "Free API setup for a limited time.", [
+          "Everything in Premium", "Local market intelligence reports", "Advanced analytics"
+        ])}
+      </div>
+      <p class="billing-footnote">Offers are subject to availability when enrollment opens. No payment is collected when you request a plan.</p>
+      <p id="billingInterestStatus" class="billing-response" role="status" aria-live="polite"></p>
+    </div>`;
+}
+
+function attachBillingHandlers() {
+  document.querySelectorAll("[data-billing-interest]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const status = document.getElementById("billingInterestStatus");
+      button.disabled = true;
+      if (status) status.textContent = "Sending your request…";
+      try {
+        const data = await fetchJson("/api/business-dashboard/billing/interest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: button.dataset.billingInterest })
+        });
+        if (status) status.textContent = data.message;
+      } catch (error) {
+        if (status) status.textContent = `Request failed: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
 }
 
 async function requestLoginCode() {

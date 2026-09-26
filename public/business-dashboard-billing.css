@@ -1,0 +1,19 @@
+.billing-panel h3 { margin: 5px 0 8px; color: #002b49; }
+.billing-panel > p { max-width: 760px; color: #526574; line-height: 1.5; }
+.billing-tier-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+.billing-tier { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 24px; border: 1px solid #d2e1e8; border-radius: 16px; background: #fff; box-shadow: 0 3px 12px rgba(0,43,73,.05); }
+.billing-tier-featured { border: 2px solid #0077b6; background: #f1faff; }
+.billing-tier-ribbon { align-self: flex-start; padding: 5px 9px; border-radius: 999px; background: #d8f2ff; color: #00547f; font-size: 12px; font-weight: 700; }
+.billing-tier h4 { margin: 0; font-size: 21px; color: #002b49; }
+.billing-tier-price { font-size: 30px; font-weight: 800; color: #002b49; }
+.billing-tier-price s { font-size: 17px; color: #6a7984; font-weight: 500; }
+.billing-tier-price span { font-size: 14px; font-weight: 500; color: #526574; }
+.billing-tier-detail { margin: 0; min-height: 56px; line-height: 1.5; color: #465e6d; }
+.billing-tier ul { margin: 0 0 12px; padding-left: 19px; line-height: 1.55; color: #284b60; }
+.billing-tier li + li { margin-top: 7px; }
+.billing-tier-action { width: 100%; margin-top: auto; text-align: center; }
+.billing-tier-action:disabled { opacity: .65; cursor: wait; }
+.billing-current { text-align: center; font-size: 12px; color: #006ca8; font-weight: 700; }
+.billing-footnote { font-size: 12px; }
+.billing-response { min-height: 1.5em; font-weight: 700; color: #00547f; }
+@media (max-width: 1000px) { .billing-tier-grid { grid-template-columns: 1fr; } .billing-tier-detail { min-height: 0; } }

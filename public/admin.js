@@ -111,6 +111,11 @@ const views = {
     subtitle: "Manually manage verified basic and premium business access."
   },
 
+  "billing-leads": {
+    title: "Billing Leads",
+    subtitle: "Businesses that requested information about a plan."
+  },
+
   schedules: {
     title: "Availability Scheduler",
     subtitle: "Manage PostgreSQL schedules, groups, exceptions, queue jobs, and workers."
@@ -138,6 +143,75 @@ function setStatus(message, type = "info") {
 
 function setLoading(message = "Loading...") {
   content.innerHTML = `<p>${escapeHtml(message)}</p>`;
+}
+
+const billingPlanLabels = {
+  verified_free: "Verified Free",
+  premium: "Premium",
+  premium_intel: "Premium Intel"
+};
+
+async function refreshBillingLeadBadge() {
+  try {
+    const data = await fetchJson("/api/admin/billing-leads?limit=1");
+    const badge = document.getElementById("billingLeadBadge");
+    if (badge) {
+      badge.textContent = String(data.newCount || 0);
+      badge.hidden = !data.newCount;
+    }
+  } catch (error) {
+    console.warn("[BILLING LEADS] Could not refresh count:", error.message);
+  }
+}
+
+async function loadBillingLeadsView() {
+  currentView = "billing-leads";
+  pageTitle.textContent = views[currentView].title;
+  pageSubtitle.textContent = views[currentView].subtitle;
+  setLoading("Loading billing leads...");
+  try {
+    const data = await fetchJson("/api/admin/billing-leads?limit=200");
+    const leads = data.leads || [];
+    content.innerHTML = `
+      <div class="admin-business-card">
+        <h3>Plan interest <small>(${Number(data.newCount || 0)} new)</small></h3>
+        <p>Requests from verified business dashboard accounts. No payment or plan change occurred.</p>
+      </div>
+      <div class="billing-lead-list">
+        ${leads.length ? leads.map((lead) => `
+          <article class="billing-lead-card" data-status="${escapeHtml(lead.status)}">
+            <h4>${escapeHtml(lead.business_name)} · ${escapeHtml(billingPlanLabels[lead.requested_plan] || lead.requested_plan)}</h4>
+            <p><strong>Contact:</strong> ${escapeHtml(lead.contact_email)}</p>
+            <p><strong>Status:</strong> ${escapeHtml(lead.status)} · <strong>Requests:</strong> ${Number(lead.click_count || 1)}</p>
+            <p><strong>Latest request:</strong> ${escapeHtml(new Date(lead.last_clicked_at).toLocaleString())}</p>
+            <div class="billing-lead-actions">
+              <button type="button" class="secondary-btn" data-lead-id="${Number(lead.id)}" data-lead-status="contacted">Mark contacted</button>
+              <button type="button" class="secondary-btn" data-lead-id="${Number(lead.id)}" data-lead-status="closed">Close</button>
+              <button type="button" class="secondary-btn" data-lead-id="${Number(lead.id)}" data-lead-status="new">Reopen</button>
+            </div>
+          </article>`).join("") : "<p>No plan requests yet.</p>"}
+      </div>`;
+    document.querySelectorAll("[data-lead-id]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          await fetchJson(`/api/admin/billing-leads/${button.dataset.leadId}/status`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: button.dataset.leadStatus })
+          });
+          await loadBillingLeadsView();
+        } catch (error) {
+          button.disabled = false;
+          setStatus(`Could not update lead: ${error.message}`, "error");
+        }
+      });
+    });
+    await refreshBillingLeadBadge();
+    setStatus(`Loaded ${leads.length} billing lead${leads.length === 1 ? "" : "s"}.`, "success");
+  } catch (error) {
+    content.innerHTML = `<p>Could not load billing leads: ${escapeHtml(error.message)}</p>`;
+    setStatus("Could not load billing leads.", "error");
+  }
 }
 
 async function fetchJson(url, options = {}) {
@@ -5088,6 +5162,7 @@ function loadView(viewName) {
   if (viewName === "settings") return loadSettings();
   if (viewName === "schedules") return loadSchedulerV2();
   if (viewName === "subscriptions") return loadBusinessSubscriptionsView();
+  if (viewName === "billing-leads") return loadBillingLeadsView();
 }
 
 ensureSubscriptionsNavButton();
@@ -5113,3 +5188,5 @@ async function initializeAdminPortal() {
 }
 
 initializeAdminPortal();
+refreshBillingLeadBadge();
+setInterval(refreshBillingLeadBadge, 60000);
