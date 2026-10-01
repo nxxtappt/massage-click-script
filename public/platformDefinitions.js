@@ -72,6 +72,28 @@
   });
 
   const definitions = {
+    "mindbody-new": {
+      key: "mindbody-new",
+      label: "Mindbody — New Widget",
+      description: "Newest priced appointments widget. Select this explicitly for verified new-widget businesses.",
+      capabilities: ["scrape", "provider_selection"],
+      integrationTypes: ["scrape"],
+      integrationFields: [bookingUrl],
+      serviceFields: [
+        ...commonServiceFields,
+        text("categoryText", "Category Text", {
+          storage: "serviceConfig", aliases: ["categoryName"], defaultValue: "Massage"
+        }),
+        text("serviceButtonId", "Service ID (optional)", {
+          storage: "service", aliases: ["platformServiceId", "serviceId"],
+          help: "Optional. Selection uses the exact displayed service name when the new card has no ID."
+        }),
+        text("providerText", "Provider Text", {
+          storage: "serviceConfig", defaultValue: "First Available"
+        }),
+        boolean("skipProvider", "Use First Available", {storage: "serviceConfig"})
+      ]
+    },
     mindbody: {
       key: "mindbody",
       label: "Mindbody",

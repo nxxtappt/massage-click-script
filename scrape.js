@@ -10,6 +10,7 @@ const {
 } = require("./adminSettingsManager");
 
 const { scrapeMindbodyBusiness } = require("./scrapers/mindbody");
+const { scrapeMindbodyNewBusiness } = require("./scrapers/mindbody-new");
 const { scrapeSchedulistaBusiness } = require("./scrapers/schedulista");
 const { scrapeMeevoAvailability } = require("./scrapers/meevo");
 const vagaroModule = require("./scrapers/vagaroMarketplace");
@@ -550,6 +551,16 @@ async function scrapeWithRetries(browser, business) {
         };
       }
 
+      if (scrapeTarget.platform === "mindbody-new") {
+        const result = await scrapeMindbodyNewBusiness(page, scrapeTarget, attempt);
+        await closeScrapePage(page, context);
+        return {
+          ...result,
+          distanceMiles: scrapeTarget.distanceMiles || null,
+          ...buildScrapeWindowPayload(scrapeTarget)
+        };
+      }
+
       if (scrapeTarget.platform === "mindbody") {
         const result = await scrapeMindbodyBusiness(page, scrapeTarget, attempt);
         await closeScrapePage(page, context);
@@ -1082,6 +1093,7 @@ async function run() {
   });
 
   const supportedPlatforms = [
+    "mindbody-new",
     "mindbody",
     "mindbody-old",
     "schedulista",
