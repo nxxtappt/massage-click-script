@@ -720,8 +720,12 @@ async function clickServiceButton(frame, page, business) {
   return true;
 }
 
-async function handleAddOnsIfPresent(frame, page) {
-  // NEXTAPPT MINDBODY ADD-ON FLOW FIX V7
+function isMindbodyAddOnScreen(headings, text) {
+  const normalized = headings.map(value => String(value || "").replace(/\s+/g, " ").trim());
+  if (normalized.some(value => /^(?:Customize|Enhance|Personalize) your service$/i.test(value) ||
+      /^(?:(?:select|choose|optional|add)\s+)?(?:add[ -]?ons?|enhancements?|extras)(?:\s.*)?$/i.test(value))) return true;
+  if (normalized.some(value => /^(?:select|choose)(?: your| an?)? (?:provider|employee|staff|professional|date (?:&|and) time)$/i.test(value) ||
+      /^(?:Availability for|Available on|Appointments for|There is no availability|Your selection is fully booked)/i.test(value))) return false;
   const looksLikeAddOnScreen = (lower) =>
     lower.includes("add-on") ||
     lower.includes("add on") ||
@@ -742,11 +746,25 @@ async function handleAddOnsIfPresent(frame, page) {
     lower.includes("would you like to add") ||
     lower.includes("customize your") ||
     lower.includes("personalize your");
+  return looksLikeAddOnScreen(String(text || "").toLowerCase());
+}
+
+async function currentMindbodyAddOnScreen(frame, text) {
+  const headings = await frame.evaluate(() => [...document.querySelectorAll("h1,h2,h3")].filter(el => {
+    const b=el.getBoundingClientRect(),s=getComputedStyle(el);
+    return b.width>0 && b.height>0 && s.display!=="none" && s.visibility!=="hidden";
+  }).map(el => el.textContent));
+  return isMindbodyAddOnScreen(headings, text);
+}
+
+async function handleAddOnsIfPresent(frame, page) {
+  // NEXTAPPT MINDBODY ADD-ON FLOW FIX V7
+
 
   const beforeText = await getBodyText(frame);
   const beforeLower = beforeText.toLowerCase();
 
-  if (!looksLikeAddOnScreen(beforeLower)) {
+  if (!await currentMindbodyAddOnScreen(frame, beforeText)) {
     return false;
   }
 
@@ -779,6 +797,7 @@ async function handleAddOnsIfPresent(frame, page) {
     "Not now",
     "Maybe Later",
     "Maybe later",
+    "Continue with no add-ons",
     "Continue without add-ons",
     "Continue Without Add-ons",
     "Continue without Add-ons",
@@ -808,7 +827,7 @@ async function handleAddOnsIfPresent(frame, page) {
 
   // Selecting None / No Thanks can simply set a radio or checkbox.
   // If the add-on page remains, click Continue/Next afterward.
-  if (looksLikeAddOnScreen(currentLower)) {
+  if (await currentMindbodyAddOnScreen(frame, currentText)) {
     const continued = await clickFirstMatchingText(
       frame,
       page,
@@ -842,7 +861,7 @@ async function handleAddOnsIfPresent(frame, page) {
   const afterLower = afterText.toLowerCase();
 
   // A business can have multiple consecutive optional add-on groups.
-  if (looksLikeAddOnScreen(afterLower)) {
+  if (await currentMindbodyAddOnScreen(frame, afterText)) {
     if (afterText.trim() === beforeText.trim()) {
       console.log("----- MINDBODY ADD-ON SCREEN DID NOT ADVANCE -----");
       console.log(afterText);
@@ -1676,5 +1695,6 @@ async function scrapeMindbodyBusiness(page, business, attemptNumber) {
 }
 
 module.exports = {
-  scrapeMindbodyBusiness
+  scrapeMindbodyBusiness,
+  _test: { isMindbodyAddOnScreen, handleAddOnsIfPresent }
 };

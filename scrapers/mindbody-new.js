@@ -35,13 +35,13 @@ function windowFor(business) {
   const p = type => parts.find(part => part.type === type).value;
   const start = dateKey(business.scrapeStartDate || `${p("year")}-${p("month")}-${p("day")}`);
   const count = Math.ceil(Number(business.daysForward || Number(business.lookaheadHours || 48)/24));
-  if (!start || !Number.isFinite(count) || count < 1 || count > 31) throw new Error("Mindbody new: invalid date window (maximum 31 days)");
+  if (!start || !Number.isFinite(count) || count < 1 || count > 366) throw new Error("Mindbody new: invalid date window (maximum 366 days)");
   const endDate = new Date(start + "T12:00:00Z"); endDate.setUTCDate(endDate.getUTCDate()+count-1);
   const end = dateKey(business.scrapeEndDate || isoKey(endDate));
   if (!end || end < start) throw new Error("Mindbody new: invalid end date");
   const dates = [];
   for (const d = new Date(start+"T12:00:00Z"); isoKey(d)<=end; d.setUTCDate(d.getUTCDate()+1)) {
-    if (dates.length >= 31) throw new Error("Mindbody new: date window exceeds 31 days");
+    if (dates.length >= 366) throw new Error("Mindbody new: date window exceeds 366 days");
     dates.push(isoKey(d));
   }
   return {dates,scrapeStartDate:start,scrapeEndDate:end,daysForward:dates.length,lookaheadHours:Number(business.lookaheadHours || dates.length*24),scrapeWindowMode:business.scrapeWindowMode || "days_forward"};
@@ -89,17 +89,23 @@ function serviceResolver({name,ids,activate}) {
   const norm=value=>String(value||"").replace(/\s+/g," ").trim().toLowerCase();
   const visible=el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.display!=="none"&&s.visibility!=="hidden";};
   const selectors="[data-testid='service-select'],[data-testid='select-service-button']";
-  const cards=[...document.querySelectorAll(selectors)].filter(el=>visible(el)&&!el.closest("[aria-disabled='true']"));
-  const container=el=>el.matches("[data-testid='select-service-button']")?el.closest("[role='button']"):el;
+  // Current cards contain a separate Select button. Never count the card and
+  // that button twice, or click the non-interactive card / Show Details.
+  const cards=[...new Set([...document.querySelectorAll(selectors)].map(el=>
+    el.querySelector("[data-testid='select-service-button']")||el
+  ))].filter(el=>visible(el)&&!el.disabled&&!el.closest("[aria-disabled='true']"));
+  const container=el=>el.matches("[data-testid='select-service-button']")
+    ?el.closest("[data-testid='service-select']")||el.parentElement?.closest("[role='button']")
+    :el;
   const byId=cards.filter(el=>ids.some(id=>el.id===id||el.getAttribute("data-service-id")===id));
-  let matches=byId.length?byId:cards.filter(el=>[...container(el).querySelectorAll("h1,h2,h3,h4,h5,h6")].some(h=>norm(h.textContent)===norm(name)));
+  let matches=byId.length?byId:cards.filter(el=>[...(container(el)?.querySelectorAll("h1,h2,h3,h4,h5,h6")||[])].some(h=>norm(h.textContent)===norm(name)));
   if(matches.length>1) throw new Error("Mindbody new: ambiguous service cards; use a unique exact service name or ID");
   if(!matches.length) return false;
   if(activate) matches[0].click();
   return true;
 }
 async function selectService(frame,page,business) {
-  const args={name:business.serviceName||"",ids:[business.platformServiceId,business.serviceButtonId,business.serviceId].filter(Boolean).map(String),activate:false};
+  const args={name:business.serviceName||"",ids:[business.platformServiceId,business.serviceButtonId,business.serviceId].filter(Boolean).map(id=>String(id).trim()).filter(Boolean),activate:false};
   if(!args.name) throw new Error("Mindbody new: exact serviceName is required");
   if(!await frame.evaluate(serviceResolver,args)) {
     const category=business.categoryText||business.categoryName;
@@ -127,7 +133,7 @@ function stageFor(state) {
   const h=state.headings.map(normalize);
   if(h.some(t=>/^(select|choose) date (?:&|and) time$/i.test(t))||state.date) return "availability";
   if(h.some(t=>/^(select|choose)(?: your| an?)? (?:provider|employee|staff|professional)$/i.test(t))) return "provider";
-  if(h.some(t=>/^Customize your service$/i.test(t))) return "addons";
+  if(h.some(t=>/^(?:Customize|Enhance|Personalize) your service$/i.test(t))) return "addons";
   if(h.some(t=>/^(?:(?:select|choose|optional|add)\s+)?(?:add[ -]?ons?|enhancements?|extras)(?:\s.*)?$/i.test(t))) return "addons";
   return "unknown";
 }
@@ -146,9 +152,16 @@ async function runFlow(frame,page,business) {
       await poll(page,()=>clickChoice(frame,"Continue",["link","button"]),Boolean,"provider Continue",10000);
     } else {
       let skipped=false;
-      for(const text of ["None","No Thanks","No Add-ons","Skip","Continue without add-ons"]) {
-        if(await clickChoice(frame,text,["radio","button","link"])){skipped=true;break;}
+      for(const text of ["Continue with no add-ons","Continue without add-ons","None","No Thanks","No Add-ons","Skip"]) {
+        if(await clickChoice(frame,text,["radio","button","link"])){skipped=text;break;}
       }
+      // A navigation link starts an asynchronous route change. Do not click a
+      // second Continue while the previous add-on screen is still visible.
+      if(skipped && /^Continue /i.test(skipped)) {
+        await poll(page,()=>readState(frame),s=>!s.loading&&stageFor(s)!=="unknown"&&s.text!==state.text,"step after add-on Continue",15000);
+        continue;
+      }
+      if(skipped) await page.waitForTimeout(500);
       const after=await readState(frame);
       if(stageFor(after)==="addons") {
         if(!await clickChoice(frame,"Continue",["link","button"])&&!await clickChoice(frame,"Next",["link","button"]))
@@ -214,8 +227,16 @@ async function isolatedWidget(page,business) {
   // Open the actual observed iframe URL. Host-site newsletters cannot cover this page.
   if(page.mainFrame()!==frame) await page.goto(observed,{waitUntil:"domcontentloaded",timeout:90000});
   const main=page.mainFrame();
-  await poll(page,()=>main.locator("h1").allTextContents(),headings=>headings.some(h=>/^Book your appointment(?: \+ Add-ons)?$/i.test(normalize(h))),"new widget service menu",35000);
+  await poll(page,()=>main.evaluate(widgetMenuReady),Boolean,"new widget service menu",35000);
   return main;
+}
+function widgetMenuReady() {
+  const visible=el=>{const b=el.getBoundingClientRect(),s=getComputedStyle(el);return b.width>0&&b.height>0&&s.display!=="none"&&s.visibility!=="hidden";};
+  // Businesses can customize their welcome heading. The rendered service
+  // controls identify the menu, including when every category is collapsed.
+  return [...document.querySelectorAll("[data-testid='service-select'],[data-testid='select-service-button']")].some(visible)||
+    [...document.querySelectorAll("button[aria-expanded],[role='button'][aria-expanded]")]
+      .some(el=>visible(el)&&[...el.querySelectorAll('h3')].some(h=>h.textContent.trim()));
 }
 async function scrapeMindbodyNewBusiness(page,business,attemptNumber=1) {
   const started=Date.now(),window=windowFor(business),appointments=[],days=[];
@@ -240,13 +261,13 @@ async function scrapeMindbodyNewBusiness(page,business,attemptNumber=1) {
       provider:business.skipProvider?"First Available":business.providerText||"First Available",appointments,date:appointments[0]?.date||window.scrapeStartDate,
       times:[...new Set(appointments.map(a=>a.time))],status:appointments.length?"success":"no_times_found",attemptNumber,
       scrapeDurationMs:Date.now()-started,lastChecked:new Date().toISOString(),rawWidgetText:state.text,
-      mindbodyDaySnapshots:days,scraperVersion:"mindbody-new-2026-09-30",...windowFields};
+      mindbodyDaySnapshots:days,scraperVersion:"mindbody-new-2026-10-08",...windowFields};
   } catch(error) {
-    const state=frame?await readState(frame,expectedDate).catch(()=>null):null;
+    const state=await readState(frame||page.mainFrame(),expectedDate).catch(()=>null);
     const details={stage,expectedDate,observedDate:state?.date,headings:state?.headings,times:state?.times,loading:state?.loading};
     console.error("[MINDBODY NEW DIAGNOSTIC]",JSON.stringify({...details,text:state?.text?.slice(0,5000)},null,2));
     error.message += " | Mindbody new diagnostic: "+JSON.stringify(details);
     throw error;
   }
 }
-module.exports={scrapeMindbodyNewBusiness,_test:{dateKey,timeValue,windowFor,parseState,stageFor,calendarMonth,serviceResolver,readState,settled,navigateDate}};
+module.exports={scrapeMindbodyNewBusiness,_test:{dateKey,timeValue,windowFor,parseState,stageFor,calendarMonth,serviceResolver,readState,settled,navigateDate,widgetMenuReady,runFlow}};
