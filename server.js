@@ -152,6 +152,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/admin/v2", adminV2Routes);
 app.use("/api/admin/analytics", adminSiteAnalyticsRoutes);
 app.use("/api/admin/users", adminUserRoutes);
+app.use("/api/admin/market-analytics", requireAdminAuth, require("./api/marketAnalyticsRoutes"));
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/legal", legalRoutes);
