@@ -242,6 +242,17 @@ function appointmentMatchesAlert(
   alert,
   appointment
 ) {
+  if (alert.filters?.source === 'business_page') {
+    const f = alert.filters;
+    const appointmentBusinessId = appointment.businessId || appointment.business_id;
+    if (appointmentBusinessId && ![String(alert.businessId), String(f.publicBusinessId || '')].includes(String(appointmentBusinessId))) return false;
+    // Require business identity even when a join fails or a business has been removed.
+    if (!appointmentBusinessId && (!alert.businessName || normalizeText(appointment.businessName) !== normalizeText(alert.businessName))) return false;
+    const platformId = String(appointment.platformServiceId || appointment.serviceId || appointment.sessionTypeId || '');
+    if (f.platformServiceId && platformId) {
+      if (String(f.platformServiceId) !== platformId) return false;
+    } else if (normalizeText(appointment.serviceName || appointment.service) !== normalizeText(f.serviceName)) return false;
+  }
   const appointmentDate =
     dateKey(
       appointment.localDateKey ||
@@ -379,7 +390,7 @@ function appointmentMatchesAlert(
   }
 
   if (
-    !serviceMatches(
+    alert.filters?.source !== "business_page" && !serviceMatches(
       alert,
       appointment
     )

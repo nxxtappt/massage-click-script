@@ -1356,6 +1356,7 @@ function renderDashboard(dashboard) {
   setDashboardNav(
     [
       { id: "dashboard-overview", label: "Overview" },
+      { id: "business-interests", label: "Consumer interests" },
       { id: "business-profile", label: "Business Profile" },
       { id: "business-connections", label: "Connections" },
       { id: "business-booking", label: "Booking" },
@@ -1372,6 +1373,9 @@ function renderDashboard(dashboard) {
         ${renderDashboardOverview(dashboard)}
       </section>
 
+      <section id="business-interests" class="dashboard-section">
+        ${renderConsumerInterests(dashboard.consumerInterests || [])}
+      </section>
       <section id="business-profile" class="dashboard-section">
         ${renderBusinessProfilePanel(dashboard)}
       </section>
@@ -1629,4 +1633,28 @@ logoutBtn.addEventListener("click", async () => {
 
 window.addEventListener("DOMContentLoaded", () => {
   loadDashboard();
+});
+
+function renderConsumerInterests(items) {
+  const unread=items.filter(item=>!item.readAt).length;
+  return `<div class="dashboard-card"><h2>Consumer interests${unread ? ` (${unread} new)` : ''}</h2>
+    <p>Service and scheduling requests from your business page.</p>
+    ${items.length ? items.map(item=>{
+      const d=item.details || {};
+      return `<article style="padding:16px 0;border-bottom:1px solid #ddd">
+        <strong>${escapeHtml(d.serviceName || 'Service')}${d.durationMinutes ? ` · ${escapeHtml(d.durationMinutes)} min` : ''}</strong>
+        ${!item.readAt ? '<span> · New</span>' : ''}
+        <p>${escapeHtml(d.targetDate)} · ${escapeHtml(d.startTime)}–${escapeHtml(d.endTime)} (${escapeHtml(d.timezone)})</p>
+        <small>Requested ${escapeHtml(new Date(item.createdAt).toLocaleString())}</small>
+        ${!item.readAt ? `<button type="button" data-interest-read="${escapeHtml(item.id)}">Mark read</button>` : ''}
+      </article>`;
+    }).join('') : '<p>No consumer requests yet.</p>'}
+  </div>`;
+}
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-interest-read]');
+  if(!button)return;
+  button.disabled=true;
+  try {await fetchJson(`/api/business-dashboard/consumer-interests/${encodeURIComponent(button.dataset.interestRead)}/read`,{method:'PATCH'});await loadDashboard();}
+  catch(error){button.disabled=false;setStatus(error.message,'error');}
 });

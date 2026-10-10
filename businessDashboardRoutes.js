@@ -1252,14 +1252,23 @@ router.get("/analytics", requireBusinessSession, async (req, res) => {
   }
 });
 
+router.patch('/consumer-interests/:id/read', requireBusinessSession, async (req, res) => {
+  try {
+    const business = await findBusinessForSession(req.businessSession);
+    if (!business) return res.status(404).json({success:false,error:'Business not found.'});
+    const found = await require('./businessInterestAlerts').markInterestRead(await require('./businessInterestAlerts').resolveBusinessDatabaseId(business),req.params.id);
+    res.status(found ? 200 : 404).json({success:found});
+  } catch(error) { res.status(500).json({success:false,error:'Could not update notification.'}); }
+});
+
 router.get("/dashboard", requireBusinessSession, async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
 
-    res.json({
-      success: true,
-      dashboard: await buildDashboard(req.businessSession)
-    });
+    const dashboard = await buildDashboard(req.businessSession);
+    const business = await findBusinessForSession(req.businessSession);
+    dashboard.consumerInterests = business ? await require('./businessInterestAlerts').listBusinessInterests(await require('./businessInterestAlerts').resolveBusinessDatabaseId(business)) : [];
+    res.json({success:true,dashboard});
   } catch (error) {
     console.error("[BUSINESS DASHBOARD LOAD ERROR]", error);
 

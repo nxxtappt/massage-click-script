@@ -47,6 +47,7 @@ const userRoutes = require("./userRoutes");
 const legalRoutes = require("./legalRoutes");
 const adminUserRoutes = require("./adminUserRoutes");
 const { startUserAlertMatcher } = require("./userAlertMatcher");
+const { startBusinessInterestMailer } = require("./businessInterestAlerts");
 const {
   createFeedbackEntry
 } = require("./chatbotFeedbackManager");
@@ -2637,6 +2638,7 @@ async function initializeRuntime() {
   await initializeAdminSettings();
   await warmBusinessCache();
   startUserAlertMatcher();
+  startBusinessInterestMailer();
 }
 
 initializeRuntime().then(() => app.listen(PORT, "0.0.0.0", () => {

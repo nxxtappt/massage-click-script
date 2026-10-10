@@ -324,6 +324,16 @@ router.get("/alerts", requireUser, async (req, res) => {
   }
 });
 
+router.post("/alerts/from-business", requireUser, async (req, res) => {
+  try {
+    const alert = await require('./businessInterestAlerts').createBusinessAlert(req.user, req.body || {});
+    res.status(alert.duplicate ? 200 : 201).json({success:true,alert,message:'Appointment alert saved.'});
+  } catch (error) {
+    console.error('[BUSINESS INTEREST ALERT]', error.message);
+    res.status(400).json({success:false,error:error.message});
+  }
+});
+
 router.post("/alerts/from-search", requireUser, async (req, res) => {
   try {
     const alertPayload = buildAlertFromSearch(req.body || {});

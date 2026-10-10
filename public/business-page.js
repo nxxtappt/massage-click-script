@@ -1,3 +1,5 @@
+let currentBusinessPage = null;
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -184,6 +186,18 @@ function renderBusinessAvailabilityTimeGroups(
             <article class="business-availability-slot ${sourceClass}">
               <div class="business-availability-row">
                 <a
+                  data-track-appointment-click="true"
+                  data-appointment-payload="${escapeAttribute(JSON.stringify({
+                    businessName: appointment.businessName || currentBusinessPage?.businessName,
+                    businessSlug: getSlugFromPath(), platform: appointment.platform || currentBusinessPage?.platform,
+                    serviceName: appointment.serviceName || appointment.service,
+                    serviceCategory: appointment.serviceCategory || appointment.categorySlug,
+                    durationMinutes: appointment.durationMinutes, providerName: appointment.providerName,
+                    appointmentDate: appointment.date, appointmentTime: appointment.time,
+                    startTime: appointment.startTime, localDateKey: appointment.localDateKey,
+                    localTimeKey: appointment.localTimeKey, bookingUrl: appointment.bookingUrl,
+                    sourcePage: 'business_page', pagePath: window.location.pathname
+                  }))}"
                   class="appointment-button business-availability-time"
                   href="${escapeAttribute(appointment.bookingUrl || "#")}"
                   target="_blank"
@@ -1260,6 +1274,8 @@ function renderVerifiedPage(page) {
       </div>
     </section>
 
+    ${renderBusinessAlertBox(page)}
+
     ${renderDeal(page.activeDeal)}
 
     <section class="content-grid about-only-grid">
@@ -1475,12 +1491,14 @@ async function loadBusinessPage() {
       page.verificationStatus === "verified" ||
       page.verificationStatus === "claimed_verified";
 
+    currentBusinessPage = page;
     updateBusinessMetadata(page);
 
     root.innerHTML = page.isVerified
       ? renderVerifiedPage(page)
       : renderUnverifiedPage(page);
 
+    bindBusinessAlertBox(page);
     await loadBusinessInventory(page);
     mountBookingWidget(page);
   } catch (error) {
@@ -1567,3 +1585,110 @@ function updateBusinessMetadata(page = {}) {
 }
 
 loadBusinessPage();
+
+function renderBusinessAlertBox(page) {
+  if (!['premium','premium_intel'].includes(page.plan) || !['active','trialing'].includes(String(page.subscriptionStatus || 'active').toLowerCase())) return '';
+  const services = (page.services || []).filter(s=>s.enabled !== false && (s.businessServiceId || s.id));
+  if (!services.length) return '';
+  return `<section class="business-alert-box"><h2>Find an appointment that works for you</h2>
+    <p>Don't see an appointment that works for you? Click a service below that you'd like to schedule and we'll notify you if there is a match.</p>
+    <div class="business-alert-services">${services.map(s=>`<button type="button" data-business-alert-service="${escapeAttribute(s.businessServiceId || s.id)}">${escapeHtml(s.serviceName || s.name)}${s.durationMinutes ? ` · ${escapeHtml(s.durationMinutes)} min` : ''}</button>`).join('')}</div>
+  </section>`;
+}
+async function businessAlertRequest(path, body) {
+  const response = await fetch(`/api/user${path}`, {method:body ? 'POST' : 'GET',headers:{'Content-Type':'application/json'},credentials:'same-origin',...(body ? {body:JSON.stringify(body)} : {})});
+  const data = await response.json();
+  if (!response.ok || data.success === false) throw Object.assign(new Error(data.error || 'Please try again.'),{status:response.status});
+  return data;
+}
+function bindBusinessAlertBox(page) {
+  document.querySelectorAll('[data-business-alert-service]').forEach(button=>button.addEventListener('click',()=>{
+    const service = (page.services || []).find(s=>String(s.businessServiceId || s.id) === button.dataset.businessAlertService);
+    if (service) openBusinessAlertDialog(page,service,button);
+  }));
+}
+function openBusinessAlertDialog(page, service, trigger) {
+  const timezone = page.timeZone || page.timezone || 'America/Chicago';
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+  const today = `${parts.year}-${parts.month}-${parts.day}`;
+  const dialog = document.createElement('dialog');
+  dialog.className = 'business-alert-dialog';
+  const options = Array.from({length:96},(_,i)=>{
+    const h=Math.floor(i/4),m=(i%4)*15,t=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    return `<option value="${t}">${h%12 || 12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}</option>`;
+  }).join('');
+  dialog.innerHTML = `<button type="button" class="business-alert-close" aria-label="Close">×</button>
+    <h2>${escapeHtml(service.serviceName || service.name)}</h2>
+    <form><div class="business-alert-window">
+      <label>Preferred date<input name="targetDate" type="date" min="${today}" value="${today}" required></label>
+      <label>From<select name="startTime">${options}</select></label>
+      <label>Until<select name="endTime">${options}</select></label>
+    </div>
+    <p>Appointment start times in ${escapeHtml(timezone)}. Select the same start and end time for an exact time.</p>
+    <fieldset class="business-alert-auth" hidden><legend>Verify your email</legend>
+      <label>Email<input name="email" type="email" autocomplete="email"></label>
+      <label data-alert-code hidden>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"></label><button type="button" data-alert-reset hidden>Resend code or change email</button>
+    </fieldset>
+    <p>We'll email you when a matching appointment becomes available. The business will receive your service and time preferences. Manage alerts in <a href="/account">My Account</a>.</p>
+    <p role="status" aria-live="polite" class="business-alert-status"></p>
+    <button type="submit" class="business-alert-submit">Notify me</button></form>`;
+  document.body.appendChild(dialog);
+  const form=dialog.querySelector('form'),submit=form.querySelector('[type=submit]'),status=form.querySelector('[role=status]');
+  form.elements.startTime.value='09:00'; form.elements.endTime.value='18:00';
+  let authStage='unknown', busy=false, saved=false, verifiedEmail='';
+  const close=()=>dialog.close();
+  dialog.querySelector('.business-alert-close').addEventListener('click',close);
+  dialog.addEventListener('close',()=>{dialog.remove();trigger.focus();});
+  dialog.addEventListener('click',event=>{if(event.target===dialog){const b=dialog.getBoundingClientRect();if(event.clientX<b.left||event.clientX>b.right||event.clientY<b.top||event.clientY>b.bottom)close();}});
+  function revealAuth() {
+    authStage='email'; form.querySelector('fieldset').hidden=false; form.elements.email.required=true;
+    submit.textContent='Send verification code'; form.elements.email.focus();
+  }
+  form.querySelector('[data-alert-reset]').addEventListener('click',()=>{
+    if(busy)return;
+    form.elements.email.readOnly=false;form.elements.code.required=false;form.elements.code.value='';
+    form.querySelector('[data-alert-code]').hidden=true;form.querySelector('[data-alert-reset]').hidden=true;revealAuth();
+    status.textContent='Enter your email, then request a new code.';
+  });
+  form.addEventListener('submit',async event=>{
+    event.preventDefault(); if(busy || saved) return;
+    if(form.elements.startTime.value > form.elements.endTime.value){status.textContent='Choose an end time at or after the start time.';return;}
+    busy=true;submit.disabled=true;status.textContent='';
+    try {
+      if(authStage==='unknown') {
+        try { await businessAlertRequest('/me');authStage='verified'; }
+        catch(error){if(error.status!==401)throw error;revealAuth();status.textContent='Verify your email to save this alert.';return;}
+      }
+      if(authStage==='email') {
+        await businessAlertRequest('/auth/request-code',{email:form.elements.email.value,source:'business_page_alert'});
+        verifiedEmail=form.elements.email.value; form.elements.email.readOnly=true;
+        authStage='code';form.querySelector('[data-alert-code]').hidden=false;form.querySelector('[data-alert-reset]').hidden=false;form.elements.code.required=true;
+        submit.textContent='Verify and notify me';status.textContent='Check your email for the 6-digit code.';form.elements.code.focus();return;
+      }
+      if(authStage==='code') {
+        await businessAlertRequest('/auth/verify-code',{email:verifiedEmail,code:form.elements.code.value});authStage='verified';
+        form.querySelector('fieldset').hidden=true;form.elements.code.required=false;form.elements.email.required=false;
+      }
+      const payload={businessSlug:page.businessSlug || page.slug || getSlugFromPath(),businessServiceId:service.businessServiceId || service.id,
+        targetDate:form.elements.targetDate.value,startTime:form.elements.startTime.value,endTime:form.elements.endTime.value};
+      await businessAlertRequest('/alerts/from-business',payload);
+      saved=true;status.textContent='Alert saved. We’ll email you when a matching appointment becomes available.';submit.textContent='Saved';
+    } catch(error) {
+      if(error.status===401){revealAuth();status.textContent='Your session expired. Verify your email again.';}
+      else status.textContent=error.message;
+    } finally {busy=false;submit.disabled=saved;}
+  });
+  dialog.showModal();
+}
+
+document.addEventListener('click',event=>{
+  const link=event.target.closest("[data-track-appointment-click='true']");
+  if(!link || navigator.doNotTrack === '1') return;
+  try {
+    const payload=JSON.parse(link.dataset.appointmentPayload || '{}');
+    Object.assign(payload,window.nextApptAnalytics?.getIds?.() || {});
+    // Inventory IDs identify slots, not click events. Each click receives its own ID.
+    payload.legacyId=window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    fetch('/api/analytics/appointment-click',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(()=>{});
+  } catch { /* Booking continues when tracking fails. */ }
+});

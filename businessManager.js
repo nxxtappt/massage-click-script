@@ -1001,6 +1001,7 @@ function buildBusinessPageData(
       item.services,
     categories:
       serviceGrouping.categories,
+    timeZone: item.locations?.[0]?.timezone || "America/Chicago",
     servicesByCategory:
       serviceGrouping.servicesByCategory,
     amenities:
