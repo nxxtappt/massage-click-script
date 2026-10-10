@@ -145,101 +145,70 @@ function groupBusinessAppointmentsByTime(appointments = []) {
     }
 
     const serviceLabel = formatAppointmentService(appointment);
-    const serviceKey = serviceLabel.toLowerCase();
+    const serviceKey = `${serviceLabel.toLowerCase()}|${appointment.platformServiceId || appointment.serviceId || appointment.sessionTypeId || ''}`;
 
     if (!group.serviceKeys.has(serviceKey)) {
       group.serviceKeys.add(serviceKey);
       group.services.push({
+        key: serviceKey,
         label: serviceLabel,
-        sourceLabel: getBusinessAppointmentSourceLabel(appointment)
+        sourceLabel: getBusinessAppointmentSourceLabel(appointment),
+        appointment
       });
+    } else {
+      const service = group.services.find(item => item.key === serviceKey);
+      if (service && service.sourceLabel === 'Inferred' && getBusinessAppointmentSourceLabel(appointment) === 'Confirmed') {
+        service.appointment = appointment; service.sourceLabel = 'Confirmed';
+      }
     }
   });
 
   return [...groups.values()].map(({ serviceKeys, ...group }) => group);
 }
 
-function renderBusinessAvailabilityTimeGroups(
-  appointments = [],
-  idPrefix = "business-availability",
-  limitTimes = 24
-) {
-  const timeGroups = groupBusinessAppointmentsByTime(appointments)
-    .slice(0, limitTimes);
-
-  return `
-    <div class="appointment-button-grid grouped-appointment-buttons">
-      ${timeGroups
-        .map((group, index) => {
-          const appointment = group.appointment;
-          const panelId = `${idPrefix}-services-${index}`;
-          const serviceCount = group.services.length;
-          const serviceCountLabel = `${serviceCount} service${serviceCount === 1 ? "" : "s"}`;
-          const serviceNames = group.services.map((service) => service.label).join(", ");
-          const sourceClass = group.services.every(
-            (service) => service.sourceLabel === "Inferred"
-          )
-            ? "inferred"
-            : "confirmed";
-
-          return `
-            <article class="business-availability-slot ${sourceClass}">
-              <div class="business-availability-row">
-                <a
-                  data-track-appointment-click="true"
-                  data-appointment-payload="${escapeAttribute(JSON.stringify({
-                    businessName: appointment.businessName || currentBusinessPage?.businessName,
-                    businessSlug: getSlugFromPath(), platform: appointment.platform || currentBusinessPage?.platform,
-                    serviceName: appointment.serviceName || appointment.service,
-                    serviceCategory: appointment.serviceCategory || appointment.categorySlug,
-                    durationMinutes: appointment.durationMinutes, providerName: appointment.providerName,
-                    appointmentDate: appointment.date, appointmentTime: appointment.time,
-                    startTime: appointment.startTime, localDateKey: appointment.localDateKey,
-                    localTimeKey: appointment.localTimeKey, bookingUrl: appointment.bookingUrl,
-                    sourcePage: 'business_page', pagePath: window.location.pathname
-                  }))}"
-                  class="appointment-button business-availability-time"
-                  href="${escapeAttribute(appointment.bookingUrl || "#")}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="${escapeAttribute(`Book ${formatAppointmentButton(appointment)}. Available services: ${serviceNames}`)}"
-                >
-                  <span class="appointment-date-time">
-                    ${escapeHtml(formatAppointmentButton(appointment))}
-                  </span>
-                </a>
-                <button
-                  class="business-availability-toggle"
-                  type="button"
-                  aria-expanded="false"
-                  aria-controls="${escapeAttribute(panelId)}"
-                >
-                  <span>${escapeHtml(serviceCountLabel)}</span>
-                  <span class="business-availability-chevron" aria-hidden="true">⌄</span>
-                </button>
-              </div>
-              <div
-                class="business-availability-panel"
-                id="${escapeAttribute(panelId)}"
-                hidden
-              >
-                <ul class="business-availability-services">
-                  ${group.services
-                    .map((service) => `
-                      <li>
-                        <span>${escapeHtml(service.label)}</span>
-                        <small>${escapeHtml(service.sourceLabel)}</small>
-                      </li>
-                    `)
-                    .join("")}
-                </ul>
-              </div>
-            </article>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
+function businessAppointmentTrackingPayload(appointment = {}) {
+  return {
+    businessName: appointment.businessName || currentBusinessPage?.businessName,
+    businessSlug: getSlugFromPath(), platform: appointment.platform || currentBusinessPage?.platform,
+    serviceName: appointment.serviceName || appointment.service,
+    serviceCategory: appointment.serviceCategory || appointment.categorySlug,
+    serviceId: appointment.serviceId || appointment.platformServiceId || appointment.sessionTypeId,
+    durationMinutes: appointment.durationMinutes, providerName: appointment.providerName,
+    appointmentDate: appointment.date, appointmentTime: appointment.time,
+    startTime: appointment.startTime, localDateKey: appointment.localDateKey,
+    localTimeKey: appointment.localTimeKey, bookingUrl: appointment.bookingUrl,
+    sourcePage: 'business_page', pagePath: window.location.pathname
+  };
+}
+function renderBusinessAvailabilityTimeGroups(appointments = [], idPrefix = 'business-availability', limitTimes = 24) {
+  return `<div class="appointment-button-grid grouped-appointment-buttons">${groupBusinessAppointmentsByTime(appointments).slice(0,limitTimes).map((group,index)=>{
+    const panelId = `${idPrefix}-services-${index}`;
+    const sourceClass = group.services.every(service=>service.sourceLabel==='Inferred') ? 'inferred' : 'confirmed';
+    return `<article class="business-availability-slot ${sourceClass}">
+      <div class="business-availability-row">
+        <button class="appointment-button business-availability-time business-availability-toggle business-time-selector"
+          type="button" aria-expanded="false" aria-controls="${escapeAttribute(panelId)}"
+          aria-label="${escapeAttribute(`Choose a service for ${formatAppointmentButton(group.appointment)}`)}">
+          <span class="appointment-date-time">${escapeHtml(formatAppointmentButton(group.appointment))}</span>
+          <span>${group.services.length} service${group.services.length===1?'':'s'} <span aria-hidden="true">⌄</span></span>
+        </button>
+      </div>
+      <div class="business-availability-panel" id="${escapeAttribute(panelId)}" hidden>
+        <p class="business-service-prompt">Choose a service to book</p>
+        <ul class="business-availability-services">${group.services.map(service=>{
+          const appointment=service.appointment;
+          const url=appointment.bookingUrl || currentBusinessPage?.bookingUrl || '';
+          const bookable=url && isSafePublicUrl(url,['https:','http:']);
+          const payload=businessAppointmentTrackingPayload({...appointment,bookingUrl:url});
+          return `<li>${bookable ? `<a class="business-slot-service-link" href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer"
+            data-track-appointment-click="true" data-appointment-payload="${escapeAttribute(JSON.stringify(payload))}"
+            aria-label="${escapeAttribute(`Book ${service.label} at ${formatAppointmentButton(appointment)}`)}">
+              <span>${escapeHtml(service.label)}</span><span class="business-slot-book-label">Book ↗</span></a>` : `<span>${escapeHtml(service.label)}</span>`}
+            <small>${escapeHtml(service.sourceLabel)}</small></li>`;
+        }).join('')}</ul>
+      </div>
+    </article>`;
+  }).join('')}</div>`;
 }
 
 function bindBusinessAvailabilityToggles(container) {
@@ -1588,11 +1557,15 @@ loadBusinessPage();
 
 function renderBusinessAlertBox(page) {
   if (!['premium','premium_intel'].includes(page.plan) || !['active','trialing'].includes(String(page.subscriptionStatus || 'active').toLowerCase())) return '';
-  const services = (page.services || []).filter(s=>s.enabled !== false && (s.businessServiceId || s.id));
+  const services = (page.services || []).filter(service=>service.enabled !== false && (service.businessServiceId || service.id));
   if (!services.length) return '';
-  return `<section class="business-alert-box"><h2>Find an appointment that works for you</h2>
-    <p>Don't see an appointment that works for you? Click a service below that you'd like to schedule and we'll notify you if there is a match.</p>
-    <div class="business-alert-services">${services.map(s=>`<button type="button" data-business-alert-service="${escapeAttribute(s.businessServiceId || s.id)}">${escapeHtml(s.serviceName || s.name)}${s.durationMinutes ? ` · ${escapeHtml(s.durationMinutes)} min` : ''}</button>`).join('')}</div>
+  return `<section class="business-alert-box"><h2>Don't see an appointment that works for you?</h2>
+    <p>Choose a service and we'll notify you when a matching appointment becomes available.</p>
+    <div class="business-alert-picker"><label class="business-alert-select-label" for="businessAlertService">Service</label>
+      <select id="businessAlertService"><option value="">Choose a service…</option>${services.map(service=>
+        `<option value="${escapeAttribute(service.businessServiceId || service.id)}">${escapeHtml(service.serviceName || service.name)}${service.durationMinutes ? ` · ${escapeHtml(service.durationMinutes)} min` : ''}</option>`).join('')}</select>
+      <button type="button" data-business-alert-open disabled>Notify me</button>
+    </div>
   </section>`;
 }
 async function businessAlertRequest(path, body) {
@@ -1602,10 +1575,14 @@ async function businessAlertRequest(path, body) {
   return data;
 }
 function bindBusinessAlertBox(page) {
-  document.querySelectorAll('[data-business-alert-service]').forEach(button=>button.addEventListener('click',()=>{
-    const service = (page.services || []).find(s=>String(s.businessServiceId || s.id) === button.dataset.businessAlertService);
-    if (service) openBusinessAlertDialog(page,service,button);
-  }));
+  const select=document.getElementById('businessAlertService');
+  const button=document.querySelector('[data-business-alert-open]');
+  if(!select || !button)return;
+  select.addEventListener('change',()=>{button.disabled=!select.value;});
+  button.addEventListener('click',()=>{
+    const service=(page.services || []).find(item=>String(item.businessServiceId || item.id)===select.value);
+    if(service)openBusinessAlertDialog(page,service,button);
+  });
 }
 function openBusinessAlertDialog(page, service, trigger) {
   const timezone = page.timeZone || page.timezone || 'America/Chicago';
@@ -1625,11 +1602,17 @@ function openBusinessAlertDialog(page, service, trigger) {
       <label>Until<select name="endTime">${options}</select></label>
     </div>
     <p>Appointment start times in ${escapeHtml(timezone)}. Select the same start and end time for an exact time.</p>
+    <div class="business-alert-contact">
+      <label>Phone number (optional)<input name="phone" type="tel" autocomplete="tel" maxlength="40" placeholder="Your phone number"></label>
+      <p data-contact-email>Your verified account email will be shared with this business.</p>
+      <label class="business-alert-consent"><input name="shareContact" type="checkbox" required>
+        <span>I agree to share my verified email, optional phone number and appointment preferences with ${escapeHtml(page.businessName)} so they can contact me about this request.</span></label>
+    </div>
     <fieldset class="business-alert-auth" hidden><legend>Verify your email</legend>
       <label>Email<input name="email" type="email" autocomplete="email"></label>
       <label data-alert-code hidden>6-digit code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"></label><button type="button" data-alert-reset hidden>Resend code or change email</button>
     </fieldset>
-    <p>We'll email you when a matching appointment becomes available. The business will receive your service and time preferences. Manage alerts in <a href="/account">My Account</a>.</p>
+    <p>We'll email you when a matching appointment becomes available. Your contact details are shown to this business in its secure dashboard. Manage alerts in <a href="/account">My Account</a>.</p>
     <p role="status" aria-live="polite" class="business-alert-status"></p>
     <button type="submit" class="business-alert-submit">Notify me</button></form>`;
   document.body.appendChild(dialog);
@@ -1656,7 +1639,7 @@ function openBusinessAlertDialog(page, service, trigger) {
     busy=true;submit.disabled=true;status.textContent='';
     try {
       if(authStage==='unknown') {
-        try { await businessAlertRequest('/me');authStage='verified'; }
+        try { const account=await businessAlertRequest('/me');authStage='verified';form.querySelector('[data-contact-email]').textContent=`Email shared with this business: ${account.user.email}`; }
         catch(error){if(error.status!==401)throw error;revealAuth();status.textContent='Verify your email to save this alert.';return;}
       }
       if(authStage==='email') {
@@ -1667,10 +1650,11 @@ function openBusinessAlertDialog(page, service, trigger) {
       }
       if(authStage==='code') {
         await businessAlertRequest('/auth/verify-code',{email:verifiedEmail,code:form.elements.code.value});authStage='verified';
+        form.querySelector('[data-contact-email]').textContent=`Email shared with this business: ${verifiedEmail}`;
         form.querySelector('fieldset').hidden=true;form.elements.code.required=false;form.elements.email.required=false;
       }
       const payload={businessSlug:page.businessSlug || page.slug || getSlugFromPath(),businessServiceId:service.businessServiceId || service.id,
-        targetDate:form.elements.targetDate.value,startTime:form.elements.startTime.value,endTime:form.elements.endTime.value};
+        targetDate:form.elements.targetDate.value,startTime:form.elements.startTime.value,endTime:form.elements.endTime.value,phone:form.elements.phone.value,shareContact:form.elements.shareContact.checked};
       await businessAlertRequest('/alerts/from-business',payload);
       saved=true;status.textContent='Alert saved. We’ll email you when a matching appointment becomes available.';submit.textContent='Saved';
     } catch(error) {

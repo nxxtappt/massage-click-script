@@ -1,17 +1,37 @@
-.business-alert-box {background:#f1f7f5;border:1px solid #c8dfd6;border-radius:16px;padding:24px;margin:20px 0;}
-.business-alert-box h2 {margin-top:0;}
-.business-alert-services {display:flex;flex-wrap:wrap;gap:10px;}
-.business-alert-services button,.business-alert-submit {border:0;border-radius:8px;padding:12px 16px;background:#173d32;color:white;cursor:pointer;font:inherit;}
-.business-alert-dialog {box-sizing:border-box;width:min(540px,calc(100% - 32px));max-height:90vh;overflow:auto;border:0;border-radius:18px;padding:28px;color:#1d302a;}
-.business-alert-dialog::backdrop {background:rgba(10,25,20,.55);}
+.business-alert-box {background:#fff;color:#002b49;border:1px solid #002b49;border-radius:12px;padding:18px 20px;margin:20px 0;}
+.business-alert-box h2 {margin:0 0 8px;font-size:20px;}
+.business-alert-box p {margin:0 0 14px;line-height:1.5;}
+.business-alert-picker {display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.business-alert-picker select {flex:1;min-width:160px;max-width:100%;background:white;color:#002b49;border:1px solid #002b49;border-radius:8px;padding:12px;font:inherit;}
+.business-alert-picker button,.business-alert-submit {border:0;border-radius:8px;padding:12px 16px;background:#0075b9;color:white;cursor:pointer;font:inherit;}
+.business-alert-picker button:hover,.business-alert-submit:hover {background:#002b49;}
+.business-alert-picker button:disabled,.business-alert-submit:disabled {opacity:.6;cursor:default;}
+.business-alert-dialog {box-sizing:border-box;width:min(540px,calc(100% - 32px));max-height:90vh;overflow:auto;border:1px solid #002b49;border-radius:16px;padding:24px;color:#002b49;background:white;}
+.business-alert-dialog::backdrop {background:rgba(0,43,73,.55);}
 .business-alert-dialog h2 {padding-right:30px;}
-.business-alert-close {float:right;background:none;border:0;font-size:28px;cursor:pointer;}
+.business-alert-close {float:right;background:none;color:#002b49;border:0;font-size:28px;cursor:pointer;}
 .business-alert-dialog label {display:flex;flex-direction:column;gap:8px;margin:12px 0;}
-.business-alert-dialog input,.business-alert-dialog select {box-sizing:border-box;width:100%;padding:12px;border:1px solid #acbeb7;border-radius:8px;font:inherit;}
+.business-alert-dialog input,.business-alert-dialog select {box-sizing:border-box;width:100%;padding:12px;border:1px solid #002b49;border-radius:8px;font:inherit;color:#002b49;background:#fff;}
 .business-alert-window {display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .business-alert-window label:first-child {grid-column:1 / -1;}
-.business-alert-dialog fieldset {border:1px solid #acbeb7;border-radius:8px;}
+.business-alert-dialog fieldset {border:1px solid #002b49;border-radius:8px;}
 .business-alert-dialog [hidden] {display:none;}
 .business-alert-dialog p {line-height:1.5;}
+.business-alert-dialog a {color:#0075b9;}
 .business-alert-status {font-weight:600;}
-.business-alert-submit:disabled {opacity:.6;cursor:default;}
+.business-alert-dialog .business-alert-consent {flex-direction:row;align-items:flex-start;line-height:1.5;}
+.business-alert-dialog .business-alert-consent input {width:18px;height:18px;flex:0 0 18px;margin-top:3px;accent-color:#0075b9;}
+.business-alert-dialog [data-alert-reset] {background:white;border:1px solid #0075b9;color:#0075b9;border-radius:8px;padding:8px;cursor:pointer;}
+.business-availability-row .business-time-selector {width:100%;flex:1;justify-content:space-between;background:#0075b9;color:#fff;border:0;border-radius:8px;gap:10px;white-space:normal;cursor:pointer;}
+.business-availability-row .business-time-selector:hover,.business-availability-row .business-time-selector[aria-expanded=true] {background:#002b49;}
+.business-service-prompt {color:#002b49;font-size:13px;font-weight:600;margin:0 0 8px;}
+.business-availability-services li {flex-wrap:wrap;}
+.business-slot-service-link {display:flex;align-items:center;justify-content:space-between;gap:10px;flex:1;min-width:0;color:#002b49;padding:10px;border:1px solid #0075b9;border-radius:8px;text-decoration:none;background:white;}
+.business-slot-service-link:hover {background:#0075b9;color:white;}
+.business-slot-book-label {flex-shrink:0;font-weight:700;}
+.business-alert-picker select:focus-visible,.business-alert-picker button:focus-visible,.business-alert-dialog input:focus-visible,.business-alert-dialog select:focus-visible,.business-time-selector:focus-visible,.business-slot-service-link:focus-visible {outline:3px solid #0075b9;outline-offset:3px;}
+@media(max-width:480px) {.business-alert-select-label {width:100%;}.business-alert-picker select {width:100%;flex-basis:100%;}.business-alert-picker button {width:100%;}.business-alert-box {padding:16px;}}
+
+.business-availability-slot.inferred {border-color:#0075b9;background:#0075b9;}
+.business-availability-slot.inferred .business-availability-row {background:#0075b9;}
+.business-availability-row .business-time-selector {font-size:13px;line-height:1.3;}

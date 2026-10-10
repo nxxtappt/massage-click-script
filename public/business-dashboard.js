@@ -1435,6 +1435,10 @@ function renderDashboard(dashboard) {
   attachBookingWidgetHandlers();
   attachDealHandlers();
   attachBillingHandlers();
+  if (window.location.hash === '#business-interests') {
+    document.getElementById('business-interests')?.scrollIntoView({block:'start'});
+    dashboardNav?.querySelectorAll('[data-dashboard-nav]').forEach(link => link.classList.toggle('active',link.dataset.dashboardNav === 'business-interests'));
+  }
 }
 
 function renderBillingPanel(dashboard) {
@@ -1586,7 +1590,7 @@ async function loadDashboard(options = {}) {
       cache: "no-store"
     });
 
-    console.log("BUSINESS DASHBOARD DATA:", data);
+
 
     renderDashboard(data.dashboard);
 
@@ -1645,6 +1649,10 @@ function renderConsumerInterests(items) {
         <strong>${escapeHtml(d.serviceName || 'Service')}${d.durationMinutes ? ` · ${escapeHtml(d.durationMinutes)} min` : ''}</strong>
         ${!item.readAt ? '<span> · New</span>' : ''}
         <p>${escapeHtml(d.targetDate)} · ${escapeHtml(d.startTime)}–${escapeHtml(d.endTime)} (${escapeHtml(d.timezone)})</p>
+        ${d.contactConsent && d.contactEmail ? `<p>Email: <a href="mailto:${escapeHtml(d.contactEmail)}">${escapeHtml(d.contactEmail)}</a></p>` : '<p>No consumer contact details shared for this request.</p>'}
+        ${d.contactConsent && d.contactPhone ? `<p>Phone: <a href="tel:${escapeHtml(String(d.contactPhone).replace(/[^+0-9]/g,''))}">${escapeHtml(d.contactPhone)}</a></p>` : ''}
+        <p>Owner email notification: ${item.emailSentAt ? 'Sent' : item.emailError ? 'Delivery needs attention — retry scheduled' : 'Queued'}</p>
+        ${!item.emailSentAt && item.emailError ? `<p class="consumer-interest-delivery-error">${escapeHtml(item.emailError)}</p>` : ''}
         <small>Requested ${escapeHtml(new Date(item.createdAt).toLocaleString())}</small>
         ${!item.readAt ? `<button type="button" data-interest-read="${escapeHtml(item.id)}">Mark read</button>` : ''}
       </article>`;

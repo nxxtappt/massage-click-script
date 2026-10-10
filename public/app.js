@@ -895,7 +895,7 @@ function groupPremiumAppointmentsByDateAndTime(appointments = [], limitTimes = 4
       appointment.serviceName ||
       appointment.service ||
       "Available appointment";
-    const serviceKey = String(serviceName).trim().toLowerCase();
+    const serviceKey = `${String(serviceName).trim().toLowerCase()}|${appointment.durationMinutes || ''}|${appointment.platformServiceId || appointment.serviceId || appointment.sessionTypeId || ''}`;
 
     if (!timeGroup.serviceKeys.has(serviceKey)) {
       timeGroup.serviceKeys.add(serviceKey);
@@ -918,10 +918,11 @@ function buildAppointmentTrackingPayload(appointment = {}, businessName = "", bo
   return {
     businessName: appointment.businessName || businessName,
     platform: appointment.platform || "",
-    serviceName: appointment.serviceName || "",
+    serviceName: appointment.serviceName || appointment.service || "",
+    serviceId: appointment.platformServiceId || appointment.serviceId || appointment.sessionTypeId || "",
     serviceCategory: appointment.serviceCategory || "",
     durationMinutes: appointment.durationMinutes || null,
-    therapistName: appointment.therapistName || "",
+    therapistName: appointment.therapistName || appointment.providerName || "",
     appointmentDate: appointment.date || "",
     appointmentTime: appointment.time || "",
     startTime: appointment.startTime || "",
@@ -932,69 +933,35 @@ function buildAppointmentTrackingPayload(appointment = {}, businessName = "", bo
   };
 }
 
+function premiumServiceChoiceLabel(service) {
+  const duration = Number(service.appointment.durationMinutes);
+  return duration > 0 && !new RegExp(`(^|\\D)${duration}(\\D|$)`).test(service.name)
+    ? `${service.name} · ${duration} min` : service.name;
+}
 function renderPremiumAvailabilityGroups(appointments, businessName, bookingUrl, cardId) {
-  const dateGroups = groupPremiumAppointmentsByDateAndTime(
-    appointments,
-    getPublicInventoryLimit(appointments[0] || {})
-  );
-  const timeGroups = dateGroups.flatMap((dateGroup) => dateGroup.times);
-  let slotIndex = 0;
-
-  return `
-    <div class="premium-time-groups">
-      ${timeGroups
-        .map((slot) => {
-          const currentIndex = slotIndex++;
-          const panelId = `${cardId}-premium-services-${currentIndex}`;
-          const serviceCount = slot.services.length;
-          const serviceLabel = `${serviceCount} service${serviceCount === 1 ? "" : "s"}`;
-          const serviceNames = slot.services.map((service) => service.name).join(", ");
-          const appointment = slot.appointment;
-          const dateTimeLabel = formatTimeButtonText(appointment);
-
-          return `
-            <article class="premium-time-slot">
-              <div class="premium-time-row">
-                <a
-                  class="premium-time-link"
-                  href="${escapeAttribute(appointment.bookingUrl || bookingUrl)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="${escapeAttribute(`Book ${dateTimeLabel}. Available services: ${serviceNames}`)}"
-                  data-track-appointment-click="true"
-                  data-appointment-payload="${escapeAttribute(JSON.stringify(
-                    buildAppointmentTrackingPayload(
-                      appointment,
-                      businessName,
-                      bookingUrl
-                    )
-                  ))}"
-                >
-                  ${escapeHtml(dateTimeLabel)}
-                </a>
-                <button
-                  class="premium-services-toggle"
-                  type="button"
-                  aria-expanded="false"
-                  aria-controls="${escapeAttribute(panelId)}"
-                >
-                  <span>${escapeHtml(serviceLabel)}</span>
-                  <span class="premium-services-chevron" aria-hidden="true">⌄</span>
-                </button>
-              </div>
-              <div class="premium-service-panel" id="${escapeAttribute(panelId)}" hidden>
-                <ul class="premium-service-list">
-                  ${slot.services
-                    .map((service) => `<li>${escapeHtml(service.name)}</li>`)
-                    .join("")}
-                </ul>
-              </div>
-            </article>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
+  const dateGroups=groupPremiumAppointmentsByDateAndTime(appointments,getPublicInventoryLimit(appointments[0] || {}));
+  return `<div class="premium-time-groups">${dateGroups.flatMap(date=>date.times).map((slot,index)=>{
+    const panelId=`${cardId}-premium-services-${index}`;
+    const dateTimeLabel=formatTimeButtonText(slot.appointment);
+    return `<article class="premium-time-slot"><div class="premium-time-row">
+      <button class="premium-time-link premium-services-toggle premium-time-selector" type="button"
+        aria-expanded="false" aria-controls="${escapeAttribute(panelId)}"
+        aria-label="${escapeAttribute(`Choose a service for ${dateTimeLabel}`)}">
+        <span>${escapeHtml(dateTimeLabel)}</span><span>${slot.services.length} service${slot.services.length===1?'':'s'} ⌄</span>
+      </button></div>
+      <div class="premium-service-panel" id="${escapeAttribute(panelId)}" hidden>
+        <p class="premium-service-prompt">Choose a service to book</p><ul class="premium-service-list">${slot.services.map(service=>{
+          const appointment=service.appointment;
+          const url=appointment.bookingUrl || bookingUrl || '';
+          let valid=false;
+          try { valid=['http:','https:'].includes(new URL(url,window.location.origin).protocol) && Boolean(url) && url !== '#'; } catch {}
+          const label=premiumServiceChoiceLabel(service);
+          return `<li>${valid ? `<a class="premium-slot-service-link" href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer"
+            data-track-appointment-click="true" data-appointment-payload="${escapeAttribute(JSON.stringify(buildAppointmentTrackingPayload(appointment,businessName,url)))}"
+            aria-label="${escapeAttribute(`Book ${label} at ${dateTimeLabel}`)}"><span>${escapeHtml(label)}</span><span>Book ↗</span></a>` : escapeHtml(label)}</li>`;
+        }).join('')}</ul>
+      </div></article>`;
+  }).join('')}</div>`;
 }
 
 function bindPremiumTimeToggles(card) {

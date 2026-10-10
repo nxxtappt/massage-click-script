@@ -101,6 +101,17 @@ function findVerifiedClaimByEmail(email) {
   });
 }
 
+function findVerifiedClaimForBusiness(business = {}) {
+  const id = String(business.businessId || business.id || '').trim().toLowerCase();
+  const name = String(business.businessName || business.name || '').trim().toLowerCase();
+  const claims = loadClaims().filter(claim => claim.status === 'claimed_verified' && (
+    (id && String(claim.businessId || '').trim().toLowerCase() === id) ||
+    (name && String(claim.businessName || '').trim().toLowerCase() === name)
+  ));
+  const emails = [...new Set(claims.map(claim => normalizeEmail(claim.email)).filter(Boolean))];
+  return emails.length === 1 ? claims.find(claim => normalizeEmail(claim.email) === emails[0]) : null;
+}
+
 function cleanupExpiredCodes() {
   const now = Date.now();
 
@@ -240,5 +251,6 @@ module.exports = {
   verifyLoginCode,
   validateSession,
   destroySession,
-  findVerifiedClaimByEmail
+  findVerifiedClaimByEmail,
+  findVerifiedClaimForBusiness
 };
