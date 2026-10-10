@@ -127,7 +127,7 @@ router.post("/auth/request-code", async (req, res) => {
       return res.status(400).json({ success: false, error: "Please enter a valid email." });
     }
 
-    const user = await userRepository.captureEmail({ email, source });
+    const user = await userRepository.captureAuthEmail({ email, source });
 
     if (user.status === "disabled") {
       return res.status(403).json({ success: false, error: "This account is disabled." });
@@ -180,8 +180,17 @@ router.post("/auth/request-code", async (req, res) => {
       expiresAt
     });
   } catch (error) {
-    console.error("[USER AUTH REQUEST CODE]", error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("[USER AUTH REQUEST CODE]", {
+      message: error.message,
+      code: error.code || "",
+      constraint: error.constraint || "",
+      detail: error.detail || ""
+    });
+
+    res.status(500).json({
+      success: false,
+      error: "We could not send a verification code. Please try again."
+    });
   }
 });
 
@@ -218,7 +227,7 @@ router.post("/auth/verify-code", async (req, res) => {
       });
     }
 
-const activeUser = await userRepository.activateUserWithCode({
+    const activeUser = await userRepository.activateUserWithCode({
       userId: user.id,
       loginCodeId: loginCode.id
     });

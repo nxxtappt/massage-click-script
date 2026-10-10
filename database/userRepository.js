@@ -23,40 +23,103 @@ async function ensurePreferences(userId) {
   );
 }
 
+async function repairUsersIdSequence() {
+  await db.query(
+    `SELECT setval(
+       pg_get_serial_sequence('users', 'id'),
+       COALESCE((SELECT MAX(id) FROM users), 1),
+       EXISTS(SELECT 1 FROM users)
+     )`
+  );
+}
+
+function isUsersPrimaryKeyCollision(error) {
+  return (
+    error?.code === "23505" &&
+    (
+      error?.constraint === "users_pkey" ||
+      String(error?.message || "").includes("users_pkey")
+    )
+  );
+}
+
+async function upsertUserRecord({
+  email,
+  source = "unknown"
+}) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedSource = cleanText(source || "unknown", 120) || "unknown";
+
+  const runUpsert = () =>
+    db.query(
+      `INSERT INTO users (
+         email,
+         source,
+         last_source
+       )
+       VALUES ($1, $2, $2)
+       ON CONFLICT (email)
+       DO UPDATE SET
+         last_source = EXCLUDED.last_source,
+         updated_at = NOW()
+       RETURNING
+         id,
+         email,
+         status,
+         email_verified AS "emailVerified",
+         first_name AS "firstName",
+         source,
+         last_source AS "lastSource",
+         created_at AS "createdAt",
+         updated_at AS "updatedAt",
+         last_login_at AS "lastLoginAt"`,
+      [normalizedEmail, normalizedSource]
+    );
+
+  try {
+    const result = await runUpsert();
+    return result.rows[0];
+  } catch (error) {
+    // Existing users do not consume a new users.id value. A stale PostgreSQL
+    // sequence therefore shows up only when a brand-new consumer signs up.
+    // Repair it once and retry the same insert.
+    if (!isUsersPrimaryKeyCollision(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[USER AUTH] users.id sequence collision detected. Repairing sequence and retrying."
+    );
+
+    await repairUsersIdSequence();
+
+    const retryResult = await runUpsert();
+    return retryResult.rows[0];
+  }
+}
+
+async function captureAuthEmail({
+  email,
+  source = "account"
+}) {
+  // Authentication must not depend on creating the optional preference row.
+  // Preferences are ensured after the email is verified when the account loads.
+  return upsertUserRecord({
+    email,
+    source
+  });
+}
+
 async function captureEmail({
   email,
   source = "unknown",
   productUpdatesEnabled = false
 }) {
-  const normalizedEmail = normalizeEmail(email);
-  const normalizedSource = cleanText(source || "unknown", 120) || "unknown";
+  const user = await upsertUserRecord({
+    email,
+    source
+  });
 
-  const result = await db.query(
-    `INSERT INTO users (
-       email,
-       source,
-       last_source
-     )
-     VALUES ($1, $2, $2)
-     ON CONFLICT (email)
-     DO UPDATE SET
-       last_source = EXCLUDED.last_source,
-       updated_at = NOW()
-     RETURNING
-       id,
-       email,
-       status,
-       email_verified AS "emailVerified",
-       first_name AS "firstName",
-       source,
-       last_source AS "lastSource",
-       created_at AS "createdAt",
-       updated_at AS "updatedAt",
-       last_login_at AS "lastLoginAt"`,
-    [normalizedEmail, normalizedSource]
-  );
-
-  const user = result.rows[0];
   await ensurePreferences(user.id);
 
   if (productUpdatesEnabled) {
@@ -714,6 +777,7 @@ async function setUserStatus(userId, status) {
 
 module.exports = {
   normalizeEmail,
+  captureAuthEmail,
   captureEmail,
   getUserByEmail,
   getUserById,
