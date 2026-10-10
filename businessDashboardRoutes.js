@@ -21,6 +21,7 @@ const {
 const {
   recordBusinessClickwrap
 } = require("./legalAcceptanceService");
+const legalAcceptanceRepository = require("./database/legalAcceptanceRepository");
 
 const router = express.Router();
 
@@ -639,6 +640,13 @@ router.post("/auth/request-code", async (req, res) => {
 
     const loginCode = createLoginCode(email);
 
+    const legalAcceptanceRequired =
+      !(await legalAcceptanceRepository.hasCurrentBusinessAcceptance({
+        businessId: loginCode.businessId,
+        businessName: loginCode.businessName,
+        email: loginCode.email
+      }));
+
     await sendBusinessLoginCode({
       to: loginCode.email,
       code: loginCode.code,
@@ -649,7 +657,8 @@ router.post("/auth/request-code", async (req, res) => {
     res.json({
       success: true,
       message: "Login code sent.",
-      expiresAt: loginCode.expiresAt
+      expiresAt: loginCode.expiresAt,
+      legalAcceptanceRequired
     });
   } catch (error) {
     console.error("[BUSINESS LOGIN EMAIL ERROR]", error.message);
@@ -677,19 +686,29 @@ router.post("/auth/verify-code", async (req, res) => {
       code
     });
 
-    try {
-      await recordBusinessClickwrap(req, session);
-    } catch (error) {
-      if (session?.token) {
-        destroySession(session.token);
-      }
+    const legalAcceptanceRequired =
+      !(await legalAcceptanceRepository.hasCurrentBusinessAcceptance({
+        businessId: session.businessId,
+        businessName: session.businessName,
+        email: session.email
+      }));
 
-      throw error;
+    if (legalAcceptanceRequired) {
+      try {
+        await recordBusinessClickwrap(req, session);
+      } catch (error) {
+        if (session?.token) {
+          destroySession(session.token);
+        }
+
+        throw error;
+      }
     }
 
     res.json({
       success: true,
-      session
+      session,
+      legalAcceptanceRecorded: legalAcceptanceRequired
     });
   } catch (error) {
     res.status(error.statusCode || 401).json({

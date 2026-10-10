@@ -3,10 +3,6 @@ const crypto = require("crypto");
 const userRepository = require("./database/userRepository");
 const { sendUserLoginCode } = require("./emailManager");
 const { buildAlertFromSearch } = require("./userAlertSearchBuilder");
-const {
-  recordConsumerClickwrap
-} = require("./legalAcceptanceService");
-
 const router = express.Router();
 const SESSION_COOKIE = "nextappt_user_session";
 const LOGIN_CODE_TTL_MINUTES = 15;
@@ -222,9 +218,7 @@ router.post("/auth/verify-code", async (req, res) => {
       });
     }
 
-    await recordConsumerClickwrap(req, user);
-
-    const activeUser = await userRepository.activateUserWithCode({
+const activeUser = await userRepository.activateUserWithCode({
       userId: user.id,
       loginCodeId: loginCode.id
     });

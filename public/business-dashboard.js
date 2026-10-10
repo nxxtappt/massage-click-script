@@ -190,7 +190,7 @@ function renderLoginRequest() {
     ?.addEventListener("click", requestLoginCode);
 }
 
-function renderCodeVerification(email) {
+function renderCodeVerification(email, legalAcceptanceRequired = true) {
   content.innerHTML = `
     <div class="admin-business-card">
       <h3>Verify Login Code</h3>
@@ -213,7 +213,7 @@ function renderCodeVerification(email) {
         </div>
       </div>
 
-      ${window.NextApptLegal ? window.NextApptLegal.getBusinessMarkup() : ""}
+      ${legalAcceptanceRequired && window.NextApptLegal ? window.NextApptLegal.getBusinessMarkup() : ""}
 
       <div class="settings-actions">
         <button id="verifyCodeBtn" class="primary-btn">
@@ -225,7 +225,10 @@ function renderCodeVerification(email) {
 
   document
     .getElementById("verifyCodeBtn")
-    ?.addEventListener("click", () => verifyLoginCode(email));
+    ?.addEventListener(
+      "click",
+      () => verifyLoginCode(email, legalAcceptanceRequired)
+    );
 }
 
 function renderField(label, value) {
@@ -1512,13 +1515,16 @@ async function requestLoginCode() {
   "success"
 );
 
-    renderCodeVerification(email);
+    renderCodeVerification(
+      email,
+      data.legalAcceptanceRequired !== false
+    );
   } catch (error) {
     setStatus(error.message, "error");
   }
 }
 
-async function verifyLoginCode(email) {
+async function verifyLoginCode(email, legalAcceptanceRequired = true) {
   const code = document.getElementById("loginCode")?.value?.trim();
 
   if (!code) {
@@ -1528,16 +1534,21 @@ async function verifyLoginCode(email) {
   try {
     setStatus("Verifying code...", "info");
 
+    const payload = {
+      email,
+      code
+    };
+
+    if (legalAcceptanceRequired) {
+      payload.acceptance = window.NextApptLegal.businessPayload();
+    }
+
     const data = await fetchJson("/api/business-dashboard/auth/verify-code", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-      email,
-      code,
-      acceptance: window.NextApptLegal.businessPayload()
-    })
+      body: JSON.stringify(payload)
     });
 
     const token = data?.session?.token;

@@ -1,12 +1,12 @@
-const TERMS_VERSION = "2026-08-08";
-const PRIVACY_VERSION = "2026-08-08";
-const EFFECTIVE_DATE = "2026-08-08";
+const TERMS_VERSION = "2026-10-10";
+const PRIVACY_VERSION = "2026-10-10";
+const EFFECTIVE_DATE = "2026-10-10";
 
 const CONSUMER_ACCEPTANCE_TEXT =
   "I am at least 18 and agree to the NextAppt.ai Terms of Service, including the arbitration and class-action waiver, and acknowledge the Privacy Policy.";
 
 const BUSINESS_ACCEPTANCE_TEXT =
-  "I am at least 18, agree to the NextAppt.ai Terms of Service, including the arbitration and class-action waiver, acknowledge the Privacy Policy, and confirm that I am authorized to act for and bind this business.";
+  "I am at least 18 and agree to the Terms of Service, including the arbitration and class-action waiver, and acknowledge the Privacy Policy. I confirm that I am authorized to act for and bind this business.";
 
 function getClientIp(req) {
   const forwarded = String(req?.headers?.["x-forwarded-for"] || "")
@@ -54,8 +54,14 @@ function normalizeAcceptancePayload(raw = {}) {
   };
 }
 
-function validateConsumerAcceptance(raw = {}) {
+function validateConsumerAcceptance(raw = {}, expectedVersions = {}) {
   const value = normalizeAcceptancePayload(raw);
+  const expectedTermsVersion = String(
+    expectedVersions.termsVersion || TERMS_VERSION
+  );
+  const expectedPrivacyVersion = String(
+    expectedVersions.privacyVersion || PRIVACY_VERSION
+  );
 
   if (
     !value.termsAccepted ||
@@ -70,8 +76,8 @@ function validateConsumerAcceptance(raw = {}) {
   }
 
   if (
-    value.termsVersion !== TERMS_VERSION ||
-    value.privacyVersion !== PRIVACY_VERSION
+    value.termsVersion !== expectedTermsVersion ||
+    value.privacyVersion !== expectedPrivacyVersion
   ) {
     const error = new Error(
       "The NextAppt legal terms were updated. Refresh the page and review the current Terms of Service and Privacy Policy."
@@ -83,8 +89,14 @@ function validateConsumerAcceptance(raw = {}) {
   return value;
 }
 
-function validateBusinessAcceptance(raw = {}) {
+function validateBusinessAcceptance(raw = {}, expectedVersions = {}) {
   const value = normalizeAcceptancePayload(raw);
+  const expectedTermsVersion = String(
+    expectedVersions.termsVersion || TERMS_VERSION
+  );
+  const expectedPrivacyVersion = String(
+    expectedVersions.privacyVersion || PRIVACY_VERSION
+  );
 
   if (
     !value.termsAccepted ||
@@ -100,8 +112,8 @@ function validateBusinessAcceptance(raw = {}) {
   }
 
   if (
-    value.termsVersion !== TERMS_VERSION ||
-    value.privacyVersion !== PRIVACY_VERSION
+    value.termsVersion !== expectedTermsVersion ||
+    value.privacyVersion !== expectedPrivacyVersion
   ) {
     const error = new Error(
       "The NextAppt legal terms were updated. Refresh the page and review the current Terms of Service and Privacy Policy."

@@ -4,8 +4,8 @@
 */
 (function () {
   const FALLBACK = {
-    termsVersion: "2026-08-08",
-    privacyVersion: "2026-08-08",
+    termsVersion: "2026-10-10",
+    privacyVersion: "2026-10-10",
     termsPath: "/terms",
     privacyPath: "/privacy"
   };
@@ -51,19 +51,13 @@
   function getBusinessMarkup() {
     return `
       <div class="legal-acceptance-box" style="margin:16px 0;padding:14px;border:1px solid #dbe3ea;border-radius:10px;background:#f6f9fb;">
-        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-bottom:10px;">
-          <input id="legalAgreementAccepted" type="checkbox" style="margin-top:4px;">
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
+          <input id="businessLegalAgreementAccepted" type="checkbox" style="margin-top:4px;">
           <span style="font-size:13px;line-height:1.45;">
             I am at least 18 and agree to the
             <a href="${current.termsPath}" target="_blank" rel="noopener">Terms of Service</a>,
             including the arbitration and class-action waiver, and acknowledge the
             <a href="${current.privacyPath}" target="_blank" rel="noopener">Privacy Policy</a>.
-          </span>
-        </label>
-
-        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
-          <input id="businessAuthorityConfirmed" type="checkbox" style="margin-top:4px;">
-          <span style="font-size:13px;line-height:1.45;">
             I confirm that I am authorized to act for and bind this business.
           </span>
         </label>
@@ -85,12 +79,16 @@
   }
 
   function businessPayload() {
-    const base = consumerPayload();
+    const checked =
+      document.getElementById("businessLegalAgreementAccepted")?.checked === true;
 
     return {
-      ...base,
-      businessAuthorityConfirmed:
-        document.getElementById("businessAuthorityConfirmed")?.checked === true
+      termsAccepted: checked,
+      privacyAcknowledged: checked,
+      age18Confirmed: checked,
+      businessAuthorityConfirmed: checked,
+      termsVersion: current.termsVersion,
+      privacyVersion: current.privacyVersion
     };
   }
 

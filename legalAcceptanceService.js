@@ -28,7 +28,12 @@ async function recordConsumerClickwrap(req, user) {
 }
 
 async function recordBusinessClickwrap(req, session) {
-  validateBusinessAcceptance(req.body?.acceptance);
+  const policies = await legalAcceptanceRepository.getCurrentPolicies();
+
+  validateBusinessAcceptance(req.body?.acceptance, {
+    termsVersion: policies.terms.version,
+    privacyVersion: policies.privacy.version
+  });
 
   return legalAcceptanceRepository.recordBusinessAcceptance({
     businessId: session.businessId,
