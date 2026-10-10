@@ -20,4 +20,17 @@ router.get('/report',async(req,res)=>{
   res.status(validation?400:503).json({error:validation?e.message:'Report unavailable. Check analytics migration and worker status.'});
  }
 });
+router.get('/explore',async(req,res)=>{
+ try{
+  const data=await require('../marketAnalytics/weekdayReports').explore(req.query);
+  const exports=require('../marketAnalytics/weekdayExport');
+  if(req.query.format==='csv')return res.type('text/csv').attachment('nextappt-weekday-inventory.csv').send(exports.csv(data));
+  if(req.query.format==='html')return res.type('text/html').attachment('nextappt-weekday-inventory.html').send(exports.reportHTML(data));
+  res.json(data);
+ }catch(e){
+  console.error('[market analytics weekday report]',e.message);
+  const validation=/Choose a date range|Use a valid|Invalid measurement|Invalid weekday|Invalid history|Report too large/.test(e.message);
+  res.status(validation?400:503).json({error:validation?e.message:'Weekday report unavailable. Check the web-service logs.'});
+ }
+});
 module.exports=router;
