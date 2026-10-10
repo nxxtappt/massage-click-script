@@ -9,6 +9,7 @@ const {
 } = require("./adminSettingsManager");
 const { runDueSchedules } = require("./schedulerV2");
 const scrapeJobRepository = require("./database/scrapeJobRepository");
+const { startAnalyticsCompanion, stopAnalyticsCompanion } = require("./marketAnalytics/schedulerCompanion");
 
 let running = false;
 let stopping = false;
@@ -90,6 +91,7 @@ async function runOnceFromSettings(options = {}) {
 
 async function startScheduler() {
   await initializeScheduler();
+  startAnalyticsCompanion();
 
   while (!stopping) {
     try {
@@ -118,6 +120,7 @@ async function startScheduler() {
 async function stopScheduler(signal) {
   if (stopping) return;
   stopping = true;
+  stopAnalyticsCompanion();
   console.log(`[SCHEDULER] Received ${signal}; stopping.`);
 }
 

@@ -1,49 +1,112 @@
-/* Dedicated admin view; no public-search changes. */
+/* Market intelligence workspace; all reads use existing authenticated analytics APIs. */
 (() => {
  'use strict';
  const esc=escapeHtml;
+ const view=window.MarketAnalyticsView;
  const nav=document.querySelector('.nav-btn')?.parentElement;
- if(!nav)return;
- const button=document.createElement('button');
- button.className='nav-btn';button.type='button';button.dataset.view='marketAnalytics';button.textContent='Market Analytics';nav.appendChild(button);
+ if(!nav||!view)return;
+ let button=nav.querySelector('[data-view="marketAnalytics"]');
+ if(!button){button=document.createElement('button');button.className='nav-btn';button.type='button';button.dataset.view='marketAnalytics';button.textContent='Market Analytics';nav.appendChild(button);}
  refreshNavButtons();button.addEventListener('click',()=>loadView('marketAnalytics'));
  const original=loadView;
- loadView=function(view){return view==='marketAnalytics'?loadMarket():original(view);};
- const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ let generation=0,heartbeatTimer=null,reportPage=0,lastData=null,lastStatus=null;
+ const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+ const today=`${parts.year}-${parts.month}-${parts.day}`;
  const day=n=>new Date(Date.parse(today)+n*86400000).toISOString().slice(0,10);
- let filters={from:day(-30),to:day(2),kind:'daily',city:'',industry:''};
- let generation=0;
- const style=document.createElement('style');style.textContent=`
- .ma-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:20px 0}.ma-toolbar label{display:grid;gap:5px;font-size:13px}.ma-toolbar input,.ma-toolbar select{padding:9px;border:1px solid #b9cbd2;border-radius:7px}.ma-table{border-collapse:collapse;width:100%;font-size:12px}.ma-table td,.ma-table th{padding:10px;text-align:left;border-bottom:1px solid #dce4e8}.ma-info{padding:16px;background:#eef7f8;border-radius:10px;line-height:1.6}.ma-actions{display:flex;gap:14px;margin:18px 0;flex-wrap:wrap}.ma-overflow{overflow:auto}.ma-warn{color:#8a4e00}.ma-health{margin:14px 0;font-size:13px}`;document.head.appendChild(style);
- async function request(url){const r=await fetch(url,{credentials:'same-origin'});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');return data;}
+ let filters={from:day(-30),to:today,kind:'backfill',city:'',industry:''};
+ loadView=function(name){
+  if(name==='marketAnalytics')return loadMarket();
+  generation++;clearInterval(heartbeatTimer);heartbeatTimer=null;
+  return original(name);
+ };
+ const modes={daily:{label:'Daily history',title:'Daily inventory history',subtitle:'Past appointment cards captured at 11 p.m. each day.',metric:'Latest daily inventory'},forward:{label:'Near-term supply',title:'The next two days of supply',subtitle:'A 1 p.m. snapshot for tomorrow and the following day.',metric:'Latest two-day inventory'},backfill:{label:'Historical backfill',title:'Reconstructed market history',subtitle:'Distinct retained offers reconstructed from existing appointment records.',metric:'Latest reconstructed day'}};
+ const number=v=>v==null?'—':Number(v).toLocaleString();
+ const title=v=>String(v||'').replace(/\b[a-z]/g,c=>c.toUpperCase());
+ const time=v=>v?new Date(v).toLocaleString('en-US',{timeZone:'America/Chicago',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'No heartbeat yet';
+ async function request(url){const r=await fetch(url,{credentials:'same-origin'});let data;try{data=await r.json();}catch{throw new Error('Could not read analytics response. Check your admin login.');}if(!r.ok)throw new Error(data.error||'Analytics request failed.');return data;}
+ function workerInfo(status){
+  const hb=status.workers?.find(w=>w.worker_key==='scheduled-worker');
+  const fresh=hb&&Date.now()-Date.parse(hb.heartbeat_at)<180000;
+  if(hb?.last_error)return {text:'Needs attention',className:'error',detail:hb.last_error};
+  if(fresh)return {text:'Collection running',className:'',detail:'Last check '+time(hb.heartbeat_at)};
+  return {text:hb?'Collection offline':'Awaiting scheduler',className:'warn',detail:hb?'Last check '+time(hb.heartbeat_at):'The analytics companion starts with your existing scheduler service.'};
+ }
+ function chartHTML(trend){
+  const c=view.chart(trend);
+  if(!c)return '<div class="ma-empty"><strong>No trend yet</strong>Choose historical backfill to explore retained history, or wait for the first scheduled capture.</div>';
+  const points=c.points.map(p=>`${p.x},${p.y}`).join(' ');
+  const bottom=c.height-c.bottom;
+  const area=`${c.points[0].x},${bottom} ${points} ${c.points.at(-1).x},${bottom}`;
+  const ticks=[0,.5,1].map(f=>{const y=c.top+(1-f)*(c.height-c.top-c.bottom);return `<line x1="${c.left}" x2="${c.width-c.right}" y1="${y}" y2="${y}" stroke="#e4edf2"/><text x="${c.left-8}" y="${y+4}" text-anchor="end">${number(Math.round(c.max*f))}</text>`;}).join('');
+  const marks=c.points.length>80?[]:c.points;
+  return `<svg class="ma-chart" role="img" aria-label="Inventory trend across ${trend.length} measured dates. Exact values appear in the report table." viewBox="0 0 ${c.width} ${c.height}">
+   ${ticks}<polygon points="${area}" fill="#e8f5f6"/><polyline points="${points}" fill="none" stroke="#087c88" stroke-width="2.5"/>
+   ${marks.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="#087c88"><title>${esc(p.date)}: ${number(p.total)} cards</title></circle>`).join('')}
+   <text x="${c.left}" y="${c.height-10}">${esc(trend[0].date)}</text><text x="${c.width-c.right}" y="${c.height-10}" text-anchor="end">${esc(trend.at(-1).date)}</text></svg>`;
+ }
+ function renderTable(){
+  const rows=lastData.rows;const perPage=25;const count=Math.max(1,Math.ceil(rows.length/perPage));reportPage=Math.min(reportPage,count-1);
+  const headers=['Capture date','Appointment date','City / state','Industry','Observed','Inferred only','Total cards',...(filters.kind==='forward'?['Two-day total']:[]),'Businesses','Status'];
+  const body=rows.slice(reportPage*perPage,(reportPage+1)*perPage).map(r=>`<tr>
+   <td>${esc(r.snapshot_date)}</td><td>${esc(r.appointment_date||'—')}</td><td>${esc(r.city?title(r.city)+' / '+String(r.state||'').toUpperCase():'—')}</td><td>${esc(title(r.industry)||'—')}</td>
+   <td class="ma-n">${number(r.confirmed_cards)}</td><td class="ma-n">${number(r.inferred_only_cards)}</td><td class="ma-n"><strong>${number(r.total_cards)}</strong></td>
+   ${filters.kind==='forward'?`<td class="ma-n">${number(r.two_day_total)}</td>`:''}<td class="ma-n">${number(r.businesses_with_cards)}</td><td>${esc(r.status==='missed'?'Missed capture':r.status)}</td></tr>`).join('');
+  document.querySelector('#ma-report-table').innerHTML=`<div class="ma-table-scroll"><table class="ma-table"><thead><tr>${headers.map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${body||`<tr><td colspan="${headers.length}"><div class="ma-empty"><strong>No matching records</strong>Try a wider date range or another measurement.</div></td></tr>`}</tbody></table></div>
+   <div class="ma-pagination"><span>${rows.length?reportPage*perPage+1:0}–${Math.min((reportPage+1)*perPage,rows.length)} of ${number(rows.length)} rows</span><div><button id="ma-prev" ${reportPage===0?'disabled':''} aria-label="Previous page">Previous</button> <button id="ma-next" ${reportPage===count-1?'disabled':''} aria-label="Next page">Next</button></div></div>`;
+  document.querySelector('#ma-prev').onclick=()=>{reportPage--;renderTable();};document.querySelector('#ma-next').onclick=()=>{reportPage++;renderTable();};
+ }
+ function render(){
+  const status=lastStatus,data=lastData,m=modes[filters.kind],summary=view.summarize(data.rows,filters.kind),worker=workerInfo(status);
+  const cities=[...new Set((status.markets||[]).map(r=>r.city))].sort();const industries=[...new Set((status.markets||[]).filter(r=>!filters.city||r.city===filters.city).map(r=>r.industry))].sort();
+  if(filters.city&&!cities.includes(filters.city))cities.push(filters.city);
+  if(filters.industry&&!industries.includes(filters.industry))industries.push(filters.industry);
+  const options=(items,selected,label)=>`<option value="">${label}</option>`+items.map(v=>`<option value="${esc(v)}" ${selected===v?'selected':''}>${esc(title(v))}</option>`).join('');
+  const sourceTotal=summary.split.confirmed+summary.split.inferred+summary.split.unknown;
+  const bars=Object.values(summary.split).map(n=>`<span style="width:${sourceTotal?n/sourceTotal*100:0}%"></span>`).join('');
+  content.innerHTML=`<div class="ma">
+   <div class="ma-hero"><div><div class="ma-eyebrow">NextAppt intelligence</div><h3>${m.title}</h3><p>${m.subtitle}</p></div><div><span id="ma-worker-badge" class="ma-badge ${worker.className}">${worker.text}</span><p id="ma-worker-detail" style="font-size:11px;margin-top:8px">${esc(worker.detail)}</p></div></div>
+   <div class="ma-modes" role="group" aria-label="Measurement">${Object.entries(modes).map(([key,v])=>`<button class="ma-mode ${key===filters.kind?'active':''}" data-mode="${key}" aria-pressed="${key===filters.kind}">${v.label}</button>`).join('')}</div>
+   <div class="ma-panel"><form id="ma-form" class="ma-toolbar">
+    <label>Appointment dates from<input name="from" type="date" value="${esc(filters.from)}" required></label><label>Through<input name="to" type="date" value="${esc(filters.to)}" required></label>
+    <label>City<select name="city">${options(cities,filters.city,'All cities')}</select></label><label>Industry<select name="industry">${options(industries,filters.industry,'All industries')}</select></label>
+    <button class="ma-button" type="submit">Update report</button></form>
+    <div class="ma-presets">${[['7','Last 7 days'],['30','Last 30 days'],['90','Last 90 days'],...(filters.kind==='forward'?[['next','Next two days']]:[])].map(([key,label])=>`<button data-preset="${key}" type="button">${label}</button>`).join('')}</div>
+    <div class="ma-applied">Showing ${esc(filters.from)} – ${esc(filters.to)} · ${esc(title(filters.city)||'All cities')} · ${esc(title(filters.industry)||'All industries')} · America/Chicago</div></div>
+   <div class="ma-kpis">
+    <div class="ma-kpi"><div class="ma-kpi-label">${m.metric}</div><strong>${number(summary.total)}</strong><small>${summary.latestDate?'Latest measured date: '+esc(summary.latestDate):'Awaiting retained data'}</small></div>
+    <div class="ma-kpi"><div class="ma-kpi-label">Observed cards</div><strong>${sourceTotal?number(summary.split.confirmed):'—'}</strong><small>Confirmed availability in shown dates for the latest measurement</small></div>
+    <div class="ma-kpi"><div class="ma-kpi-label">Markets with inventory</div><strong>${summary.latestDate?number(summary.markets):'—'}</strong><small>Distinct city / state / industry groups in the latest measurement</small></div>
+    <div class="ma-kpi"><div class="ma-kpi-label">Measured dates</div><strong>${number(summary.trend.length)}</strong><small>${summary.missed?number(summary.missed)+' missed captures in these results':'Dates with retained inventory evidence'}</small></div>
+   </div>
+   <div class="ma-grid"><section class="ma-panel"><div class="ma-panel-head"><h4>Inventory trend</h4><span class="ma-eyebrow">${filters.kind==='forward'?'Two-day total':'Cards per day'}</span></div>${chartHTML(summary.trend)}<p style="font-size:11px">${filters.kind==='forward'?'Horizontal axis: capture date. Each point counts both future dates once.':'Horizontal axis: appointment date.'} Missing dates are omitted, not treated as zero.</p></section>
+    <section class="ma-panel"><h4>Latest market breakdown</h4>${summary.topMarkets.map(r=>`<div class="ma-top"><div>${esc(title(r.city))}, ${esc(String(r.state).toUpperCase())}<small>${esc(title(r.industry))}</small></div><strong>${number(r.total)}</strong></div>`).join('')||'<div class="ma-empty">No market totals yet.</div>'}<div class="ma-source-bar" aria-hidden="true">${bars}</div><div class="ma-legend"><span>Observed ${number(summary.split.confirmed)}</span><span>Inferred ${number(summary.split.inferred)}</span><span>Other ${number(summary.split.unknown)}</span></div><p style="font-size:11px">Source breakdown uses the displayed appointment dates of the latest measurement.</p></section></div>
+   <div class="ma-panel ma-export"><div><h4>Shareable market reports</h4><p style="font-size:12px">Export the current filters for business outreach or internal review.</p></div><div class="ma-actions"><a class="ma-button secondary" id="ma-csv">Download CSV</a><a class="ma-button" id="ma-html">Printable report</a></div></div>
+   <section class="ma-panel"><div class="ma-panel-head"><h4>Inventory detail</h4><span style="font-size:12px;color:#64758a">${number(data.rows.length)} records</span></div><div id="ma-report-table"></div></section>
+   <div class="ma-note">${filters.kind==='backfill'?'Reconstructed history uses retained inventory and historical offers. It is separate from original scheduled snapshots. ':''}Cards count advertised service options. They can overlap and do not establish bookings or staff capacity. ${filters.kind==='forward'?'The two-day total repeats on date rows; count it once per capture and market. ':''}Missing records do not prove zero supply. Open the printable report and use Print → Save as PDF to create a PDF attachment.</div>
+   <details class="ma-panel" style="margin-top:18px"><summary>Collection schedule, recent runs, and definitions</summary><p>1 p.m.: tomorrow and the day after. 11 p.m.: retained past cards for that day. Chicago time adjusts for daylight saving. Analytics can run alongside the existing scheduler.</p>
+    ${(status.runs||[]).map(r=>`<div class="ma-health-row"><span>${esc(r.snapshot_date)}</span><span>${esc(r.kind)}</span><span>${esc(r.status)}</span><span>${esc(time(r.captured_at))}</span></div>`).join('')||'<p>No runs recorded yet.</p>'}
+    <p>${esc(data.caveat||'')}</p><p>Observed means a confirmed availability record, not a customer booking. Staffing or demand conclusions need additional evidence. Reports contain aggregates; they do not include individual business names or booking URLs.</p></details></div>`;
+  renderTable();
+  document.querySelector('#ma-form').onsubmit=e=>{e.preventDefault();filters={...filters,...Object.fromEntries(new FormData(e.currentTarget))};reportPage=0;loadMarket();};
+  for(const el of document.querySelectorAll('[data-mode]'))el.onclick=()=>{filters.kind=el.dataset.mode;filters.from=filters.kind==='forward'?day(1):day(-30);filters.to=filters.kind==='forward'?day(2):today;reportPage=0;loadMarket();};
+  for(const el of document.querySelectorAll('[data-preset]'))el.onclick=()=>{const n=el.dataset.preset;filters.from=n==='next'?day(1):day(-Number(n)+1);filters.to=n==='next'?day(2):today;reportPage=0;loadMarket();};
+  for(const format of ['csv','html'])document.querySelector('#ma-'+format).href='/api/admin/market-analytics/report?'+new URLSearchParams({...filters,format});
+ }
  async function loadMarket(){
-  const g=++generation;currentView='marketAnalytics';setActiveNav(currentView);
-  pageTitle.textContent='Market Analytics';pageSubtitle.textContent='Inventory by city and industry • America/Chicago';
-  setLoading('Loading inventory snapshots…');
+  const g=++generation;clearInterval(heartbeatTimer);currentView='marketAnalytics';setActiveNav(currentView);
+  pageTitle.textContent='Market Analytics';pageSubtitle.textContent='Market supply, historical trends, and downloadable reports';
+  content.innerHTML='<div class="ma"><div class="ma-skeleton" role="status" aria-label="Loading market analytics"></div></div>';
   try{
    const [status,data]=await Promise.all([request('/api/admin/market-analytics/status'),request('/api/admin/market-analytics/report?'+new URLSearchParams(filters))]);
    if(g!==generation||currentView!=='marketAnalytics')return;
-   const cities=[...new Set(status.markets.map(m=>m.city))];const industries=[...new Set(status.markets.map(m=>m.industry))];
-   const options=(arr,value)=>'<option value="">All</option>'+arr.map(v=>`<option value="${esc(v)}" ${v===value?'selected':''}>${esc(v)}</option>`).join('');
-   const heartbeat=status.workers[0];const healthy=heartbeat&&Date.now()-Date.parse(heartbeat.heartbeat_at)<180000&&!heartbeat.last_error;
-   const cols=['snapshot_date','appointment_date','city','state','industry','confirmed_cards','inferred_only_cards','total_cards','two_day_total','businesses_with_cards','status'];
-   content.innerHTML=`<div class="ma-info"><strong>Two scheduled measurements</strong><br>11 p.m.: retained past cards for that calendar day.<br>1 p.m.: tomorrow and the day after, with a combined two-day total.<br>Historical backfill is reconstructed and kept separate. ${esc(data.caveat)}</div>
-   <div class="ma-health ${healthy?'':'ma-warn'}">Worker: ${healthy?'running':'not healthy / not started'} · Last heartbeat: ${esc(heartbeat?.heartbeat_at||'none')}<br>${esc(heartbeat?.last_error||'')}</div>
-   <form id="ma-form" class="ma-toolbar">
-   <label>Appointment dates from<input name="from" type="date" value="${esc(filters.from)}" required></label>
-   <label>Through<input name="to" type="date" value="${esc(filters.to)}" required></label>
-   <label>Measurement<select name="kind">${[['daily','11 p.m. daily snapshots'],['forward','1 p.m. next two days'],['backfill','Reconstructed history']].map(([k,v])=>`<option value="${k}" ${k===filters.kind?'selected':''}>${v}</option>`).join('')}</select></label>
-   <label>City<select name="city">${options(cities,filters.city)}</select></label><label>Industry<select name="industry">${options(industries,filters.industry)}</select></label>
-   <button class="primary-btn" type="submit">Build report</button></form>
-   <div class="ma-actions"><a id="ma-csv">Download CSV</a><a id="ma-html">Download printable report</a></div>
-   <p>Printable reports can be saved as PDF from your browser. Downloads contain market aggregates, without business names or booking URLs.</p>
-   <div class="ma-overflow"><table class="ma-table"><thead><tr>${cols.map(k=>`<th>${esc(k.replaceAll('_',' '))}</th>`).join('')}</tr></thead><tbody>${data.rows.slice(0,500).map(r=>`<tr>${cols.map(k=>`<td>${esc(r[k]??'—')}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="11">No retained data for this report. Missing data is not a measured zero.</td></tr>`}</tbody></table></div>
-   <p>${data.rows.length>500?'Showing first 500 rows; downloads include all matching rows.':''} Two-day totals repeat for each date; count them once per snapshot and market.</p>
-   <details><summary>Collection status and historical setup</summary><p>Backfill runs once during installation and can resume safely. Historical offers cannot recreate past 1 p.m./11 p.m. snapshots. No demand alerts are generated from supply alone.</p>
-   ${status.runs.map(r=>`<p>${esc(r.snapshot_date)} · ${esc(r.kind)} · ${esc(r.status)} · captured ${esc(r.captured_at)}<br>${esc(r.note)}</p>`).join('')||'<p>No snapshots yet.</p>'}</details>`;
-   document.getElementById('ma-form').addEventListener('submit',event=>{event.preventDefault();filters=Object.fromEntries(new FormData(event.currentTarget));loadMarket();});
-   for(const format of ['csv','html'])document.getElementById('ma-'+format).href='/api/admin/market-analytics/report?'+new URLSearchParams({...filters,format});
-   setStatus('Market report ready.','success');
-  }catch(e){if(currentView==='marketAnalytics'&&g===generation){content.innerHTML=`<p>${esc(e.message)}</p>`;setStatus('Market analytics unavailable.','error');}}
+   lastStatus=status;lastData=data;render();setStatus('Market report ready.','success');
+   heartbeatTimer=setInterval(async()=>{
+    if(currentView!=='marketAnalytics')return;
+    try{const status=await request('/api/admin/market-analytics/status');if(g!==generation||currentView!=='marketAnalytics')return;lastStatus=status;const info=workerInfo(status);const badge=document.querySelector('#ma-worker-badge');if(badge){badge.className='ma-badge '+info.className;badge.textContent=info.text;document.querySelector('#ma-worker-detail').textContent=info.detail;}}catch{}
+   },60000);
+  }catch(error){
+   if(g!==generation||currentView!=='marketAnalytics')return;
+   content.innerHTML=`<div class="ma"><div class="ma-error"><h3>Market analytics needs attention</h3><p>${esc(error.message)}</p><button id="ma-retry" class="ma-button">Try again</button></div></div>`;document.querySelector('#ma-retry').onclick=loadMarket;setStatus('Could not load market report.','error');
+  }
  }
 })();
